@@ -79,8 +79,13 @@ void setup() {
   digitalWrite(PIN_OE, LOW);
 
   Serial.println(F("\n=== pinscan DN22D08 ==="));
-  Serial.println(F("Relais : un par un, 1,5 s chacun. Noter le bornier qui colle."));
-  Serial.println(F("Entrees : appliquer le signal sur chaque borne IN1..IN8."));
+  Serial.println(F("Relais  : un par un, 1,5 s chacun. Noter le bornier qui colle."));
+  Serial.println(F("Entrees : relier chaque borne IN1..IN8 a la MASSE, une par une."));
+  Serial.println(F("          Si rien ne bouge, reessayer avec du +12 V : la carte"));
+  Serial.println(F("          serait alors PNP et tous les communs du faisceau"));
+  Serial.println(F("          iraient au +12 V au lieu de la masse."));
+  Serial.println(F("Boutons : la serigraphie K1..K4 est reputee INVERSEE. Noter quel"));
+  Serial.println(F("          poussoir physique fait passer K1 a 0."));
   Serial.println(F("Attendu au repos : 11111111 (actif = 0).\n"));
 }
 

@@ -44,10 +44,12 @@ run_case "minimal (ni afficheur ni bus ni journal)" \
 run_case "mode apprentissage Bafang" BAFANG_LEARN_MODE 1
 run_case "vitesse Bafang en valeur directe" BAFANG_SPEED_FORMULA 0
 run_case "bus Bafang ET capteur roue" SPEED_SOURCE_WHEEL 1
-run_case "route sans croisement" \
-  HIGHBEAM_REQUIRES_LOWBEAM 0 HIGHBEAM_KEEPS_LOWBEAM 0
+run_case "phare conditionne a la veilleuse" \
+  MAIN_REQUIRES_PARK 1 MAIN_KEEPS_PARK 0
 run_case "freins inverses (interface transistor)" \
   IN_INVERT_BRAKE_FRONT 1 IN_INVERT_BRAKE_REAR 1
+run_case "rappel clignotant muet + page vitesse" \
+  BLINK_REMINDER_ON_MS 0 DISPLAY_DEFAULT_PAGE 0
 
 [ "$FAILED" = 0 ] && echo "== Toutes les variantes compilent ==" || echo "== ECHECS =="
 exit "$FAILED"

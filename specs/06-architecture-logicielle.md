@@ -28,8 +28,8 @@ loop()
   ├─ bafang::poll(now)        vide le tampon série, décode      (aucune dépendance)
   ├─ inputs::update(now)      anti-rebond, fronts                (aucune dépendance)
   ├─ brakes::update(now, in)  → braking(), pilote OUT_MOTOR_CUT
-  ├─ turnsignals::update(...) → OUT_TURN_*, demande buzzer
-  ├─ lights::update(now, in, brakes::braking())  → OUT_LOWBEAM/HIGHBEAM/TAIL
+  ├─ turnsignals::update(...) → OUT_TURN_*, rappel d'oubli
+  ├─ lights::update(now, in, brakes::braking())  → OUT_PARK_FRONT/MAIN/TAIL_*
   ├─ horn::update(now, in)    → OUT_HORN
   ├─ telemetry::update(now)   consolide vitesse, intègre l'odomètre
   └─ diag::update(now)        LED, journal, temps de cycle
@@ -48,8 +48,8 @@ dans le `.ino`.
 | `debounce` | la classe `Debouncer` | — |
 | `inputs` | les 8 états débouncés + fronts | `board_io` |
 | `brakes` | `OUT_MOTOR_CUT` | `inputs` |
-| `turnsignals` | `OUT_TURN_LEFT`, `OUT_TURN_RIGHT`, demande buzzer | `inputs`, `telemetry` |
-| `lights` | `OUT_LOWBEAM`, `OUT_HIGHBEAM`, `OUT_TAIL` | `inputs`, `brakes` |
+| `turnsignals` | `OUT_TURN_LEFT`, `OUT_TURN_RIGHT` | `inputs`, `telemetry` |
+| `lights` | `OUT_PARK_FRONT`, `OUT_MAIN`, `OUT_TAIL_PARK`, `OUT_TAIL_STOP` | `inputs`, `brakes` |
 | `horn` | `OUT_HORN` | `inputs` |
 | `display` | les 4 digits de l'afficheur | `telemetry`, `bafang`, `diag` |
 | `bafang` | le port logiciel, le décodeur | — |
@@ -164,16 +164,16 @@ flash utilisables après bootloader, 2 048 o de RAM) :
 
 | Configuration | Flash | RAM |
 |---|---|---|
-| **Défaut** (Bafang + afficheur + journal + autotest + WDT) | **8 750 o — 28 %** | **703 o — 34 %** |
-| Sans bus Bafang, vitesse par capteur de roue | 6 888 o — 22 % | — |
-| Sans afficheur | 8 052 o — 26 % | — |
-| Production silencieuse (ni journal ni autotest ni WDT) | 6 348 o — 20 % | — |
-| Mode apprentissage Bafang | 7 978 o — 25 % | — |
-| Minimal (ni afficheur, ni bus, ni journal) | 3 366 o — 10 % | — |
+| **Défaut** (Bafang + afficheur + journal + autotest + WDT) | **8 918 o — 29 %** | **705 o — 34 %** |
+| Sans bus Bafang, vitesse par capteur de roue | 7 050 o — 22 % | — |
+| Sans afficheur | 8 212 o — 26 % | — |
+| Production silencieuse (ni journal ni autotest ni WDT) | 6 452 o — 21 % | — |
+| Mode apprentissage Bafang | 8 130 o — 26 % | — |
+| Minimal (ni afficheur, ni bus, ni journal) | 3 514 o — 11 % | — |
 
 Cible NF-1 (< 24 ko flash / < 1,4 ko RAM) tenue avec une marge de plus du
 double. Les chaînes du journal sont placées en flash via `F()` : c'est ce qui
-maintient la RAM à 641 o malgré une trentaine de messages.
+maintient la RAM à 705 o malgré une trentaine de messages.
 
 Le balayage de toutes ces variantes est automatisé par
 `tools/check-variants.sh` : une branche `#if` non prise n'est pas vérifiée par
@@ -187,16 +187,17 @@ incompatibles.
 | Option | Défaut | Effet |
 |---|---|---|
 | `BRAKE_WIRING_VARIANT` | 2 | 1 = entrée frein unique ; 2 = avant/arrière séparés |
-| `IN_INVERT_BRAKE_FRONT` / `_REAR` | 0 | Inverse la lecture (interface transistor, §03-4) |
+| `IN_INVERT_BRAKE_FRONT` / `_REAR` | 0 | Inverse la lecture (interface transistor, `cablage.md` §5) |
 | `DISPLAY_ENABLE` | 1 | Compile ou non le pilotage des digits |
-| `DISPLAY_DEFAULT_PAGE` | 0 | Page affichée au démarrage |
+| `DISPLAY_DEFAULT_PAGE` | 2 | Page affichée au démarrage (2 = défauts : l'afficheur est un outil de maintenance, pas un tableau de bord) |
 | `BAFANG_ENABLE` | 1 | Compile ou non l'écoute UART |
 | `BAFANG_LEARN_MODE` | 0 | Dump hexadécimal des trames |
 | `BAFANG_SPEED_FORMULA` | 1 | 0 = km/h ×10 direct ; 1 = période de roue |
-| `SPEED_SOURCE_WHEEL` | 0 | Vitesse depuis le capteur de roue sur D12 |
+| `SPEED_SOURCE_WHEEL` | 0 | Vitesse depuis le capteur de roue sur A6 |
 | `BRAKE_FLASH_ENABLE` | 0 | Flash d'attaque du feu stop |
 | `TAIL_ALWAYS_ON` | 0 | Veilleuse arrière permanente (feux de jour) |
-| `HIGHBEAM_REQUIRES_LOWBEAM` | 1 | Le feu de route exige le croisement |
-| `HIGHBEAM_KEEPS_LOWBEAM` | 1 | Le croisement reste allumé avec la route |
+| `MAIN_REQUIRES_PARK` | 0 | Le phare exige la veilleuse (0 = jamais bloqué) |
+| `MAIN_KEEPS_PARK` | 1 | La veilleuse reste allumée avec le phare |
+| `BLINK_REMINDER_ON_MS` | 200 | Phase allumée pendant le rappel d'oubli ; 0 = rappel muet |
 | `DEBUG_SERIAL` | 1 | Journal série 115 200 bd |
 | `WATCHDOG_ENABLE` | 1 | Chien de garde 1 s |

@@ -6,22 +6,23 @@
  */
 #pragma once
 
-#define VHELIO_FW_VERSION "0.2.0"
+#define VHELIO_FW_VERSION "0.3.0"
 
 /* ======================================================================
  * Variantes de câblage
  * ====================================================================== */
 
-/* 1 = les deux freins sont en parallèle sur la ligne frein du contrôleur,
- *     l'Arduino ne lit qu'une seule entrée (IN_BRAKE_FRONT). IN_BRAKE_REAR
- *     est alors libre.
+/* 1 = une seule entrée frein est câblée (IN_BRAKE_FRONT). IN_BRAKE_REAR est
+ *     alors forcée inactive par le firmware.
  * 2 = freins avant et arrière lus séparément (défaut).
  * Voir specs/03-affectation-es.md §5. */
 #define BRAKE_WIRING_VARIANT      2
 
 /* Mettre à 1 si l'entrée frein correspondante passe par l'interface
- * transistor de la variante A : la logique est alors inversée, et une
- * rupture de fil est interprétée comme un freinage (état sûr). */
+ * transistor de lecture de la ligne frein Bafang : la logique est alors
+ * inversée, et une rupture de fil est interprétée comme un freinage (état
+ * sûr). Ne concerne que IN_BRAKE_REAR dans le câblage retenu — le contacteur
+ * avant est un contact sec direct vers la masse. */
 #define IN_INVERT_BRAKE_FRONT     0
 #define IN_INVERT_BRAKE_REAR      0
 
@@ -29,11 +30,22 @@
  * Éclairage
  * ====================================================================== */
 
-#define HIGHBEAM_REQUIRES_LOWBEAM 1   /* le feu de route exige le croisement   */
-#define HIGHBEAM_KEEPS_LOWBEAM    1   /* le croisement reste allumé avec route */
+/* Deux niveaux, deux commandes physiquement distinctes :
+ *   IN_PARK  = interrupteur dédié « veilleuse »  -> R1 (veilleuse avant)
+ *   IN_MAIN  = interrupteur du comodo, plein feu -> R2 (phares)
+ *
+ * MAIN_REQUIRES_PARK vaut 0 volontairement : l'éclairage fort ne doit JAMAIS
+ * être bloqué par un interrupteur de veilleuse resté ouvert. */
+#define MAIN_REQUIRES_PARK        0   /* 1 = le phare exige la veilleuse       */
+#define MAIN_KEEPS_PARK           1   /* la veilleuse reste allumée avec phare */
 #define TAIL_ALWAYS_ON            0   /* veilleuse arrière permanente (DRL)    */
 
-/* Les feux arrière sont sur DEUX relais distincts (veilleuse et stop) : un
+/* Le feu de position ARRIÈRE suit toujours l'éclairage, quel que soit le
+ * niveau demandé et quelles que soient les deux options ci-dessus : rouler
+ * éclairé à l'avant sans feu arrière est la faute la plus dangereuse que ce
+ * montage puisse commettre. Ce n'est délibérément pas configurable.
+ *
+ * Les feux arrière sont sur DEUX relais distincts (veilleuse et stop) : un
  * relais ne module pas, la variante « circuit unique à intensité variable »
  * est matériellement impossible sur cette carte. Voir specs/03 §4. */
 
@@ -64,6 +76,21 @@
 #define BLINK_REMINDER_MS         45000UL   /* rappel d'oubli : durée        */
 #define BLINK_REMINDER_MM         300000UL  /* rappel d'oubli : 300 m en mm  */
 
+/* Comment le rappel d'oubli se manifeste (Q12 : le boîtier est sous la coque,
+ * l'afficheur n'est pas lisible en roulant, et il n'y a pas de buzzer).
+ *
+ * Le rappel change le RAPPORT CYCLIQUE, pas la période. La cadence reste à
+ * 80 cycles/min — donc toujours dans la plage réglementaire 60-120 — mais le
+ * rythme du claquement passe de régulier (375/375) à syncopé (200/550). Le
+ * conducteur l'entend, le code de la route est respecté, et cela ne coûte ni
+ * composant ni sortie.
+ *
+ * Contrepartie assumée : le feu est allumé 27 % du temps au lieu de 50 %,
+ * donc légèrement moins visible. C'est acceptable précisément parce qu'après
+ * 45 s ou 300 m, le clignotant est très probablement resté allumé pour rien.
+ * Mettre 0 pour désactiver le rappel sonore et ne garder que le journal. */
+#define BLINK_REMINDER_ON_MS      200
+
 /* ======================================================================
  * Klaxon
  * ====================================================================== */
@@ -83,8 +110,12 @@
  * Afficheur 4 digits
  * ====================================================================== */
 
+/* Le boîtier est monté sous la coque (Q12) : l'afficheur n'est PAS lisible en
+ * roulant. C'est un outil de maintenance, pas un tableau de bord — d'où la
+ * page « défauts » par défaut : c'est ce qu'on veut voir en ouvrant la coque.
+ * Le diagnostic de conduite repose entièrement sur le journal série. */
 #define DISPLAY_ENABLE            1
-#define DISPLAY_DEFAULT_PAGE      0    /* 0=vitesse 1=charge 2=défauts 3=odomètre */
+#define DISPLAY_DEFAULT_PAGE      2    /* 0=vitesse 1=charge 2=défauts 3=odomètre */
 #define DISPLAY_BLINK_MS          500  /* deux-points = battement de cœur, 1 Hz  */
 #define DISPLAY_BLINK_FAULT_MS    120  /* deux-points rapide = défaut actif      */
 
@@ -148,6 +179,14 @@
 
 #if BLINK_ON_MS >= BLINK_PERIOD_MS
 #error "BLINK_ON_MS doit etre inferieur a BLINK_PERIOD_MS"
+#endif
+
+#if BLINK_REMINDER_ON_MS >= BLINK_PERIOD_MS
+#error "BLINK_REMINDER_ON_MS doit etre inferieur a BLINK_PERIOD_MS"
+#endif
+
+#if DISPLAY_ENABLE && DISPLAY_DEFAULT_PAGE > 3
+#error "DISPLAY_DEFAULT_PAGE doit etre compris entre 0 et 3"
 #endif
 
 #if BRAKE_FLASH_ENABLE

@@ -53,7 +53,33 @@ Nano.
 | A4 | Libre → écoute UART Bafang (RX logiciel) |
 | A5 | Libre → TX logiciel, **non câblé** |
 | A6, A7 | Libres, analogiques seules |
-| D0, D1 | Console série — **à vérifier**, le RS485 y est probablement raccordé |
+| D0, D1 | Console série — libres, voir §2 bis |
+
+## 2 bis. Le RS485 et l'inverseur « 485_ON / PRO »
+
+La carte porte un émetteur-récepteur RS485 (boîtier 8 broches, près des bornes
+`A+` / `B-`) **relié à D0/D1**, donc en conflit direct avec la console série et
+avec le téléversement. Un **inverseur à glissière** sérigraphié `485_ON` d'un
+côté, `PRO` de l'autre, l'en déconnecte.
+
+| Position | Effet |
+|---|---|
+| **`PRO`** | Le RS485 est isolé de D0/D1. Console série et téléversement USB normaux. **C'est la position d'exploitation de ce projet.** |
+| `485_ON` | Le RS485 prend D0/D1. La console série et le téléversement cessent de fonctionner. |
+
+Conséquences pratiques :
+
+- **Laisser l'inverseur sur `PRO` en permanence.** Le RS485 n'est utilisé par
+  aucune fonction du projet, et `DEBUG_SERIAL 1` reste valide.
+- **Aucun convertisseur USB-RS485 n'est nécessaire.** L'ordinateur dialogue
+  avec le Nano par son propre port USB, comme n'importe quel Arduino. Le RS485
+  n'a d'intérêt que pour un futur bus Modbus (§ « Évolutions » de `09`).
+- Si un jour le RS485 sert, la console de mise au point devra basculer sur
+  l'afficheur 4 digits (`DEBUG_SERIAL 0`) — mais l'afficheur est sous la coque
+  (Q12), ce qui rend l'arbitrage nettement défavorable au RS485.
+
+> Si un téléversement échoue sans raison apparente, **vérifier cet inverseur
+> avant toute autre hypothèse.** C'est le piège classique de cette carte.
 
 > **La LED D13 n'est pas utilisable comme témoin.** Elle est sur la ligne de
 > données du registre et papillote au rythme du rafraîchissement. Le battement
@@ -62,21 +88,32 @@ Nano.
 
 ## 3. Entrées — IN1 … IN8
 
-Optocoupleurs NPN : un signal appliqué sur la borne fait conduire
-l'optocoupleur, qui tire la broche du Nano **à l'état bas**. Le firmware
-active `INPUT_PULLUP`, ce qui donne un état inactif franc même carte non
-alimentée.
+Optocoupleurs **NPN, déclenchement à l'état bas** : la LED de l'optocoupleur
+est alimentée depuis le +12 V de la carte à travers une résistance, et l'on
+active une entrée en **fermant sa borne sur la masse**. Côté Nano,
+l'optocoupleur tire la broche à l'état bas ; le firmware active `INPUT_PULLUP`,
+ce qui donne un état inactif franc même carte non alimentée.
+
+> **Tous les organes de commande sont donc de simples contacts secs vers la
+> masse** : comodo, interrupteur veilleuse, interrupteur détresse, contacteurs
+> de frein. C'est ce qui rend utilisable le contacteur de frein avant, qui est
+> unipolaire (§5). Le commun du comodo va à **GND**, pas au +12 V.
+>
+> Ce point est le seul du brochage qui puisse encore surprendre : certaines
+> variantes de la même famille sont câblées en PNP (activation par +12 V). Le
+> pinscan tranche en trente secondes (§6, étape 4), et **le firmware est
+> identique dans les deux cas** — seul le fil de commun change de borne.
 
 | # | Broche | Nom logique | Source | Type | Anti-rebond |
 |---|---|---|---|---|---|
 | IN1 | D2 | `IN_TURN_LEFT` | Comodo, position gauche | maintenu | 30 ms |
 | IN2 | D3 | `IN_TURN_RIGHT` | Comodo, position droite | maintenu | 30 ms |
 | IN3 | D4 | `IN_HORN` | Comodo, bouton klaxon | momentané | 20 ms |
-| IN4 | D5 | `IN_BRAKE_FRONT` | Contacteur frein avant | momentané | 15 ms |
-| IN5 | D6 | `IN_BRAKE_REAR` | Contacteur frein arrière | momentané | 15 ms |
-| IN6 | A0 | `IN_LOWBEAM` | Comodo, croisement | maintenu | 30 ms |
-| IN7 | D12 | `IN_HIGHBEAM` | Comodo, feu de route | maintenu | 30 ms |
-| IN8 | D11 | `IN_HAZARD` | Interrupteur détresse dédié | maintenu | 30 ms |
+| IN4 | D5 | `IN_BRAKE_FRONT` | Contacteur frein avant (unipolaire, contact sec) | momentané | 15 ms |
+| IN5 | D6 | `IN_BRAKE_REAR` | Micro-rupteur S2 sur le levier arrière | momentané | 15 ms |
+| IN6 | A0 | `IN_PARK` | Interrupteur dédié « veilleuse » | maintenu | 30 ms |
+| IN7 | D12 | `IN_MAIN` | Comodo, éclairage fort | maintenu | 30 ms |
+| IN8 | D11 | `IN_HAZARD` | Interrupteur dédié détresse (S1) | maintenu | 30 ms |
 
 **Gain par rapport à l'ancienne hypothèse** : les huit entrées sont sur de
 vraies broches numériques. Le contournement `analogRead()` sur A6/A7, et le
@@ -89,8 +126,8 @@ ni module MOSFET, ni relais de klaxon, ni optocoupleur de coupure moteur.
 
 | Relais | Bit registre | Nom logique | Charge | Régime |
 |---|---|---|---|---|
-| R1 | 1 | `OUT_LOWBEAM` | Feu de croisement | continu |
-| R2 | 2 | `OUT_HIGHBEAM` | Feu de route | continu |
+| R1 | 1 | `OUT_PARK_FRONT` | Veilleuse avant | continu |
+| R2 | 2 | `OUT_MAIN` | Phares (éclairage fort) | continu |
 | R3 | 3 | `OUT_TURN_LEFT` | Clignotants gauche (AV + AR) | **cyclique 1,33 Hz** |
 | R4 | 4 | `OUT_TURN_RIGHT` | Clignotants droite (AV + AR) | **cyclique 1,33 Hz** |
 | R5 | 5 | `OUT_TAIL_PARK` | Feux de position arrière | continu |
@@ -143,29 +180,81 @@ donc la broche est déjà haute au moment où elle devient une sortie. L'ordre
 inverse produirait une impulsion basse — **tous les relais collés** — pendant
 quelques microsecondes à chaque mise sous tension.
 
-## 5. Câblage des freins — deux variantes
+## 5. Câblage des freins
 
-La coupure moteur passant maintenant par un contact sec, la variante A perd
-son principal intérêt (l'isolation était déjà résolue). Les deux restent
-possibles.
+Le matériel réel impose le schéma. Deux contacteurs, de natures très
+différentes :
 
-### Variante B — détection discriminante *(défaut du firmware)*
+| | Frein avant | Frein arrière |
+|---|---|---|
+| Organe | Contact sec **unipolaire**, ouvert au repos | Connecteur Higo **rond jaune 3 broches** du kit Bafang |
+| Commande | Les deux freins des roues avant | Le frein arrière |
+| Nature électrique | Un seul jeu de contacts, rien d'autre | Ligne logique ~5 V référencée à la masse du contrôleur |
 
-- **Frein avant** : contacteur alimenté vers IN4. Pour qu'il ferme *aussi* la
-  ligne frein du contrôleur, il faut un contacteur **bipolaire** — sinon on
-  injecterait la tension d'entrée dans le contrôleur.
-- **Frein arrière** : ajouter un micro-rupteur dédié sur le levier, vers IN5.
-  Le contacteur Bafang d'origine reste câblé au contrôleur.
+### Frein avant — vers IN4, en contact sec
 
-### Variante A — freins en parallèle sur la ligne frein
+Les entrées étant NPN (§3), le contacteur se câble entre la borne `IN4` et la
+masse. Rien d'autre n'est nécessaire : pas de +12 V commuté, pas d'interface.
 
-Les deux contacteurs sont câblés en parallèle directement sur le connecteur
-frein du contrôleur ; l'Arduino lit cette ligne via l'interface transistor
-décrite dans `hardware/cablage.md` §5. Une seule entrée est alors utilisée,
-IN5 reste libre, et la logique est inversée (`IN_INVERT_BRAKE_FRONT 1`) — une
-rupture de fil est alors interprétée comme un freinage, ce qui est l'état sûr.
+**Mais un contact unipolaire ne peut servir qu'une fois.** Câblé sur IN4, il
+informe l'Arduino ; il ne ferme pas simultanément la ligne frein du contrôleur.
+La coupure d'assistance au frein avant passe donc **uniquement par R8**, donc
+par le firmware. C'est une régression réelle du principe P1, analysée et
+assumée en `07-securite.md` §2.
 
-Choix dans `config.h` : `BRAKE_WIRING_VARIANT 1` ou `2`.
+L'alternative — câbler le contacteur sur la ligne frein plutôt que sur IN4 —
+est **pire** : l'assistance se couperait nativement, mais le feu stop ne
+s'allumerait plus au frein avant, c'est-à-dire au frein principal d'un
+tricycle. Entre « l'assistance dépend du firmware » et « le feu stop ne
+fonctionne pas », le choix n'est pas discutable.
+
+**Remède quand il sera possible** : un second micro-rupteur sur le même levier
+avant (identique à S2), câblé en parallèle sur la ligne frein du contrôleur.
+Coût dérisoire, et le principe P1 est intégralement rétabli. C'est la seule
+évolution matérielle réellement importante de ce montage.
+
+### Frein arrière — ne pas toucher au connecteur jaune
+
+Le connecteur rond jaune à 3 broches porte une ligne logique en ~5 V (masse,
+alimentation capteur, signal). **Il ne faut surtout pas la raccorder à une
+borne d'entrée de la carte** : celle-ci est tirée au +12 V à travers la LED de
+son optocoupleur, et injecterait donc du 12 V dans une entrée 5 V du
+contrôleur. Destruction probable du contrôleur.
+
+Solution retenue, la plus simple et la plus sûre :
+
+- **Le connecteur d'origine reste intact**, il continue à couper l'assistance
+  nativement. C'est la barrière 1, entièrement indépendante de l'Arduino.
+- **Un micro-rupteur S2 est ajouté sur le levier arrière**, câblé en contact
+  sec vers `IN5` et la masse, exactement comme le contacteur avant. C'est lui
+  qui informe le firmware.
+
+Si l'ajout de S2 est refusé, `hardware/cablage.md` §5 décrit une interface
+transistor qui lit la ligne frein Bafang sans lui imposer de potentiel
+(`IN_INVERT_BRAKE_REAR 1`). Elle fonctionne, mais coûte quatre composants et
+une soudure sur le faisceau moteur, pour remplacer un micro-rupteur à 2 €.
+
+### R8 — la coupure moteur
+
+Contact sec, à insérer sur la ligne frein du contrôleur via une **dérivation
+en Y** au format Higo, sans couper le faisceau. Deux câblages possibles selon
+la polarité réelle du capteur, à déterminer au multimètre :
+
+| Mesure sur le fil signal | Câblage de R8 |
+|---|---|
+| ~5 V au repos, 0 V au freinage *(cas courant)* | Contact **NO** entre signal et masse : R8 collé = freinage simulé |
+| 0 V au repos, ~5 V au freinage | Contact **NC** en série sur le signal : R8 collé = ligne ouverte |
+
+Dans les deux cas, c'est un contact sec : **aucun potentiel n'est injecté**, ce
+qui est précisément l'avantage que les relais ont apporté sur la conception
+initiale à optocoupleur.
+
+### Variantes de compilation
+
+| `BRAKE_WIRING_VARIANT` | Signification |
+|---|---|
+| **2** *(défaut)* | Avant sur IN4, arrière sur IN5 via S2. Les deux freins sont discriminés. |
+| 1 | Une seule entrée frein câblée (IN4). IN5 est forcée inactive par le firmware. À n'utiliser que si S2 n'est pas monté — le feu stop ne s'allumera alors **pas** au frein arrière seul. |
 
 ## 6. Procédure de vérification
 
@@ -182,13 +271,27 @@ Choix dans `config.h` : `BRAKE_WIRING_VARIANT 1` ou `2`.
    - Si rien ne bouge : les broches data / horloge / verrou sont fausses.
    - Si tous les relais collent en même temps : OE est mal identifiée.
    - Si l'ordre ne correspond pas : corriger `RELAY_BIT[]` dans `board_io.cpp`.
-4. **Entrées.** Au repos, la console doit afficher `IN1..IN8 = 11111111`.
-   Appliquer le signal sur chaque borne : le chiffre correspondant doit passer
-   à `0`. Noter tout écart d'ordre et corriger `IN_PIN[]`.
-5. **Boutons.** Appuyer sur K1 à K4 : `K1..K4` doit passer à `0`.
-6. **RS485.** Vérifier si un circuit type MAX485 est relié à D0/D1. Si oui, la
-   console série de mise au point entre en conflit avec lui — voir Q11 dans
-   `09-questions-ouvertes.md`.
+4. **Entrées, et surtout leur polarité.** Au repos, la console doit afficher
+   `IN1..IN8 = 11111111`. Relier alors chaque borne d'entrée **à la masse**,
+   une par une, avec un simple fil volant :
+   - le chiffre correspondant passe à `0` → **entrées NPN**, hypothèse
+     confirmée, tous les communs du faisceau vont à la masse ;
+   - rien ne bouge → réessayer en appliquant **+12 V** sur la borne. Si le
+     chiffre passe à `0`, les entrées sont PNP : **le firmware ne change pas**,
+     mais tous les communs du faisceau vont au +12 V. Corriger
+     `hardware/cablage.md` §2 en conséquence.
+
+   Noter aussi tout écart d'**ordre** (borne IN3 qui fait bouger le 5ᵉ
+   chiffre, par exemple) et corriger `IN_PIN[]`.
+5. **Boutons.** Appuyer sur les quatre poussoirs, de gauche à droite. Attention :
+   la sérigraphie `K1..K4` est réputée **inversée** par rapport au câblage sur
+   cette famille de cartes — le poussoir marqué `K4` serait celui relié à D7.
+   Noter quel poussoir physique fait passer `K1` à `0` : c'est celui qui
+   changera de page d'afficheur.
+6. **Inverseur `485_ON` / `PRO`.** Le mettre sur `PRO` et vérifier que la
+   console répond. Le basculer sur `485_ON` : la console doit **cesser** de
+   répondre — ce qui confirme que le RS485 est bien sur D0/D1. Le remettre sur
+   `PRO` et l'y laisser (§2 bis).
 7. Reporter les écarts dans `firmware/vhelio/src/pins.h` et
    `firmware/vhelio/src/board_io.cpp`.
 
@@ -219,13 +322,14 @@ l'afficheur, et le déplacement de l'écoute UART de D10 vers A4.
 
 | Ressource | Utilisé | Libre |
 |---|---|---|
-| Entrées optocouplées | 8 / 8 (7 / 8 en variante A) | 0 (ou 1) |
+| Entrées optocouplées | 8 / 8 (7 / 8 si S2 n'est pas monté) | 0 (ou 1) |
 | Relais | 8 / 8 | 0 |
-| Boutons carte | 1 / 4 (page d'afficheur) | 3 |
-| Afficheur | vitesse, charge, défauts, odomètre | — |
+| Boutons carte | 1 / 4 (page d'afficheur) | 3, mais sous la coque |
+| Afficheur | vitesse, charge, défauts, odomètre — **maintenance seule** | — |
 | Broches Nano hors carte | A4, A5 (écoute Bafang) | A6, A7 |
 | Timers | Timer0 (`millis`) | Timer1, Timer2 |
-| UART matériel | console de mise au point | — |
+| UART matériel | console de mise au point (inverseur sur `PRO`) | — |
+| RS485 | inutilisé, déconnecté par l'inverseur | disponible |
 
 Les relais et les entrées sont saturés. Les marges restantes sont **trois
 boutons** et **deux broches analogiques**. Toute fonction supplémentaire

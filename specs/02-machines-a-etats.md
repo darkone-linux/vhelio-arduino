@@ -65,12 +65,33 @@ retour ne peut pas tomber en panne indépendamment du clignotant qu'il annonce.
 
 Un compteur démarre à l'entrée dans `LEFT` ou `RIGHT` (pas en `HAZARD`, qui est
 intentionnellement durable). Au-delà de 45 s **ou** 300 m parcourus — si la
-vitesse est valide — l'état de rappel est levé. Il est publié au journal série
-et exploitable par l'afficheur ; les clignotants continuent normalement.
+vitesse est valide — l'état de rappel est levé. Les clignotants continuent
+normalement ; seul leur **rythme** change.
 
-**Limite assumée** : faute de sortie disponible pour un buzzer, ce rappel n'est
-pas audible. Le rendre audible imposerait de renoncer à l'écoute UART (qui
-occupe A4/A5) ou d'utiliser une broche de bouton en sortie. Voir Q12.
+#### Comment il se manifeste
+
+Le boîtier est sous la coque et l'afficheur illisible en roulant (Q12) : le
+claquement des relais est le seul canal restant vers le conducteur. Le rappel
+l'emprunte, en jouant sur le **rapport cyclique** :
+
+| | Période | Phase allumée | Rapport | Cadence |
+|---|---|---|---|---|
+| Normal | 750 ms | 375 ms | 50 % | 80 c/min |
+| **Rappel** | **750 ms** *(inchangée)* | **200 ms** | 27 % | **80 c/min** |
+
+La période ne bouge pas. Le claquement « fermeture … ouverture » passe d'un
+rythme régulier à un rythme syncopé — nettement reconnaissable à l'oreille —
+alors que la cadence de clignotement reste dans la plage réglementaire
+60–120 cycles/min.
+
+**C'est précisément pourquoi le rappel n'accélère pas la cadence**, ce qui
+aurait été la solution automobile habituelle : à 2,7 Hz on sortirait de la
+plage réglementaire. On change le rythme, pas la fréquence.
+
+**Contrepartie assumée** : le feu est allumé 27 % du temps au lieu de 50 %,
+donc un peu moins visible. Acceptable parce qu'après 45 s ou 300 m, le
+clignotant est très probablement resté allumé pour rien. `BLINK_REMINDER_ON_MS 0`
+rend le rappel muet et le limite au journal série.
 
 ---
 
@@ -80,8 +101,14 @@ occupe A4/A5) ou d'utiliser une broche de bouton en sortie. Voir Q12.
 
 `braking = FREIN_AV ∨ FREIN_AR` (après anti-rebond 15 ms).
 
-En variante de câblage A (cf. `03-affectation-es.md`), une seule entrée est
-câblée et `FREIN_AR` est ignorée.
+Les deux entrées sont des **contacts secs vers la masse** : le contacteur
+unipolaire du levier avant sur `IN4`, le micro-rupteur S2 du levier arrière sur
+`IN5`. Avec `BRAKE_WIRING_VARIANT 1`, une seule entrée est câblée et
+`FREIN_AR` est ignorée.
+
+> Rappel de `07-securite.md` §2 : cet automate pilote R8, qui est la **seule**
+> coupure d'assistance au frein avant. Au frein arrière, le contacteur Bafang
+> d'origine coupe en parallèle, sans passer par le firmware.
 
 ### Automate de coupure moteur
 
@@ -125,13 +152,18 @@ un feu automobile à deux filaments.
 
 | Relais | Fonction | Condition |
 |---|---|---|
-| R5 | Feux de position | éclairage allumé, ou `TAIL_ALWAYS_ON` |
+| R5 | Feux de position | `IN_PARK` **ou** `IN_MAIN`, ou `TAIL_ALWAYS_ON` |
 | R6 | Feu stop | freinage actif |
+
+> Le **ou** de la première ligne n'est pas configurable, et c'est délibéré :
+> aucune combinaison de commandes ne doit permettre de rouler éclairé à
+> l'avant sans feu rouge arrière (F-1.7).
 
 Il n'y a plus d'arbitrage : les deux sont indépendants et peuvent être allumés
 simultanément. C'est plus simple que la version modulée, et conforme au
 câblage automobile usuel — mais cela consomme deux des huit relais, ce qui est
-ce qui a fait disparaître le buzzer.
+ce qui a fait disparaître le buzzer. Le rappel d'oubli des clignotants a dû
+trouver un autre canal, voir §2.1.
 
 La différenciation visuelle entre position et stop repose désormais sur le
 **matériel** : le feu stop doit être nettement plus lumineux que le feu de
@@ -149,6 +181,10 @@ position. À vérifier au test T3.3.
 
 `LOCKED` protège le klaxon et le convertisseur si le bouton reste collé ou si un
 fil se met à la masse. Le drapeau `FLT_HORN_STUCK` est levé.
+
+Cette protection compte plus qu'il n'y paraît : le convertisseur ne fait que
+10 A, et un klaxon bloqué en consommerait 5 à 7,5 A en permanence, au détriment
+de l'éclairage (`04-electricite.md` §2.3).
 
 ```mermaid
 stateDiagram-v2

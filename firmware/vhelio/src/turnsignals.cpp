@@ -80,12 +80,23 @@ void turnsignals::update(uint32_t now, const InputState& in) {
     g_phaseStart += BLINK_PERIOD_MS;
     elapsed -= BLINK_PERIOD_MS;
   }
-  const bool on = (elapsed < BLINK_ON_MS);
 
   /* Aucun buzzer : les clignotants sont portés par des relais, dont le
    * claquement à 1,33 Hz EST le retour sonore. C'est exactement le bruit
    * d'un relais de clignotant d'origine, et il ne coûte ni sortie ni
-   * composant. */
+   * composant.
+   *
+   * Le rappel d'oubli exploite le même canal. Il raccourcit la phase allumée
+   * sans toucher à la PÉRIODE : la cadence reste à 80 cycles/min, donc dans
+   * la plage réglementaire, mais le rythme du claquement passe de régulier à
+   * syncopé. C'est audible depuis le poste de conduite alors même que le
+   * boîtier est sous la coque et l'afficheur invisible (Q12). */
+  uint16_t onMs = BLINK_ON_MS;
+#if BLINK_REMINDER_ON_MS
+  if (g_reminder) onMs = BLINK_REMINDER_ON_MS;
+#endif
+  const bool on = (elapsed < onMs);
+
   g_phaseOn = on;
 
   board::setOutput(OUT_TURN_LEFT, on && (g_mode == LEFT || g_mode == HAZARD));

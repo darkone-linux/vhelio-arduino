@@ -51,7 +51,7 @@ void diag::selfTest() {
    * garde n'est pas encore armé et rien ne roule.
    * Le klaxon et la coupure moteur sont volontairement exclus. */
   const uint8_t seq[] = {
-    OUT_LOWBEAM, OUT_HIGHBEAM, OUT_TURN_LEFT, OUT_TURN_RIGHT,
+    OUT_PARK_FRONT, OUT_MAIN, OUT_TURN_LEFT, OUT_TURN_RIGHT,
     OUT_TAIL_PARK, OUT_TAIL_STOP
   };
   for (uint8_t i = 0; i < sizeof(seq); ++i) {
@@ -111,9 +111,9 @@ void diag::update(uint32_t now) {
   Serial.print(F("[VH] in="));
   for (uint8_t i = 0; i < IN_COUNT; ++i) Serial.print(in.level[i] ? '1' : '0');
 
-  Serial.print(F(" LB=")); Serial.print(lights::lowBeamOn());
-  Serial.print(F(" HB=")); Serial.print(lights::highBeamOn());
-  Serial.print(F(" PK=")); Serial.print(lights::tailParkOn());
+  Serial.print(F(" VL=")); Serial.print(lights::parkOn());
+  Serial.print(F(" PH=")); Serial.print(lights::mainOn());
+  Serial.print(F(" AR=")); Serial.print(lights::tailParkOn());
   Serial.print(F(" ST=")); Serial.print(lights::tailStopOn());
   Serial.print(F(" TRN="));
   switch (turnsignals::mode()) {
@@ -122,6 +122,7 @@ void diag::update(uint32_t now) {
     case turnsignals::HAZARD: Serial.print('H'); break;
     default:                  Serial.print('-'); break;
   }
+  if (turnsignals::reminderActive()) Serial.print('!');
   Serial.print(F(" HN=")); Serial.print(horn::sounding());
   Serial.print(F(" CUT=")); Serial.print(brakes::motorCut());
 

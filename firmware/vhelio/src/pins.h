@@ -19,24 +19,27 @@
 #include <Arduino.h>
 
 /* ---- Entrées optocouplées (NPN, déclenchement à l'état bas) --------------
- * Reliées directement au Nano : D2, D3, D4, D5, D6, A0, D12, D11.         */
+ * Reliées directement au Nano : D2, D3, D4, D5, D6, A0, D12, D11.
+ * NPN = une borne s'active en la fermant sur la MASSE. Tous les contacts du
+ * faisceau sont donc des contacts secs vers GND — y compris le contacteur de
+ * frein avant, qui est unipolaire. Voir hardware/cablage.md §2.           */
 enum InIdx : uint8_t {
   IN_TURN_LEFT   = 0,  /* IN1 / D2  — comodo, position gauche       */
   IN_TURN_RIGHT  = 1,  /* IN2 / D3  — comodo, position droite       */
   IN_HORN        = 2,  /* IN3 / D4  — comodo, bouton klaxon         */
   IN_BRAKE_FRONT = 3,  /* IN4 / D5  — contacteur frein avant        */
   IN_BRAKE_REAR  = 4,  /* IN5 / D6  — contacteur frein arrière      */
-  IN_LOWBEAM     = 5,  /* IN6 / A0  — comodo, croisement            */
-  IN_HIGHBEAM    = 6,  /* IN7 / D12 — comodo, route                 */
-  IN_HAZARD      = 7,  /* IN8 / D11 — inter détresse                */
+  IN_PARK        = 5,  /* IN6 / A0  — inter dédié « veilleuse »     */
+  IN_MAIN        = 6,  /* IN7 / D12 — comodo, éclairage fort        */
+  IN_HAZARD      = 7,  /* IN8 / D11 — inter dédié détresse (S1)     */
   IN_COUNT       = 8
 };
 
 /* ---- Relais, via le registre à décalage ---------------------------------
  * Contacts secs 10 A NO/NC. Aucun étage de puissance externe nécessaire.  */
 enum OutIdx : uint8_t {
-  OUT_LOWBEAM    = 0,  /* R1 — feu de croisement                    */
-  OUT_HIGHBEAM   = 1,  /* R2 — feu de route                         */
+  OUT_PARK_FRONT = 0,  /* R1 — veilleuse avant                      */
+  OUT_MAIN       = 1,  /* R2 — phares (éclairage fort)              */
   OUT_TURN_LEFT  = 2,  /* R3 — clignotants gauche (avant + arrière) */
   OUT_TURN_RIGHT = 3,  /* R4 — clignotants droite (avant + arrière) */
   OUT_TAIL_PARK  = 4,  /* R5 — feux de position arrière (veilleuse) */
@@ -47,14 +50,19 @@ enum OutIdx : uint8_t {
 };
 
 /* ---- Boutons de la carte -------------------------------------------------
- * K1..K4 sur D7, D8, D9, D10. Ils sont SUR la carte, donc dans le boîtier :
- * inaccessibles en roulant. Réservés à la maintenance (pages d'afficheur,
- * test des feux), jamais à une commande de conduite.                       */
+ * Quatre poussoirs sur D7, D8, D9, D10. Ils sont SUR la carte, donc dans le
+ * boîtier — et le boîtier est sous la coque : inaccessibles en roulant.
+ * Réservés à la maintenance, jamais à une commande de conduite.
+ *
+ * Attention à la sérigraphie : sur cette famille de cartes, les repères K1..K4
+ * sont imprimés dans l'ORDRE INVERSE du câblage. Le bouton marqué « K4 » est
+ * celui qui est relié à D7, donc celui que le firmware appelle BTN_PAGE. Le
+ * pinscan tranche (specs/03 §6, étape 5).                                  */
 enum BtnIdx : uint8_t {
-  BTN_PAGE     = 0,   /* K1 / D7  — page suivante de l'afficheur    */
-  BTN_LAMPTEST = 1,   /* K2 / D8  — test des feux (maintenu)        */
-  BTN_SPARE1   = 2,   /* K3 / D9                                    */
-  BTN_SPARE2   = 3,   /* K4 / D10                                   */
+  BTN_PAGE     = 0,   /* D7 (sérigraphié K4) — page suivante        */
+  BTN_LAMPTEST = 1,   /* D8 (sérigraphié K3) — test des feux        */
+  BTN_SPARE1   = 2,   /* D9 (sérigraphié K2)                        */
+  BTN_SPARE2   = 3,   /* D10 (sérigraphié K1)                       */
   BTN_COUNT    = 4
 };
 
@@ -81,8 +89,10 @@ enum BtnIdx : uint8_t {
  * A4 et A5 sont les seules broches libres capables d'interruption sur
  * changement d'état, donc les seules utilisables en RX logiciel.
  * A6/A7 sont libres mais analogiques seules.
- * D0/D1 : console série — À VÉRIFIER, la carte embarque un RS485 qui y est
- * probablement raccordé (question Q11).                                    */
+ * D0/D1 : console série. La carte embarque bien un RS485 sur D0/D1, mais un
+ * inverseur à glissière « 485_ON / PRO » l'en déconnecte. Position **PRO**
+ * en permanence : la console et le téléversement USB fonctionnent alors
+ * normalement. Voir specs/03 §2 bis.                                       */
 #define PIN_BAFANG_RX   A4   /* écoute passive du contrôleur Bafang        */
 #define PIN_BAFANG_TX   A5   /* réservé par SoftwareSerial, NON CÂBLÉ      */
 #define PIN_WHEEL       A6   /* capteur de roue (option) — lecture analogique */

@@ -12,7 +12,7 @@ commandes) et ouvre la porte à la télémétrie et au diagnostic.
 
 ### Dans le périmètre
 
-- Éclairage : feu de croisement, feu de route, feux rouges arrière
+- Éclairage : veilleuse avant, phares, feux rouges arrière (position + stop)
 - Signalisation : clignotants gauche / droite, feux de détresse
 - Klaxon 12 V
 - Détection de freinage (avant + arrière) → feu stop + pause assistance
@@ -27,15 +27,26 @@ commandes) et ouvre la porte à la télémétrie et au diagnostic.
   ni ne surveille le pack.
 - La charge solaire : le MPPT Victron est autonome.
 - L'affichage conducteur : l'afficheur Bafang d'origine est conservé tel quel.
+  Le boîtier du calculateur est monté sous la coque, son afficheur 4 digits
+  n'est pas lisible en roulant et ne sert qu'à la maintenance.
 
 ## 3. Principes directeurs
 
 Ces quatre principes arbitrent toutes les décisions de conception qui suivent.
 
 **P1 — Le firmware n'est jamais un point de défaillance unique pour la sécurité.**
-La coupure moteur au freinage est assurée **matériellement** par le câblage des
-contacteurs de frein sur la ligne frein du contrôleur Bafang. La sortie
+La coupure moteur au freinage est assurée **matériellement** par le câblage du
+contacteur de frein sur la ligne frein du contrôleur Bafang. La sortie
 `OUT_MOTOR_CUT` de l'Arduino est *redondante*, pas indispensable.
+
+> **Entorse connue et documentée, au frein avant.** Le contacteur avant
+> disponible est **unipolaire** : un seul jeu de contacts, qui ne peut pas à la
+> fois informer la carte et fermer la ligne frein. Câblé sur l'entrée de la
+> carte — parce que le feu stop est prioritaire — il laisse la coupure
+> d'assistance au frein avant dépendre du firmware. Le frein **arrière**, lui,
+> respecte intégralement P1. Analyse et remède (un micro-rupteur à 2 €) en
+> `07-securite.md` §2. C'est la seule entorse du projet à ses propres
+> principes, et elle est réparable.
 
 **P2 — La télémétrie est un confort, pas une fonction de sécurité.**
 La perte totale du bus Bafang (fil coupé, afficheur débranché, décodage erroné)
@@ -62,8 +73,11 @@ sous 10 ms pour que la réaction au freinage soit imperceptible.
 | **Convertisseur 48 → 12 V** | Alimente tout le réseau accessoire | Alimente la carte DN22D08 |
 | **Contrôleur Bafang 750 W** | Maître de la traction | Ligne frein (entrée), ligne UART TX (sortie, sniffée) |
 | **Afficheur Bafang UART** | IHM conducteur, réglage assistance | Aucune (l'Arduino n'écrit jamais sur le bus) |
-| **Comodo** | Commandes conducteur | 5 entrées 12 V |
-| **Contacteurs de frein** | Sécurité freinage | 1–2 entrées + ligne frein contrôleur |
+| **Comodo** | Clignotants, klaxon, éclairage fort | 4 entrées, contacts secs vers la masse |
+| **Inters dédiés S1, S3** | Détresse, veilleuse | 2 entrées, contacts secs vers la masse |
+| **Contacteur frein avant** | Feu stop (unipolaire) | 1 entrée ; **ne coupe pas** la ligne frein |
+| **Contacteur frein arrière Bafang** | Coupure d'assistance native | Aucune — connecteur laissé **intact** |
+| **Micro-rupteur S2, levier arrière** | Informe le firmware du freinage arrière | 1 entrée, contact sec |
 | **Arduino Nano + DN22D08** | Logique éclairage / signalisation / diagnostic | — |
 | **Boîtier fusibles** | Protection de chaque départ 12 V | Aucune |
 
@@ -82,14 +96,16 @@ flowchart LR
   FUSE --> NANO[Arduino Nano<br/>+ DN22D08]
   FUSE --> LOADS[Phares · Feux AR · Clignotants<br/>Klaxon · Allume-cigare]
   COMODO[Comodo] --> NANO
-  BRK[Contacteurs frein AV/AR] --> NANO
-  BRK ==>|câblage direct<br/>failsafe| CTRL
+  BAV[Contacteur frein AVANT<br/>unipolaire] --> NANO
+  BAR[Contacteur frein ARRIÈRE<br/>Bafang d'origine] ==>|câblage direct<br/>failsafe| CTRL
+  S2[Micro-rupteur S2<br/>levier arrière] --> NANO
   NANO --> LOADS
-  NANO -.->|coupure redondante| CTRL
+  NANO -.->|R8, coupure redondante| CTRL
 ```
 
-Le trait épais `BRK ==> CTRL` matérialise le principe P1 : le chemin de sécurité
-ne passe pas par l'Arduino.
+Le trait épais matérialise le principe P1 : au frein **arrière**, le chemin de
+sécurité ne passe pas par l'Arduino. Au frein **avant**, il y passe — voir la
+réserve du §3 et `07-securite.md` §2.
 
 ## 6. Glossaire
 
@@ -98,9 +114,11 @@ ne passe pas par l'Arduino.
 | **Comodo** | Bloc de commandes au guidon (clignotants, klaxon, éclairage) |
 | **Ligne frein** | Entrée du contrôleur Bafang qui coupe l'assistance quand elle est fermée à la masse |
 | **PAS** | Pedal Assist System — niveau d'assistance sélectionné à l'afficheur |
-| **Veilleuse** | Feu de position arrière, allumé en permanence avec l'éclairage |
+| **Veilleuse** | Premier niveau d'éclairage : feu de position, avant comme arrière |
+| **Higo** | Connecteurs ronds étanches du faisceau Bafang. Le connecteur de frein arrière est jaune, à 3 broches |
 | **Stop** | Feu de freinage, plus lumineux que la veilleuse |
 | **Sniff** | Écoute passive d'une liaison série, sans jamais émettre |
 | **SOC** | State Of Charge — niveau de charge batterie en % |
 | **PCINT** | Pin Change Interrupt de l'ATmega328P |
-| **DN22D08** | Carte rail DIN 8 entrées optocouplées / 8 sorties, support Arduino Nano |
+| **DN22D08** | Carte rail DIN 8 entrées optocouplées / 8 **relais**, afficheur 4 digits, support Arduino Nano |
+| **NPN (entrée)** | Entrée qui s'active en fermant sa borne sur la **masse**, et non en lui appliquant du +12 V |

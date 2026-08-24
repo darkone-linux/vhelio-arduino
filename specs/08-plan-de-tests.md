@@ -37,10 +37,14 @@ L'afficheur reste multiplexé pendant toute la séquence : s'il s'éteint,
 
 | Action | Attendu |
 |---|---|
-| `IN_LOWBEAM` seule | R1 collé, R5 collé (feux de position) |
-| `IN_HIGHBEAM` seule (sans croisement) | R2 **relâché** |
-| `IN_LOWBEAM` + `IN_HIGHBEAM` | R1 et R2 collés |
+| `IN_PARK` seule (veilleuse) | R1 collé, **R5 collé** |
+| `IN_MAIN` seule (comodo, veilleuse ouverte) | R2 collé, R1 collé (`MAIN_KEEPS_PARK`), **R5 collé** — c'est le test de F-1.7 |
+| `IN_PARK` + `IN_MAIN` | R1, R2, R5 collés |
 | Relâcher tout | R1, R2, R5 relâchés |
+
+> La deuxième ligne est la plus importante du tableau : elle vérifie qu'aucune
+> combinaison de commandes ne permet de rouler éclairé à l'avant sans feu
+> rouge arrière.
 
 ### T1.4 — Clignotants
 
@@ -50,7 +54,8 @@ L'afficheur reste multiplexé pendant toute la séquence : s'il s'éteint,
 | Chronométrer 30 cycles | 22,5 s ± 1 s (750 ms/cycle) |
 | `IN_TURN_LEFT` + `IN_TURN_RIGHT` | R3 **et** R4 relâchés, `FLT_TURN_CONFLICT` au journal |
 | `IN_HAZARD` + `IN_TURN_LEFT` | R3 et R4 claquent **en phase** |
-| Laisser `IN_TURN_LEFT` 50 s | Le rappel d'oubli apparaît au journal |
+| Laisser `IN_TURN_LEFT` 50 s | Le rappel apparaît au journal (`TRN=L!`) **et le rythme du claquement change** : de régulier à syncopé |
+| Chronométrer 10 cycles pendant le rappel | 7,5 s ± 0,5 s — la **période est inchangée**, seule la phase allumée est raccourcie |
 
 Le claquement des relais est le retour sonore du clignotant : il doit être
 audible depuis le poste de conduite. Si le boîtier l'étouffe complètement,
@@ -61,7 +66,7 @@ c'est un élément de réponse à Q12.
 | Action | Attendu |
 |---|---|
 | `IN_BRAKE_FRONT`, éclairage éteint | R6 collé, R5 relâché, R8 collé |
-| `IN_BRAKE_REAR`, éclairage allumé | R6 collé **en plus** de R5 |
+| `IN_BRAKE_REAR` (S2), éclairage allumé | R6 collé **en plus** de R5 |
 | Relâcher | R6 retombe immédiatement ; R8 reste collé 300 ms |
 | Impulsions à 20 Hz sur l'entrée | R8 ne bat pas (le maintien de 300 ms absorbe) |
 | Maintenir 130 s | `FLT_BRAKE_STUCK` au journal |
@@ -131,10 +136,18 @@ Véhicule sur béquille, roue motrice libre, **personne devant la roue**.
 
 ### T2.3 — Rejouer T1.3 à T1.6 avec les vraies charges
 
-Mêmes critères. Ajouter le contrôle de l'échauffement des modules MOSFET et du
-relais klaxon après 2 min de fonctionnement continu.
+Mêmes critères. Ajouter :
 
-### T2.4 — Coupure moteur, les trois barrières
+- l'échauffement du relais R7 (klaxon) après dix coups consécutifs ;
+- **le contrôle du courant total** : phares + veilleuse + arrière allumés,
+  mesurer à la pince sur l'entrée du boîtier fusibles. Si le résultat dépasse
+  6 A, l'hypothèse « phares 60 W pour la paire » est fausse et il faut
+  reprendre `04-electricite.md` §2.2 ;
+- **le test du klaxon sous charge d'éclairage** : de nuit, tout allumé,
+  klaxonner. Les phares ne doivent **pas** cligner. S'ils clignent, le
+  condensateur tampon est absent ou insuffisant (F-4.5).
+
+### T2.4 — Coupure moteur : ce qui coupe, et ce qui ne coupe pas
 
 Roue en l'air, assistance engagée à faible niveau :
 
@@ -142,11 +155,14 @@ Roue en l'air, assistance engagée à faible niveau :
 |---|---|
 | Actionner le frein arrière | La roue s'arrête d'être entraînée |
 | Actionner le frein avant | Idem |
-| **Débrancher l'Arduino**, actionner chaque frein | La roue s'arrête **quand même** — c'est le test critique du principe P1 |
-| Rebrancher, débrancher le fil de `OUT_MOTOR_CUT` | La roue s'arrête quand même |
+| **Débrancher l'Arduino**, actionner le frein **arrière** | La roue s'arrête **quand même**. C'est le test critique du principe P1 : s'il échoue, le connecteur Bafang d'origine a été altéré — **reprendre le câblage avant toute mise sur route** |
+| **Arduino débranché**, actionner le frein **avant** | La roue **continue** d'être entraînée. Résultat **attendu** et documenté (`07` §2) : le contacteur avant est unipolaire. À consigner au journal de recette, pas à corriger dans le firmware |
+| Rebrancher, débrancher le seul fil de `OUT_MOTOR_CUT` | Le frein arrière coupe toujours, le frein avant ne coupe plus |
 
-Si le troisième test échoue, **le câblage des freins est à reprendre** avant
-toute mise sur route.
+> Le quatrième test est celui qui justifie l'ajout d'un micro-rupteur sur le
+> levier avant. Tant qu'il n'est pas monté, le rappeler dans le contrôle avant
+> départ : **le frein avant seul ne coupe l'assistance que si l'Arduino
+> fonctionne.**
 
 ### T2.5 — Écoute Bafang
 
@@ -168,12 +184,14 @@ Avec `BAFANG_LEARN_MODE 1`, suivre la procédure de calibration de
 
 ### T3.1 — Contrôle avant départ (à répéter avant chaque sortie ensuite)
 
-- [ ] Croisement, route, veilleuse arrière
+- [ ] Veilleuse avant, phares, **et feu rouge arrière dans les deux cas**
 - [ ] Clignotant gauche, clignotant droit, détresse
 - [ ] Feu stop au frein avant **et** au frein arrière (observateur derrière)
 - [ ] Klaxon
-- [ ] Aucun défaut : deux-points de l'afficheur à 1 Hz, pas ~4 Hz
-- [ ] Page « défauts » de l'afficheur (bouton K1) : `F000`
+- [ ] Aucun défaut : à l'ouverture de la coque, l'afficheur montre `F000`
+      (c'est la page par défaut) et le deux-points bat à 1 Hz, pas ~4 Hz
+- [ ] Autotest au démarrage : les six relais claquent l'un après l'autre.
+      C'est le seul contrôle des relais audible coque fermée
 
 ### T3.2 — Comportement dynamique
 
@@ -181,7 +199,7 @@ Avec `BAFANG_LEARN_MODE 1`, suivre la procédure de calibration de
 |---|---|
 | Freinage franc à 25 km/h | Assistance coupée immédiatement, stop visible |
 | Freinage modulé (pompage du levier) | Le stop suit, l'assistance ne se réengage pas par à-coups |
-| Clignotant maintenu 300 m | Rappel sonore |
+| Clignotant maintenu 300 m | Le rythme du claquement devient syncopé, audible du poste de conduite |
 | Passage sur pavés / vibrations | Aucun scintillement de feu, aucun déclenchement parasite |
 | 30 min de roulage continu | `loopMax` < 10 ms, aucun reset WDT |
 
@@ -189,7 +207,7 @@ Avec `BAFANG_LEARN_MODE 1`, suivre la procédure de calibration de
 
 - [ ] Le feu stop est nettement distinguable de la veilleuse
 - [ ] Les clignotants sont visibles de jour
-- [ ] Le feu de croisement n'éblouit pas
+- [ ] Les phares n'éblouissent pas
 
 ---
 

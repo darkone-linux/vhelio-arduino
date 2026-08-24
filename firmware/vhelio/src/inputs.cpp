@@ -16,14 +16,15 @@ const uint16_t DEBOUNCE_MS[IN_COUNT] = {
   DEBOUNCE_HORN_MS,    /* IN_HORN        */
   DEBOUNCE_BRAKE_MS,   /* IN_BRAKE_FRONT */
   DEBOUNCE_BRAKE_MS,   /* IN_BRAKE_REAR  */
-  DEBOUNCE_COMODO_MS,  /* IN_LOWBEAM     */
-  DEBOUNCE_COMODO_MS,  /* IN_HIGHBEAM    */
+  DEBOUNCE_COMODO_MS,  /* IN_PARK        */
+  DEBOUNCE_COMODO_MS,  /* IN_MAIN        */
   DEBOUNCE_COMODO_MS   /* IN_HAZARD      */
 };
 
-/* Inversion logique éventuelle, avant anti-rebond.
- * Concerne les entrées frein passant par l'interface transistor de la
- * variante A de câblage (specs/03-affectation-es.md §4). */
+/* Inversion logique éventuelle, avant anti-rebond. Ne concerne que les
+ * entrées frein lues à travers l'interface transistor de la ligne frein
+ * Bafang (hardware/cablage.md §5). Les contacts secs directs, qui sont le
+ * câblage retenu, ne l'utilisent pas. */
 inline bool applyInversion(uint8_t idx, bool raw) {
   if (idx == IN_BRAKE_FRONT && IN_INVERT_BRAKE_FRONT) return !raw;
   if (idx == IN_BRAKE_REAR && IN_INVERT_BRAKE_REAR) return !raw;

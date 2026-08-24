@@ -37,17 +37,21 @@ actionneur de sécurité redondant.
 | Fichier | Sujet |
 |---|---|
 | [`00-vue-densemble.md`](specs/00-vue-densemble.md) | Périmètre, rôles des équipements, architecture générale |
-| [`01-exigences-fonctionnelles.md`](specs/01-exigences-fonctionnelles.md) | 30 exigences `F-xx` avec critère de vérification |
+| [`01-exigences-fonctionnelles.md`](specs/01-exigences-fonctionnelles.md) | 39 exigences `F-xx` et 5 contraintes `NF-x` avec critère de vérification |
 | [`02-machines-a-etats.md`](specs/02-machines-a-etats.md) | Automates clignotants, freinage, feu arrière, klaxon |
 | [`03-affectation-es.md`](specs/03-affectation-es.md) | Table d'E/S, variantes de câblage des freins, procédure de vérification |
 | [`04-electricite.md`](specs/04-electricite.md) | Bilan de puissance, fusibles, sections, masses |
 | [`05-protocole-bafang.md`](specs/05-protocole-bafang.md) | Écoute passive UART, décodage, mode apprentissage |
 | [`06-architecture-logicielle.md`](specs/06-architecture-logicielle.md) | Modules, ordonnancement, budget mémoire |
 | [`07-securite.md`](specs/07-securite.md) | Analyse de défaillances, état sûr, conformité |
-| [`08-plan-de-tests.md`](specs/08-plan-de-tests.md) | 16 tests, de l'établi à la route |
-| [`09-questions-ouvertes.md`](specs/09-questions-ouvertes.md) | Décisions en attente |
+| [`08-plan-de-tests.md`](specs/08-plan-de-tests.md) | 17 tests, de l'établi à la route |
+| [`09-questions-ouvertes.md`](specs/09-questions-ouvertes.md) | Douze questions, dix tranchées ; ce qu'il reste à vérifier |
+| [`10-alternatives-materiel.md`](specs/10-alternatives-materiel.md) | Faut-il changer de carte ? Analyse comparée et recommandation |
 
 ## Compilation
+
+> **L'inverseur `485_ON` / `PRO` de la carte doit être sur `PRO`.** Sinon
+> l'émetteur RS485 occupe D0/D1 et le téléversement échoue sans message clair.
 
 ```bash
 ./tools/setup.sh          # installe arduino-cli + coeur AVR dans ./.arduino
@@ -80,8 +84,8 @@ installer au niveau système.
 ### Empreinte mesurée
 
 Configuration par défaut, avr-gcc 15.3, `-Os -flto` :
-**8 750 octets de flash (28 %)** et **703 octets de RAM (34 %)** sur les
-30 720 / 2 048 disponibles. Compile sans avertissement dans les onze
+**8 918 octets de flash (29 %)** et **705 octets de RAM (34 %)** sur les
+30 720 / 2 048 disponibles. Compile sans avertissement dans les douze
 combinaisons d'options couvertes par `tools/check-variants.sh`.
 
 ## Régler le firmware
@@ -89,8 +93,9 @@ combinaisons d'options couvertes par `tools/check-variants.sh`.
 Deux fichiers, et deux seulement :
 
 - `firmware/vhelio/src/config.h` — toutes les temporisations, tous les seuils,
-  toutes les options de compilation (variante de câblage des freins, rôle de
-  `OUT8`, activation du bus Bafang, journal, chien de garde…).
+  toutes les options de compilation (variante de câblage des freins, niveaux
+  d'éclairage, rappel d'oubli des clignotants, bus Bafang, journal, chien de
+  garde…).
 - `firmware/vhelio/src/pins.h` + les tableaux en tête de `src/board_io.cpp` —
   le brochage et la polarité des E/S.
 
@@ -100,11 +105,17 @@ Ce projet pilote de l'éclairage et une fonction de coupure moteur sur un
 véhicule circulant sur la voie publique.
 
 La spécification impose que **aucune fonction de sécurité ne dépende
-uniquement du firmware** : la coupure d'assistance au freinage est assurée par
-le câblage direct des contacteurs sur la ligne frein du contrôleur Bafang, la
-sortie de l'Arduino n'étant qu'un troisième chemin redondant. Le test T2.4 du
-plan de tests vérifie explicitement que **le moteur se coupe toujours, Arduino
-débranché**.
+uniquement du firmware**. C'est tenu au frein **arrière** : le contacteur
+Bafang d'origine coupe l'assistance sans passer par l'Arduino, et le test T2.4
+le vérifie explicitement.
+
+> **Ce ne l'est pas au frein avant.** Le contacteur disponible est unipolaire :
+> il ne peut pas à la fois allumer le feu stop et fermer la ligne frein du
+> contrôleur. Le feu stop ayant été jugé prioritaire, la coupure d'assistance
+> au frein avant passe par le firmware. C'est documenté, mesuré au test T2.4,
+> et réparable pour 2 € avec un micro-rupteur supplémentaire — voir
+> [`specs/07-securite.md`](specs/07-securite.md) §2. **À connaître avant de
+> rouler.**
 
 Vérifiez le brochage de votre carte avec `tools/pinscan` avant la première mise
 sous tension. Le brochage documenté ici vient de la bibliothèque de référence
