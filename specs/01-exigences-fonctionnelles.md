@@ -11,23 +11,23 @@ vérification. Les priorités : **M** = obligatoire (Must), **S** = souhaitable
 | Id | Prio | Exigence | Vérification |
 |---|---|---|---|
 | F-1.1 | M | Le feu de croisement s'allume quand l'entrée `IN_LOWBEAM` du comodo est active, s'éteint sinon. | Actionner le comodo, mesurer la sortie OUT1. |
-| F-1.2 | M | Les feux rouges arrière passent en veilleuse (PWM ~20 %) dès que le feu de croisement est allumé. | Mesure du rapport cyclique sur OUT5. |
+| F-1.2 | M | Les feux de position arrière (relais R5) s'allument dès que le feu de croisement est allumé. | Contrôle visuel + continuité sur R5. |
 | F-1.3 | M | Le feu de route s'allume quand `IN_HIGHBEAM` est active **et** que le feu de croisement est allumé. | Actionner route sans croisement : OUT2 doit rester inactive. |
 | F-1.4 | S | Le feu de croisement reste allumé quand le feu de route est actif (éclairage cumulé). Configurable par `HIGHBEAM_KEEPS_LOWBEAM`. | Les deux sorties actives simultanément. |
-| F-1.5 | S | L'allumage de la veilleuse arrière est progressif (rampe PWM ~200 ms) pour limiter l'appel de courant. | Oscilloscope sur OUT5 à l'allumage. |
-| F-1.6 | C | Option feux de jour : la veilleuse arrière peut être forcée en permanence (`TAIL_ALWAYS_ON`). | Compilation avec l'option, éclairage éteint : OUT5 à 20 %. |
+| F-1.5 | — | *Supprimée.* La rampe d'allumage progressive supposait une sortie modulable. Les sorties de la carte sont des relais : sans objet. |
+| F-1.6 | C | Option feux de jour : les feux de position arrière peuvent être forcés en permanence (`TAIL_ALWAYS_ON`). | Compilation avec l'option, éclairage éteint : R5 collé. |
 
 ## F-2 — Freinage
 
 | Id | Prio | Exigence | Vérification |
 |---|---|---|---|
 | F-2.1 | M | Le système détecte l'action sur le frein avant **et** sur le frein arrière. | Actionner chaque levier séparément. |
-| F-2.2 | M | Dès qu'un frein au moins est actionné, les feux rouges arrière passent à 100 %. | Chrono : < 50 ms entre contact et pleine intensité. |
-| F-2.3 | M | Le feu stop reste à 100 % tant qu'un frein est actionné, quel que soit l'état de l'éclairage. | Éclairage éteint + freinage : OUT5 à 100 %. |
+| F-2.2 | M | Dès qu'un frein au moins est actionné, le feu stop (relais R6) s'allume. | Chrono : < 50 ms entre contact et allumage, temps de collage du relais inclus. |
+| F-2.3 | M | Le feu stop reste allumé tant qu'un frein est actionné, quel que soit l'état de l'éclairage. Il est sur un circuit distinct des feux de position. | Éclairage éteint + freinage : R6 collé, R5 relâché. |
 | F-2.4 | M | La coupure moteur matérielle (contacteurs câblés sur la ligne frein du contrôleur) est indépendante de l'Arduino. | Arduino débranché : le moteur doit toujours se couper au freinage. |
 | F-2.5 | S | La sortie `OUT_MOTOR_CUT` reproduit l'état de freinage, avec un maintien minimum de 300 ms après relâche (anti-battement). | Relâche brève : la sortie reste active 300 ms. |
 | F-2.6 | S | L'anti-rebond des entrées frein est ≤ 15 ms, pour ne pas retarder l'allumage du stop. | Injection d'un rebond de 5 ms : pas de scintillement, pas de retard > 20 ms. |
-| F-2.7 | C | Option « flash d'attaque » : 3 clignotements rapides du stop avant l'allumage fixe. **Désactivée par défaut** — un feu stop clignotant n'est pas conforme au code de la route français. | Compilation avec `BRAKE_FLASH_ENABLE 1`. |
+| F-2.7 | C | Option « flash d'attaque » : 3 clignotements rapides du stop avant l'allumage fixe. **Désactivée par défaut** — non conforme au code de la route français, et surtout six manœuvres mécaniques supplémentaires par freinage sur un relais. | Compilation avec `BRAKE_FLASH_ENABLE 1` (le compilateur émet un avertissement). |
 
 ## F-3 — Clignotants et détresse
 
@@ -38,8 +38,8 @@ vérification. Les priorités : **M** = obligatoire (Must), **S** = souhaitable
 | F-3.3 | M | Le clignotement démarre par une phase **allumée**, immédiatement à l'activation. | Oscilloscope : pas de temps mort au démarrage. |
 | F-3.4 | M | Les feux de détresse allument les deux côtés **en phase** et sont prioritaires sur les clignotants. | Détresse + clignotant gauche : les deux côtés clignotent. |
 | F-3.5 | M | Les feux de détresse fonctionnent éclairage éteint. | Test avec `IN_LOWBEAM` inactive. |
-| F-3.6 | S | Un retour sonore (buzzer) accompagne chaque transition du clignotant. | Écoute. |
-| F-3.7 | S | Rappel d'oubli : au-delà de 45 s **ou** 300 m de clignotement continu, le retour sonore passe en bip long à chaque cycle. Le clignotant n'est **pas** annulé automatiquement (le comodo est un inverseur maintenu : une annulation logicielle créerait une incohérence entre la position du levier et l'état réel). | Laisser le clignotant 50 s. |
+| F-3.6 | S | Un retour sonore accompagne chaque transition du clignotant. **Assuré sans aucun composant** : les clignotants sont portés par des relais, dont le claquement à 1,33 Hz est exactement le bruit d'un relais de clignotant d'origine. | Écoute. |
+| F-3.7 | S | Rappel d'oubli : au-delà de 45 s **ou** 300 m de clignotement continu, l'état est signalé au journal série et à l'afficheur. Le clignotant n'est **pas** annulé automatiquement (le comodo est un inverseur maintenu : une annulation logicielle créerait une incohérence entre la position du levier et l'état réel). **Limite connue** : sans buzzer, le rappel n'est pas audible et n'est visible que si l'afficheur de la carte est dans le champ de vision — voir Q12. | Laisser le clignotant 50 s. |
 
 ## F-4 — Klaxon
 
@@ -76,8 +76,8 @@ vérification. Les priorités : **M** = obligatoire (Must), **S** = souhaitable
 
 | Id | Prio | Exigence |
 |---|---|---|
-| NF-1 | M | Empreinte flash < 24 ko et RAM statique < 1,2 ko (marge sur les 30,7 ko / 2 ko utilisables du ATmega328P). **Mesuré : 8 494 o de flash (27 %) et 641 o de RAM (31 %).** |
+| NF-1 | M | Empreinte flash < 24 ko et RAM statique < 1,4 ko (marge sur les 30,7 ko / 2 ko utilisables du ATmega328P). **Mesuré : 8 750 o de flash (28 %) et 703 o de RAM (34 %).** |
 | NF-2 | M | Aucun `String`, aucune allocation dynamique. |
-| NF-3 | M | Tout le brochage est concentré dans `src/pins.h` ; tout le réglage dans `src/config.h`. |
+| NF-3 | M | Tout le brochage est concentré dans `src/pins.h` et les tableaux en tête de `src/board_io.cpp` ; tout le réglage dans `src/config.h`. C'est ce qui a permis d'absorber le changement complet d'architecture de la carte sans toucher un seul module métier. |
 | NF-4 | S | Chaque fonction est un module indépendant, testable en isolant ses entrées. |
 | NF-5 | M | Le firmware compile sans avertissement avec `--warnings all`, dans **toutes** les combinaisons d'options de `config.h` (`tools/check-variants.sh`). |

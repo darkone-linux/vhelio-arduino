@@ -61,7 +61,7 @@ Prévoir un convertisseur **non isolé (buck)** : la masse 12 V est alors commun
 | F5 | Sortie générale 12 V | 12 V | 20 ou 30 A | MIDI / lame maxi |
 | F6 | Éclairage avant (croisement + route) | 12 V | 5 A | lame |
 | F7 | Éclairage arrière + clignotants | 12 V | 5 A | lame |
-| F8 | Klaxon (bobine relais + contact) | 12 V | 10 A | lame |
+| F8 | Klaxon | 12 V | 10 A | lame |
 | F9 | Prise allume-cigare n°1 | 12 V | 10 A | lame |
 | F10 | Prise allume-cigare n°2 | 12 V | 10 A | lame |
 | F11 | Arduino + carte DN22D08 + comodo | 12 V | 2 A | lame |
@@ -81,9 +81,34 @@ Dimensionnement thermique et chute de tension < 3 %, cuivre souple.
 | MPPT ↔ pack | 15 A | 2 m | **4 mm²** |
 | Convertisseur → boîtier fusibles 12 V | 30 A | 1,5 m | **6 mm²** |
 | Départ éclairage 12 V | 5 A | 6 m | **1,5 mm²** |
-| Départ klaxon (contact relais) | 8 A | 4 m | **2,5 mm²** |
+| Départ klaxon | 8 A | 4 m | **2,5 mm²** |
 | Départ allume-cigare | 10 A | 3 m | **2,5 mm²** |
 | Signaux comodo / freins vers DN22D08 | < 0,05 A | 4 m | **0,75 mm²** |
+
+## 4 bis. Les relais de la carte remplacent tous les étages de puissance
+
+Les huit sorties sont des **contacts secs 10 A**. Aucun module MOSFET, aucun
+relais externe, aucun optocoupleur n'est nécessaire :
+
+| Charge | Courant | Verdict |
+|---|---|---|
+| Feu de croisement LED 20 W | 1,7 A | direct sur R1 |
+| Feu de route LED 20 W | 1,7 A | direct sur R2 |
+| Clignotants (2 × 3 W par côté) | 0,5 A | direct sur R3 / R4 |
+| Feux de position arrière | 0,5 A | direct sur R5 |
+| Feux stop arrière | 0,5 A | direct sur R6 |
+| Klaxon 12 V | 5–8 A | direct sur R7, **avec réserve ci-dessous** |
+| Ligne frein du contrôleur | < 0,05 A | direct sur R8, contact sec isolé |
+
+**Réserve sur le klaxon.** Le calibre 10 A d'un relais de ce type est donné en
+charge résistive. Un klaxon à compresseur présente une pointe d'appel qui peut
+dépasser ce calibre et coller les contacts. Deux options : rester sur un
+klaxon électromagnétique classique (appel modéré), ou conserver le relais
+externe K1 comme étage intermédiaire, R7 ne pilotant alors que sa bobine.
+
+**Réserve sur les charges inductives.** Si une charge inductive est un jour
+ajoutée, prévoir une diode de roue libre : les contacts de relais n'aiment pas
+les surtensions de coupure.
 
 ## 5. Masses et référence de potentiel
 
@@ -100,9 +125,11 @@ contrôleur moteur**. Trois cas :
    résistance de tirage 10 kΩ côté Arduino) sur la ligne sniffée. À 1200 bauds,
    un PC817 est largement assez rapide.
 
-La sortie `OUT_MOTOR_CUT` traverse **toujours** un optocoupleur, quelle que soit
-la situation de masse ci-dessus : le circuit frein du contrôleur ne doit voir
-aucune tension étrangère.
+La sortie `OUT_MOTOR_CUT` est un **contact sec de relais**, galvaniquement
+isolé par construction. La difficulté qui imposait un optocoupleur dans la
+version initiale de cette spécification a disparu d'elle-même avec le passage
+aux relais : le contact se referme sur la ligne frein sans y injecter aucun
+potentiel.
 
 ## 6. Le second BMS Daly 60 A
 

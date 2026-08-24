@@ -19,10 +19,6 @@ Mode mode();
  * On éteint tout — mieux vaut ne rien signaler que signaler deux directions. */
 bool conflict();
 
-/* Le buzzer doit-il sonner à cet instant ? Consommé par aux_out, qui est le
- * seul propriétaire de OUT_AUX. */
-bool buzzerRequest(uint32_t now);
-
 /* Clignotant directionnel actif depuis trop longtemps ou trop de distance. */
 bool reminderActive();
 

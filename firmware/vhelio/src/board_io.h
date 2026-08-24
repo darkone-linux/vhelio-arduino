@@ -1,9 +1,13 @@
 /*
  * board_io.h — Couche d'abstraction matérielle de la carte DN22D08.
  *
- * Absorbe trois particularités du montage pour qu'aucun module métier n'ait à
- * s'en soucier : la polarité des optocoupleurs, l'absence de lecture numérique
- * sur A6/A7, et la disponibilité du PWM selon la broche.
+ * Elle masque aux modules métier trois particularités lourdes de cette carte :
+ *   - les relais ne sont pas des broches, mais des bits d'un registre à
+ *     décalage chaîné avec l'afficheur ;
+ *   - l'afficheur est multiplexé et doit être rafraîchi en permanence ;
+ *   - les entrées optocouplées sont actives à l'état bas.
+ *
+ * Un module métier écrit setOutput(OUT_HORN, true) et ne sait rien de tout ça.
  */
 #pragma once
 
@@ -12,29 +16,48 @@
 
 namespace board {
 
+/* Glyphes disponibles sur l'afficheur 4 digits. */
+enum Glyph : uint8_t {
+  GL_0 = 0, GL_1, GL_2, GL_3, GL_4, GL_5, GL_6, GL_7, GL_8, GL_9,
+  GL_BLANK = 10, GL_O = 11, GL_n = 12, GL_F = 13, GL_E = 14, GL_r = 15,
+  GL_UNDER = 16
+};
+
 void begin();
 
-/* Lit une entrée et renvoie son état LOGIQUE (true = signal présent sur la
- * borne), quelle que soit la polarité électrique de l'optocoupleur.
- * Aucun anti-rebond ici : c'est le rôle du module inputs. */
+/* --- Entrées ----------------------------------------------------------- */
+
+/* État LOGIQUE de l'entrée (true = signal présent sur la borne), quelle que
+ * soit la polarité électrique. Aucun anti-rebond : c'est le rôle d'inputs. */
 bool readInputRaw(uint8_t idx);
 
-/* Écrit une sortie en tout-ou-rien. */
+/* Boutons de la carte, true = appuyé. */
+bool readButton(uint8_t idx);
+
+/* --- Relais ------------------------------------------------------------ */
+
+/* Prend effet au prochain refresh(), soit moins d'un tour de boucle. */
 void setOutput(uint8_t idx, bool on);
-
-/* Écrit une sortie en PWM (0..255 = 0..100 % d'activité LOGIQUE).
- * Si la broche n'a pas de PWM matériel, retombe sur un tout-ou-rien à
- * seuil 128 plutôt que de produire un comportement silencieusement faux. */
-void setOutputPwm(uint8_t idx, uint8_t duty);
-
-/* Dernier rapport cyclique logique appliqué (255 = pleine puissance). */
-uint8_t outputDuty(uint8_t idx);
-
-/* Toutes les sorties inactives. C'est l'état sûr (specs/07-securite.md §3). */
+bool outputState(uint8_t idx);
 void allOff();
 
-/* Vrai si la broche affectée à cette sortie sait faire du PWM matériel.
- * Utilisé par l'autotest pour signaler une réaffectation malheureuse. */
-bool outputHasPwm(uint8_t idx);
+/* Validation globale des relais (broche OE du registre).
+ * outputsEnabled(false) coupe TOUS les relais en un cycle d'horloge, sans
+ * toucher au registre : c'est l'arrêt d'urgence, et l'état antérieur est
+ * restitué tel quel à la réactivation. */
+void outputsEnabled(bool en);
+
+/* --- Afficheur --------------------------------------------------------- */
+
+void showNumber(uint16_t n, bool blankLeadingZeros = true);
+void showGlyphs(const uint8_t g[4]);
+void setColon(bool on);
+
+/* --- Rafraîchissement -------------------------------------------------- */
+
+/* Émet un digit et l'octet des relais sur la chaîne de registres.
+ * À appeler à CHAQUE tour de boucle : quatre appels forment une trame
+ * complète d'affichage, et c'est aussi ce qui applique l'état des relais. */
+void refresh();
 
 }  // namespace board

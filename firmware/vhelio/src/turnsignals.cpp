@@ -15,8 +15,6 @@ uint32_t g_modeSince = 0;    /* entrée dans LEFT/RIGHT                     */
 uint32_t g_modeOdoMm = 0;    /* odomètre à l'entrée dans LEFT/RIGHT        */
 bool g_reminder = false;
 
-uint32_t g_buzzUntil = 0;    /* fin de l'impulsion sonore en cours         */
-
 }  // namespace
 
 void turnsignals::begin() {
@@ -55,9 +53,6 @@ void turnsignals::update(uint32_t now, const InputState& in) {
     g_modeSince = now;
     g_modeOdoMm = telemetry::odoMm();
     g_reminder = false;
-    if (g_mode != OFF) {
-      g_buzzUntil = now + BUZZ_CLICK_MS;
-    }
   }
 
   if (g_mode == OFF) {
@@ -87,13 +82,11 @@ void turnsignals::update(uint32_t now, const InputState& in) {
   }
   const bool on = (elapsed < BLINK_ON_MS);
 
-  if (on != g_phaseOn) {
-    g_phaseOn = on;
-    /* Un clic à chaque transition, comme un relais de clignotant. En rappel,
-     * le clic devient un bip long : audible sans être un nouveau son à
-     * apprendre. */
-    g_buzzUntil = now + (g_reminder ? BUZZ_REMINDER_MS : BUZZ_CLICK_MS);
-  }
+  /* Aucun buzzer : les clignotants sont portés par des relais, dont le
+   * claquement à 1,33 Hz EST le retour sonore. C'est exactement le bruit
+   * d'un relais de clignotant d'origine, et il ne coûte ni sortie ni
+   * composant. */
+  g_phaseOn = on;
 
   board::setOutput(OUT_TURN_LEFT, on && (g_mode == LEFT || g_mode == HAZARD));
   board::setOutput(OUT_TURN_RIGHT, on && (g_mode == RIGHT || g_mode == HAZARD));
@@ -103,7 +96,3 @@ turnsignals::Mode turnsignals::mode() { return g_mode; }
 bool turnsignals::conflict() { return g_conflict; }
 bool turnsignals::reminderActive() { return g_reminder; }
 
-bool turnsignals::buzzerRequest(uint32_t now) {
-  if (g_mode == OFF) return false;
-  return (int32_t)(g_buzzUntil - now) > 0;
-}

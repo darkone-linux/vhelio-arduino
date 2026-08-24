@@ -17,7 +17,10 @@ Pour chaque panne plausible : ce qui se passe, et pourquoi c'est acceptable.
 | **Bus Bafang muet** | Vitesse invalide | Non (P2) | Rappel clignotant bascule sur le critère temps seul |
 | **Bus Bafang bruité (trames fausses)** | Trames rejetées par la somme de contrôle | Non | Compteur `framesRejected` dans le journal |
 | **Convertisseur 48/12 en panne** | Perte totale du 12 V | Éclairage, klaxon | Le moteur continue de fonctionner (alimenté en 48 V direct) → circulation possible jusqu'à l'arrêt, mais **de nuit, c'est un arrêt immédiat** |
-| **Sortie MOSFET en court-circuit** | Charge allumée en permanence | Non | Fusible du départ concerné |
+| **Contact de relais collé (soudé)** | Charge allumée en permanence, ou assistance coupée en permanence pour R8 | Non (côté sûr pour les feux) | Non détectable par le firmware : le registre ne relit rien. Détecté au contrôle avant départ (T3.1) |
+| **Bobine de relais coupée** | Charge morte, sans aucun symptôme | **Oui pour le feu stop (R6)** | Contrôle avant départ obligatoire, observateur derrière |
+| **Broche OE (A1) coupée ou flottante** | Relais indéterminés au démarrage | Potentiellement toutes | Le firmware écrit HIGH avant de passer la broche en sortie ; la carte porte normalement un tirage. À vérifier au pinscan |
+| **Chaîne de registres muette** (fil data/horloge/verrou) | Les relais gardent leur dernier état latché, indéfiniment | Toutes | Le chien de garde ne le voit pas : la boucle tourne normalement. **Angle mort assumé**, cf. §5 |
 
 ## 2. Les trois barrières indépendantes
 
@@ -47,7 +50,16 @@ Défini comme l'état des sorties à la mise sous tension et après reset :
 | `OUT_TURN_*` | inactif | idem |
 | `OUT_HORN` | inactif | Un klaxon qui sonne au reset serait dangereux |
 | `OUT_MOTOR_CUT` | **relâché** | Voir §2 |
-| `OUT_AUX` | inactif | — |
+
+L'état sûr est obtenu **matériellement** avant même que le firmware ne
+s'exécute : la broche OE est portée à l'état haut dès le début de `setup()`,
+ce qui maintient les huit relais relâchés quel que soit le contenu résiduel du
+registre à décalage. C'est plus fort qu'une simple initialisation logicielle.
+
+`outputsEnabled(false)` réactive ce mécanisme à tout moment : **les huit relais
+retombent en un cycle d'horloge**, sans altérer le registre, et l'état
+antérieur est restitué intact à la réactivation. C'est un arrêt d'urgence
+matériel disponible pour un futur mode sécurité.
 
 Le premier balayage complet des entrées a lieu au premier tour de `loop()`,
 soit **moins de 10 ms** après la fin de `setup()`. L'éclairage est donc rétabli
@@ -81,6 +93,12 @@ imperceptiblement — sauf si l'autotest est actif, auquel cas il faut compter
 - **Aucune détection de rupture de lampe.** Un feu grillé n'est pas signalé.
   Ce serait techniquement possible (mesure de courant par sortie) mais hors du
   matériel retenu.
+- **Aucune relecture de l'état réel des relais.** Le registre à décalage est
+  un composant en écriture seule : le firmware sait ce qu'il a *demandé*, pas
+  ce qui s'est réellement produit. Un contact soudé, une bobine coupée ou une
+  chaîne de registres muette ne sont **pas** détectables. C'est l'angle mort
+  principal de ce montage, et la raison pour laquelle le contrôle avant départ
+  du test T3.1 n'est pas une formalité.
 - **Aucune fonction de freinage.** Le système allume un feu et coupe une
   assistance ; il ne freine pas.
 
@@ -96,7 +114,8 @@ Points à vérifier au regard du code de la route français pour un cycle :
 | Feux de détresse en phase | Respecté |
 | Klaxon | Un avertisseur sonore de type automobile sur un cycle relève d'une vérification locale — le VHélio peut être homologué en tant que cycle ou cyclomoteur selon la version |
 
-> La modulation PWM de la veilleuse arrière est à ~490 Hz (fréquence PWM par
-> défaut de Timer0 sur le Nano). Elle est très au-dessus du seuil de perception
-> et du seuil de scintillement gênant. Elle est en revanche visible sur une
-> vidéo au smartphone — c'est normal, pas un défaut.
+> Les feux de position et le feu stop sont sur des relais, donc en tout-ou-rien
+> franc : aucune modulation, aucun scintillement, aucune question de
+> conformité de ce côté. La différenciation entre position et stop est
+> entièrement **matérielle** — le feu stop doit être nettement plus lumineux.
+> C'est le point à valider au test T3.3, et il ne dépend plus du firmware.

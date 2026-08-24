@@ -24,12 +24,12 @@
 #include <Arduino.h>
 #include <avr/wdt.h>
 
-#include "aux_out.h"
 #include "bafang.h"
 #include "board_io.h"
 #include "brakes.h"
 #include "config.h"
 #include "diag.h"
+#include "display.h"
 #include "horn.h"
 #include "inputs.h"
 #include "lights.h"
@@ -60,7 +60,7 @@ void setup() {
   turnsignals::begin();
   lights::begin();
   horn::begin();
-  aux_out::begin();
+  display::begin();
   telemetry::begin();
   wheelspeed::begin();
   bafang::begin();
@@ -84,16 +84,23 @@ void loop() {
 
   /* Décision et commande ---------------------------------------------- *
    * brakes AVANT lights : c'est la seule dépendance d'ordre du système,
-   * lights consomme brakes::braking() pour arbitrer OUT_TAIL.            */
+   * lights consomme brakes::braking() pour piloter le relais de stop.    */
   brakes::update(now, in);
   turnsignals::update(now, in);
   lights::update(now, in, brakes::braking());
   horn::update(now, in);
-  aux_out::update(now);
 
   /* Observation -------------------------------------------------------- */
   telemetry::update(now);
+  display::update(now);
   diag::update(now);
+
+  /* Émission d'un digit et de l'octet des relais sur la chaîne de registres.
+   * C'est ce seul appel qui APPLIQUE réellement l'état des relais décidé
+   * plus haut : tant qu'il n'a pas eu lieu, rien n'a bougé côté matériel.
+   * Quatre tours de boucle forment une trame d'affichage complète. */
+  board::refresh();
+
   diag::noteLoop(micros() - t0);
 
 #if WATCHDOG_ENABLE

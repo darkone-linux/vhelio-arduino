@@ -51,15 +51,16 @@ dans le `.ino`.
 | `turnsignals` | `OUT_TURN_LEFT`, `OUT_TURN_RIGHT`, demande buzzer | `inputs`, `telemetry` |
 | `lights` | `OUT_LOWBEAM`, `OUT_HIGHBEAM`, `OUT_TAIL` | `inputs`, `brakes` |
 | `horn` | `OUT_HORN` | `inputs` |
-| `aux_out` | `OUT_AUX` (arbitre buzzer / accessoires) | `turnsignals` |
+| `display` | les 4 digits de l'afficheur | `telemetry`, `bafang`, `diag` |
 | `bafang` | le port logiciel, le décodeur | — |
 | `telemetry` | vitesse consolidée, odomètre | `bafang`, `wheelspeed` |
-| `diag` | LED D13, journal série, drapeaux de défaut | tous |
+| `diag` | deux-points de l'afficheur, journal série, drapeaux de défaut | tous |
 
 **Une sortie, un propriétaire.** Aucune sortie n'est écrite par deux modules.
-`OUT_TAIL` est partagée entre éclairage et freinage, mais un seul module
-(`lights`) l'écrit : `brakes` lui *demande* le stop, il ne le pilote pas.
-Même principe pour `OUT_AUX`, arbitrée par `aux_out`.
+Les deux relais des feux arrière appartiennent à `lights` : `brakes` lui
+*demande* le stop, il ne le pilote pas. L'afficheur est coupé en deux
+propriétaires disjoints : `display` possède les digits, `diag` possède le
+deux-points (battement de cœur et indicateur de défaut).
 
 ## 4. Arborescence
 
@@ -70,14 +71,14 @@ firmware/vhelio/
     ├── scheduler.cpp   setup() / loop(), ordre d'appel des modules
     ├── config.h        tous les réglages, toutes les options de compilation
     ├── pins.h          brochage DN22D08 ↔ Nano, index logiques
-    ├── board_io.h/.cpp couche matérielle : polarité, A6/A7, PWM
+    ├── board_io.h/.cpp couche matérielle : registre à décalage, afficheur
     ├── debounce.h/.cpp classe Debouncer générique
     ├── inputs.h/.cpp   agrégation des 8 entrées
     ├── brakes.h/.cpp   automate freinage + coupure moteur
     ├── turnsignals.h/.cpp automate clignotants + détresse
     ├── lights.h/.cpp   phares + arbitrage PWM feu arrière
     ├── horn.h/.cpp     automate klaxon
-    ├── aux_out.h/.cpp  buzzer ou relais accessoires
+    ├── display.h/.cpp  pages de l'afficheur 4 digits
     ├── bafang.h/.cpp   écoute passive + décodage
     ├── wheelspeed.h/.cpp capteur de roue par scrutation (option)
     ├── telemetry.h/.cpp vitesse consolidée, odomètre
@@ -108,21 +109,40 @@ compilé est exactement celui qui est écrit. La même précaution est appliqué
 
 ## 5. Abstraction matérielle (`board_io`)
 
-Elle absorbe trois particularités du montage, pour qu'aucun module métier n'ait
-à s'en soucier :
+Ce module a démontré son intérêt : la carte s'est révélée être d'une
+architecture entièrement différente de celle supposée au départ, et **aucun
+module métier n'a eu à changer**. Un module écrit toujours
+`setOutput(OUT_HORN, true)` ; ce qu'il y a derrière est passé d'une broche à un
+bit de registre à décalage sans qu'il le sache.
 
-**Polarité configurable.** `IN_ACTIVE_LOW[]` et `OUT_ACTIVE_HIGH[]` traduisent
-entre « niveau électrique » et « état logique ». Changer de carte, ou découvrir
-que les optocoupleurs sont câblés à l'envers, se règle en éditant deux tableaux.
+Il absorbe trois particularités :
 
-**A6 / A7 sans lecture numérique.** `rawInput()` teste si la broche est A6 ou A7
-et bascule sur `analogRead()` avec un seuil à 512. Les modules appelants ne
-voient aucune différence.
+**Les relais ne sont pas des broches.** `setOutput()` positionne un bit dans un
+octet. Rien n'est appliqué tant que `refresh()` n'a pas émis la trame sur la
+chaîne de registres — ce qui a lieu une fois par tour de boucle. Le tableau
+`RELAY_BIT[]` encode l'ordre non séquentiel des bits (le relais 8 est sur le
+bit 0), une bizarrerie du câblage qui ne remonte jamais plus haut.
 
-**PWM avec repli.** `setOutputPwm()` vérifie que la broche est capable de PWM
-matériel. Si elle ne l'est pas (réaffectation malheureuse), elle retombe sur un
-tout-ou-rien à seuil 128 plutôt que de produire un comportement silencieusement
-faux. Si la sortie est active à l'état bas, le rapport cyclique est inversé.
+**L'afficheur est multiplexé.** Chaque `refresh()` émet un digit ; quatre tours
+de boucle forment une trame complète. Le rafraîchissement partage la même
+chaîne de registres que les relais, donc les deux sont émis ensemble.
+
+**Polarité configurable.** `IN_ACTIVE_LOW[]` traduit entre niveau électrique et
+état logique. Découvrir que les optocoupleurs sont câblés à l'envers se règle
+en éditant un tableau.
+
+### Coût du rafraîchissement
+
+`shiftOut()` de la bibliothèque Arduino coûte ~5 µs par bit, soit ~120 µs pour
+les 24 bits d'une trame. Appelé à chaque tour de boucle, ce serait le poste de
+calcul dominant du firmware. `board_io` utilise un accès direct aux ports, qui
+ramène le coût à ~8 µs.
+
+**Effet de bord à connaître** : `SoftwareSerial` bloque les interruptions ~8,3 ms
+pendant la réception d'un octet Bafang. Pendant ce temps, la boucle ne tourne
+pas, donc un digit reste allumé plus longtemps que les autres. Cela se traduit
+par un léger scintillement de l'afficheur toutes les ~200 ms. C'est cosmétique
+et sans effet sur les relais ; `BAFANG_ENABLE 0` le supprime.
 
 ## 6. Anti-rebond
 
@@ -144,14 +164,14 @@ flash utilisables après bootloader, 2 048 o de RAM) :
 
 | Configuration | Flash | RAM |
 |---|---|---|
-| **Défaut** (Bafang + journal + autotest + WDT) | **8 494 o — 27 %** | **641 o — 31 %** |
-| Sans bus Bafang, vitesse par capteur de roue | 6 628 o — 21 % | — |
-| Freins en parallèle + flash stop + relais accessoires | 8 628 o — 28 % | — |
-| Production silencieuse (ni journal ni autotest ni WDT) | 5 890 o — 19 % | — |
-| Mode apprentissage Bafang | 7 710 o — 25 % | — |
-| Bus Bafang **et** capteur de roue | 8 618 o — 28 % | — |
+| **Défaut** (Bafang + afficheur + journal + autotest + WDT) | **8 750 o — 28 %** | **703 o — 34 %** |
+| Sans bus Bafang, vitesse par capteur de roue | 6 888 o — 22 % | — |
+| Sans afficheur | 8 052 o — 26 % | — |
+| Production silencieuse (ni journal ni autotest ni WDT) | 6 348 o — 20 % | — |
+| Mode apprentissage Bafang | 7 978 o — 25 % | — |
+| Minimal (ni afficheur, ni bus, ni journal) | 3 366 o — 10 % | — |
 
-Cible NF-1 (< 24 ko flash / < 1,2 ko RAM) tenue avec une marge de plus du
+Cible NF-1 (< 24 ko flash / < 1,4 ko RAM) tenue avec une marge de plus du
 double. Les chaînes du journal sont placées en flash via `F()` : c'est ce qui
 maintient la RAM à 641 o malgré une trentaine de messages.
 
@@ -168,7 +188,8 @@ incompatibles.
 |---|---|---|
 | `BRAKE_WIRING_VARIANT` | 2 | 1 = entrée frein unique ; 2 = avant/arrière séparés |
 | `IN_INVERT_BRAKE_FRONT` / `_REAR` | 0 | Inverse la lecture (interface transistor, §03-4) |
-| `OUT8_ROLE_BUZZER` | 1 | 1 = buzzer clignotants ; 0 = relais accessoires |
+| `DISPLAY_ENABLE` | 1 | Compile ou non le pilotage des digits |
+| `DISPLAY_DEFAULT_PAGE` | 0 | Page affichée au démarrage |
 | `BAFANG_ENABLE` | 1 | Compile ou non l'écoute UART |
 | `BAFANG_LEARN_MODE` | 0 | Dump hexadécimal des trames |
 | `BAFANG_SPEED_FORMULA` | 1 | 0 = km/h ×10 direct ; 1 = période de roue |

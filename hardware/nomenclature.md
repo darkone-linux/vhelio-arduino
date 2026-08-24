@@ -14,22 +14,23 @@ BMS, MPPT, comodo, feux, klaxon, convertisseur, boîtier fusibles).
 
 ## Étages de puissance
 
-Nécessaires si les sorties de la DN22D08 sont des transistors ~0,5 A
-(question Q2 de `specs/09-questions-ouvertes.md`).
+**Aucun.** Les huit sorties de la DN22D08 sont des relais à contacts secs
+10 A : les charges se branchent directement dessus. Cela supprime de la
+nomenclature initiale trois modules MOSFET, un relais de klaxon et un
+optocoupleur.
 
-| Rep. | Désignation | Qté | Charge |
+Une seule réserve, optionnelle :
+
+| Rep. | Désignation | Qté | Quand |
 |---|---|---|---|
-| K1 | Relais automobile 12 V / 20 A + support | 1 | Klaxon — **obligatoire** |
-| M1 | Module MOSFET 12 V / 10 A à entrée logique, **compatible PWM** | 1 | Feux rouges arrière |
-| M2, M3 | Module MOSFET 12 V / 10 A | 2 | Feu de croisement, feu de route |
-| OK1 | Optocoupleur PC817 + résistance 1 kΩ | 1 | Coupure moteur vers ligne frein |
+| K1 | Relais automobile 12 V / 20 A + support | 0 ou 1 | **Uniquement** si le klaxon est à compresseur : sa pointe d'appel peut dépasser le calibre 10 A du contact et le souder. R7 ne pilote alors que la bobine de K1. |
 
-> Le module M1 doit accepter du PWM à ~490 Hz. Beaucoup de modules « relais
-> statique » à optocoupleur lent ne le supportent pas : vérifier la fiche.
+> Prévoir une diode de roue libre sur toute charge inductive ajoutée plus tard :
+> les contacts de relais n'aiment pas les surtensions de coupure.
 
 ## Interface de lecture de la ligne frein Bafang
 
-Seulement en variante A de câblage (`specs/03-affectation-es.md` §4).
+Seulement en variante A de câblage (`specs/03-affectation-es.md` §5).
 
 | Rep. | Désignation | Qté |
 |---|---|---|
@@ -42,7 +43,7 @@ Seulement en variante A de câblage (`specs/03-affectation-es.md` §4).
 
 | Rep. | Désignation | Qté | Remarque |
 |---|---|---|---|
-| R4 | Résistance 1 kΩ 1/4 W | 1 | En série sur la ligne sniffée |
+| R4 | Résistance 1 kΩ 1/4 W | 1 | En série sur la ligne sniffée, vers **A4** |
 | — | Connecteur Higo/JST au format du faisceau Bafang | 1 | Dérivation en Y, sans couper l'existant |
 | OK2 | PC817 + résistance 10 kΩ | 1 | **Seulement** si le convertisseur 48/12 V est isolé |
 
@@ -51,8 +52,12 @@ Seulement en variante A de câblage (`specs/03-affectation-es.md` §4).
 | Rep. | Désignation | Qté | Remarque |
 |---|---|---|---|
 | S1 | Interrupteur à bascule 12 V, feux de détresse | 1 | Le comodo n'en fournit pas |
-| BZ1 | Buzzer 12 V actif, < 100 mA | 1 | Retour sonore clignotants (rôle par défaut de OUT8) |
 | S2 | Micro-rupteur pour levier de frein arrière | 1 | Variante B seulement |
+
+> **Pas de buzzer.** Les clignotants sont portés par les relais R3 et R4, dont
+> le claquement à 1,33 Hz est exactement le bruit d'un relais de clignotant
+> d'origine. Le composant et la sortie qu'il aurait consommée sont économisés.
+> Corollaire : le boîtier ne doit pas étouffer complètement ce bruit.
 
 ## Protection
 

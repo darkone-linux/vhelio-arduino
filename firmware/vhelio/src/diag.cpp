@@ -3,6 +3,7 @@
 #include "board_io.h"
 #include "brakes.h"
 #include "config.h"
+#include "display.h"
 #include "horn.h"
 #include "inputs.h"
 #include "lights.h"
@@ -15,8 +16,8 @@ uint8_t g_faults = 0;
 uint32_t g_loopUs = 0;
 uint32_t g_loopMaxUs = 0;
 
-uint32_t g_ledToggled = 0;
-bool g_ledOn = false;
+uint32_t g_colonToggled = 0;
+bool g_colonOn = false;
 
 #if DEBUG_SERIAL
 uint32_t g_lastLog = 0;
@@ -31,8 +32,6 @@ void printFixed1(uint16_t x10) {
 }  // namespace
 
 void diag::begin(uint8_t mcusr) {
-  pinMode(PIN_HEARTBEAT, OUTPUT);
-  digitalWrite(PIN_HEARTBEAT, LOW);
   g_faults = 0;
   /* WDRF : un reset par chien de garde en roulage est une anomalie, elle
    * doit rester visible après la reprise. */
@@ -43,27 +42,27 @@ void diag::begin(uint8_t mcusr) {
   Serial.print(F(VHELIO_FW_VERSION));
   Serial.print(F("  reset=0x"));
   Serial.println(mcusr, HEX);
-  if (!board::outputHasPwm(OUT_TAIL)) {
-    /* Le feu arrière ne peut plus distinguer veilleuse et stop par
-     * l'intensité : c'est une erreur de brochage, pas un détail. */
-    Serial.println(F("[VH] ALERTE: OUT_TAIL n'est pas sur une broche PWM"));
-  }
 #endif
 }
 
 void diag::selfTest() {
 #if SELFTEST_ENABLE
   /* setup() est le seul endroit où bloquer est acceptable : le chien de
-   * garde n'est pas encore armé et rien ne roule. */
+   * garde n'est pas encore armé et rien ne roule.
+   * Le klaxon et la coupure moteur sont volontairement exclus. */
   const uint8_t seq[] = {
-    OUT_LOWBEAM, OUT_HIGHBEAM, OUT_TURN_LEFT, OUT_TURN_RIGHT, OUT_TAIL, OUT_AUX
+    OUT_LOWBEAM, OUT_HIGHBEAM, OUT_TURN_LEFT, OUT_TURN_RIGHT,
+    OUT_TAIL_PARK, OUT_TAIL_STOP
   };
   for (uint8_t i = 0; i < sizeof(seq); ++i) {
     board::setOutput(seq[i], true);
     const uint32_t t0 = millis();
-    while (millis() - t0 < SELFTEST_STEP_MS) { /* attente active */ }
+    while (millis() - t0 < SELFTEST_STEP_MS) {
+      board::refresh();   /* l'afficheur doit continuer d'être multiplexé */
+    }
     board::setOutput(seq[i], false);
   }
+  board::refresh();
 #endif
 }
 
@@ -74,7 +73,7 @@ void diag::noteLoop(uint32_t us) {
 }
 
 void diag::update(uint32_t now) {
-  /* --- Collecte des défauts. Les bits latchés (WDT, LOOP_SLOW) ne sont pas
+  /* --- Collecte des défauts. Les bits latchés (WDT, cycle lent) ne sont pas
    * effacés : ce sont des événements, pas des états. --- */
   const uint8_t latched = g_faults & (FLT_WDT_RESET | FLT_LOOP_SLOW);
   uint8_t f = latched;
@@ -93,12 +92,15 @@ void diag::update(uint32_t now) {
   }
   g_faults = f;
 
-  /* --- LED de vie : 1 Hz nominal, 5 Hz si un défaut est actif. --- */
-  const uint16_t period = g_faults ? HEARTBEAT_FAULT_MS : HEARTBEAT_OK_MS;
-  if (now - g_ledToggled >= period) {
-    g_ledToggled = now;
-    g_ledOn = !g_ledOn;
-    digitalWrite(PIN_HEARTBEAT, g_ledOn ? HIGH : LOW);
+  /* --- Battement de cœur sur le deux-points de l'afficheur.
+   * La LED D13 du Nano n'est PAS utilisable : cette broche porte la ligne
+   * de données du registre à décalage, elle papillote au rythme du
+   * rafraîchissement. --- */
+  const uint16_t period = g_faults ? DISPLAY_BLINK_FAULT_MS : DISPLAY_BLINK_MS;
+  if (now - g_colonToggled >= period) {
+    g_colonToggled = now;
+    g_colonOn = !g_colonOn;
+    board::setColon(g_colonOn);
   }
 
 #if DEBUG_SERIAL && !BAFANG_LEARN_MODE
@@ -111,7 +113,8 @@ void diag::update(uint32_t now) {
 
   Serial.print(F(" LB=")); Serial.print(lights::lowBeamOn());
   Serial.print(F(" HB=")); Serial.print(lights::highBeamOn());
-  Serial.print(F(" TAIL=")); Serial.print(lights::tailDuty());
+  Serial.print(F(" PK=")); Serial.print(lights::tailParkOn());
+  Serial.print(F(" ST=")); Serial.print(lights::tailStopOn());
   Serial.print(F(" TRN="));
   switch (turnsignals::mode()) {
     case turnsignals::LEFT:   Serial.print('L'); break;
@@ -131,6 +134,9 @@ void diag::update(uint32_t now) {
   Serial.print(F(" I=")); printFixed1(bafang::currentA10());
   Serial.print(F(" ok=")); Serial.print(bafang::framesOk());
   Serial.print(F(" rej=")); Serial.print(bafang::framesRejected());
+#endif
+#if DISPLAY_ENABLE
+  Serial.print(F(" pg=")); Serial.print(display::page());
 #endif
   Serial.print(F(" loop=")); Serial.print(g_loopUs);
   Serial.print('/'); Serial.print(g_loopMaxUs); Serial.print(F("us"));

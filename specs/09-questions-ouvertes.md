@@ -6,34 +6,64 @@ Ce qui reste à trancher pour figer la conception. Classé par urgence.
 
 ## Bloquant avant le câblage
 
-### Q1 — Brochage réel de la DN22D08
+### ~~Q2 — Nature des sorties de la carte~~ — **TRANCHÉE**
 
-Le firmware part du brochage `OUT1..8 = D2..D9` / `IN1..8 = A0..A7`. Il existe
-des révisions différentes de cette famille de cartes.
+**Ce sont des relais**, contacts secs 10 A NO/NC, pilotés par un registre à
+décalage 74HC595. Confirmé par les spécifications Eletechsup et par la
+bibliothèque de référence `af3556/IO22_IO_Board` de la même famille de cartes.
 
-**Action** : dérouler la procédure `03-affectation-es.md` §5 et confirmer ou
-corriger `pins.h`. Dix minutes, et cela conditionne tout le reste.
+Conséquences, toutes intégrées au projet :
 
-### Q2 — Nature des sorties de la carte
+- La sortie modulée du feu arrière est **matériellement impossible**. Deux
+  relais et deux circuits distincts (position + stop) — c'est la variante qui
+  avait été écartée au départ, et le matériel la réimpose.
+- Modules MOSFET, relais de klaxon et optocoupleur de coupure moteur :
+  **tous inutiles**. La nomenclature s'allège d'autant.
+- Le buzzer disparaît : le claquement des relais de clignotant le remplace.
+- R3 et R4 deviennent les pièces d'usure du montage.
 
-Relais secs, ou MOSFET / transistors ? Et quel courant par voie, quel courant
-total ?
+### Q1 — Confirmer le brochage au pinscan
 
-Le dimensionnement de `04-electricite.md` suppose des sorties **à transistor,
-côté bas, ~0,5 A par voie**, d'où les modules MOSFET et le relais klaxon en
-externe. Si ce sont des relais 10 A, le relais klaxon devient inutile — mais
-alors la sortie PWM du feu arrière n'est plus possible (un relais ne module
-pas), et il faudra basculer sur le câblage à deux circuits pour les feux
-arrière.
+Le brochage retenu vient de la bibliothèque de référence de la famille
+IO22/DN22, pas du datasheet de votre exemplaire précis. Il reste à confirmer.
 
-**Action** : donner la référence exacte ou une photo du bornier / du datasheet.
-**Impact si non tranché** : la sortie `OUT_TAIL` en PWM est le seul point de la
-conception qui dépend vraiment de la réponse.
+**Action** : dérouler `03-affectation-es.md` §6. Le croquis vérifie d'un coup
+la chaîne de registres, l'ordre des bits des relais, les huit entrées et les
+quatre boutons.
 
-### Q3 — Tenue en tension des sorties et alimentation de la carte
+### Q11 — Le RS485 est-il câblé sur D0/D1 ?
+
+La carte embarque une interface RS485. Si son circuit (type MAX485) est relié à
+D0/D1, il entre en conflit avec la console série de mise au point, et
+potentiellement avec le téléversement.
+
+**Action** : repérer le circuit RS485 sur la carte et vérifier ses liaisons, ou
+simplement observer si la console série fonctionne normalement carte alimentée.
+**Repli si conflit** : `DEBUG_SERIAL 0` en exploitation, l'afficheur 4 digits
+prenant le relais pour le diagnostic.
+
+### Q12 — Où est monté le calculateur, et l'afficheur est-il visible ?
+
+L'afficheur 4 digits et son deux-points portent désormais tout le diagnostic
+embarqué : vitesse, charge, code de défaut, odomètre, battement de cœur.
+
+- **Visible du poste de conduite** : c'est un vrai tableau de bord, et le
+  rappel d'oubli des clignotants a un annonciateur.
+- **Enfermé sous la coque** : il ne sert qu'à la maintenance, et le rappel
+  d'oubli n'a plus aucun moyen de se manifester en roulant.
+
+Dans le second cas, deux options pour retrouver un buzzer : renoncer à l'écoute
+UART (ce qui libère A4/A5), ou utiliser la broche d'un bouton (D9 ou D10,
+toutes deux capables de PWM) en sortie, avec une résistance série de 330 Ω pour
+survivre à un appui simultané.
+
+**Action** : décider de l'emplacement du boîtier.
+
+### Q3 — Tension d'alimentation de la carte
 
 La DN22D08 est-elle alimentée en 12 V (depuis le convertisseur) ou envisagez-vous
-de l'alimenter en 24 V ? Toute la spécification suppose **12 V**.
+de l'alimenter en 24 V ? Toute la spécification suppose **12 V**. La plage
+annoncée par le fabricant est DC 7–25 V.
 
 ---
 
@@ -79,17 +109,12 @@ Le comodo n'a pas de commande de feux de détresse. `IN8` attend un interrupteur
 **Alternative** : renoncer à la détresse et réaffecter `IN8` (par exemple à un
 contacteur à clé, ou à un second niveau d'éclairage).
 
-### Q8 — Rôle de `OUT8`
+### ~~Q8 — Rôle de `OUT8`~~ — **SANS OBJET**
 
-Par défaut : **buzzer de clignotants**. Sur un vélomobile caréné, le conducteur
-ne voit pas toujours ses répétiteurs — le retour sonore a une vraie valeur.
-
-L'alternative est un **relais de coupure des prises allume-cigare**, pour éviter
-de vider le pack sur un appareil oublié. Les deux ne tiennent pas sur une seule
-sortie.
-
-**Recommandation** : buzzer. Le risque de décharge par les prises se traite avec
-un interrupteur manuel, qui ne coûte rien et ne dépend d'aucun firmware.
+Il n'y a plus de sortie auxiliaire : les huit relais sont exactement consommés
+par les huit fonctions. Le buzzer est remplacé par le claquement des relais de
+clignotant, et les prises allume-cigare restent sur le bus 12 V fusionné, avec
+un interrupteur manuel qui ne dépend d'aucun firmware.
 
 ### Q9 — Puissance réelle des feux
 
@@ -112,8 +137,9 @@ l'odomètre — aucune fonction de sécurité.
 | Idée | Coût | Obstacle |
 |---|---|---|
 | Lecture du MPPT en VE.Direct | Faible | Plus d'UART libre (cf. `04-electricite.md` §7) |
-| Écran de bord dédié (OLED I²C) | Faible | A4/A5 mobilisées par la carte |
-| Journalisation sur carte SD | Moyen | SPI libre (D10–D13) mais D10 sert au sniff |
+| ~~Écran de bord dédié~~ | — | Sans objet : la carte a son afficheur 4 digits |
+| Journalisation sur carte SD | Élevé | Le SPI est inutilisable : D11/D12 sont des entrées, D13 la ligne de données du registre |
 | Détection de rupture de lampe | Élevé | Nécessite une mesure de courant par voie |
+| Arrêt d'urgence par la broche OE | Faible | Déjà câblé et implémenté ; il ne reste qu'à définir sa condition de déclenchement |
 | Forçage du niveau d'assistance | Élevé | Impose l'interposition UART, écartée (cf. `05` §8) |
-| Feu stop proportionnel à la décélération | Moyen | Nécessite un accéléromètre I²C, donc A4/A5 |
+| Feu stop proportionnel à la décélération | — | Impossible : un relais ne module pas |

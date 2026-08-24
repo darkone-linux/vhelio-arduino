@@ -9,26 +9,22 @@ namespace {
 
 bool g_low = false;
 bool g_high = false;
-uint8_t g_tail = 0;
-
-/* Rampe d'allumage de la veilleuse : limite l'appel de courant sur le
- * convertisseur. Elle ne s'applique JAMAIS au feu stop — rien ne doit
- * retarder un feu de freinage. */
-uint32_t g_rampStart = 0;
-bool g_ramping = false;
+bool g_park = false;
+bool g_stop = false;
 
 }  // namespace
 
 void lights::begin() {
-  g_low = g_high = false;
-  g_tail = 0;
-  g_ramping = false;
+  g_low = g_high = g_park = g_stop = false;
   board::setOutput(OUT_LOWBEAM, false);
   board::setOutput(OUT_HIGHBEAM, false);
-  board::setOutputPwm(OUT_TAIL, 0);
+  board::setOutput(OUT_TAIL_PARK, false);
+  board::setOutput(OUT_TAIL_STOP, false);
 }
 
 void lights::update(uint32_t now, const InputState& in, bool braking) {
+  (void)now;
+
   /* --- Phares --- */
   const bool lowReq = in.level[IN_LOWBEAM];
   bool highReq = in.level[IN_HIGHBEAM];
@@ -46,56 +42,26 @@ void lights::update(uint32_t now, const InputState& in, bool braking) {
   board::setOutput(OUT_LOWBEAM, g_low);
   board::setOutput(OUT_HIGHBEAM, g_high);
 
-  /* --- Feu arrière : priorité stricte, réévaluée chaque cycle --- */
+  /* --- Feux arrière : deux circuits indépendants ---
+   * La veilleuse suit l'éclairage, le stop suit le freinage. Les deux
+   * peuvent être allumés ensemble, exactement comme un feu automobile à
+   * deux filaments. */
 #if TAIL_ALWAYS_ON
-  const bool parkReq = true;
+  g_park = true;
 #else
-  const bool parkReq = lowReq;
+  g_park = lowReq;
 #endif
 
-  uint8_t target;
-  if (braking) {
-    target = TAIL_PWM_BRAKE;
-  } else if (parkReq) {
-    target = TAIL_PWM_PARK;
-  } else {
-    target = 0;
-  }
-
+  g_stop = braking;
 #if BRAKE_FLASH_ENABLE
-  /* Phase éteinte du flash d'attaque : on retombe sur l'état d'éclairage. */
-  if (braking && brakes::flashBlanking()) {
-    target = parkReq ? TAIL_PWM_PARK : 0;
-  }
+  if (braking && brakes::flashBlanking()) g_stop = false;
 #endif
 
-  uint8_t applied = target;
-
-  /* Rampe uniquement sur la montée 0 -> veilleuse, hors freinage.
-   * Le test !g_ramping est indispensable : pendant le premier cycle de rampe
-   * le rapport cyclique appliqué vaut encore 0, et sans lui la condition se
-   * revérifierait, l'origine serait remise à `now` à chaque tour, et la
-   * veilleuse resterait éteinte indéfiniment. */
-  if (!braking && target == TAIL_PWM_PARK && g_tail == 0 && !g_ramping) {
-    g_ramping = true;
-    g_rampStart = now;
-  }
-  if (braking || target == 0) {
-    g_ramping = false;
-  }
-  if (g_ramping) {
-    const uint32_t dt = now - g_rampStart;
-    if (dt >= TAIL_SOFTSTART_MS) {
-      g_ramping = false;
-    } else {
-      applied = (uint8_t)((uint32_t)TAIL_PWM_PARK * dt / TAIL_SOFTSTART_MS);
-    }
-  }
-
-  g_tail = applied;
-  board::setOutputPwm(OUT_TAIL, applied);
+  board::setOutput(OUT_TAIL_PARK, g_park);
+  board::setOutput(OUT_TAIL_STOP, g_stop);
 }
 
 bool lights::lowBeamOn() { return g_low; }
 bool lights::highBeamOn() { return g_high; }
-uint8_t lights::tailDuty() { return g_tail; }
+bool lights::tailParkOn() { return g_park; }
+bool lights::tailStopOn() { return g_stop; }

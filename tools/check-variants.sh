@@ -34,10 +34,13 @@ echo "== Balayage des variantes de compilation =="
 run_case "defaut"
 run_case "sans bus Bafang, vitesse par capteur roue" \
   BAFANG_ENABLE 0 SPEED_SOURCE_WHEEL 1
-run_case "freins en parallele + flash stop + relais aux" \
-  BRAKE_WIRING_VARIANT 1 BRAKE_FLASH_ENABLE 1 OUT8_ROLE_BUZZER 0
+run_case "freins en parallele + flash stop" \
+  BRAKE_WIRING_VARIANT 1 BRAKE_FLASH_ENABLE 1
 run_case "production silencieuse (ni journal ni autotest)" \
   DEBUG_SERIAL 0 SELFTEST_ENABLE 0 WATCHDOG_ENABLE 0 TAIL_ALWAYS_ON 1
+run_case "sans afficheur" DISPLAY_ENABLE 0
+run_case "minimal (ni afficheur ni bus ni journal)" \
+  DISPLAY_ENABLE 0 BAFANG_ENABLE 0 DEBUG_SERIAL 0
 run_case "mode apprentissage Bafang" BAFANG_LEARN_MODE 1
 run_case "vitesse Bafang en valeur directe" BAFANG_SPEED_FORMULA 0
 run_case "bus Bafang ET capteur roue" SPEED_SOURCE_WHEEL 1

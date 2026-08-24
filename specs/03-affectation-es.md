@@ -1,170 +1,232 @@
 # 03 — Affectation des entrées / sorties
 
-> **À vérifier avant tout câblage.** Le brochage ci-dessous est celui de la
-> variante la plus répandue de la DN22D08. Des révisions existent. La procédure
-> de vérification au multimètre est en §5 — elle prend dix minutes et évite de
-> griller une carte.
+> **Révision majeure.** La première version de ce document supposait une carte
+> à sorties transistor pilotées par des broches dédiées (`OUT1..8 → D2..D9`,
+> `IN1..8 → A0..A7`). **C'était faux.** La DN22D08 est une carte à **relais
+> pilotés par registre à décalage**. Toute la couche matérielle a été refaite.
+> L'ancienne hypothèse et ce qu'elle impliquait sont conservées en §7, parce
+> que la façon dont elle a été invalidée est réutilisable.
 
-## 1. Ressources du Nano
+## 1. Architecture réelle de la carte
 
-L'ATmega328P offre 20 broches d'E/S. La DN22D08 en consomme 16 (8 in + 8 out).
+La DN22D08 (famille Eletechsup IO22/DN22) embarque :
 
-| Broche | Affectation |
+- 8 sorties **relais**, contacts secs 10 A NO/NC, + une LED par voie
+- 8 entrées **optocouplées** NPN, déclenchement à l'état bas
+- 4 boutons-poussoirs sur la carte
+- 1 afficheur **4 digits 7 segments** avec deux-points
+- 1 interface RS485
+- 1 support Arduino Nano V3.0
+
+### Pourquoi il ne peut pas y avoir une broche par voie
+
+| Fonction | Broches nécessaires |
 |---|---|
-| D0 / D1 | UART matériel — console de mise au point 115 200 bd (partagé avec l'USB) |
-| D2 … D9 | **OUT1 … OUT8** de la carte |
-| D10 | RX logiciel — écoute UART Bafang (1200 bd) |
-| D11 | TX logiciel — **non câblé**, réservé par `SoftwareSerial` |
-| D12 | Capteur de vitesse roue (option `SPEED_SOURCE_WHEEL`) |
-| D13 | LED intégrée — battement de cœur / défaut |
-| A0 … A7 | **IN1 … IN8** de la carte |
+| 8 entrées optocouplées | 8 |
+| 4 boutons | 4 |
+| 8 relais | 8 |
+| Afficheur : 8 segments + point | 9 |
+| Afficheur : sélection des 4 digits | 4 |
+| **Total** | **33** |
 
-Deux conséquences importantes :
+Un Nano en expose 20. Le registre à décalage n'est donc pas un choix de
+conception du fabricant, c'est une **nécessité arithmétique** — ce qui est
+aussi la raison pour laquelle on peut être sûr de cette architecture sans
+avoir la carte sous les yeux.
 
-- **A4 / A5 sont mobilisées** comme entrées logiques. L'I²C n'est donc pas
-  disponible : pas d'extension d'E/S par expandeur sans libérer ces broches.
-- **A6 et A7 n'existent qu'en analogique** sur l'ATmega328P en boîtier TQFP :
-  `digitalRead()` ne fonctionne pas dessus. Le firmware les lit par
-  `analogRead()` avec un seuil à 512 (~2,5 V). Les deux signaux les moins
-  critiques en temps y sont affectés (feu de route, détresse).
+Trois 74HC595 sont chaînés : deux pour l'afficheur (U3, U4), un pour les
+relais (U5). Les entrées et les boutons, eux, sont bien reliés directement au
+Nano.
 
-## 2. Entrées — IN1 … IN8
+## 2. Brochage
 
-Les entrées de la DN22D08 sont optocouplées. Un signal **+12 V** appliqué sur la
-borne d'entrée (masse commune) allume la LED de l'optocoupleur, qui tire la
-broche Arduino **à l'état bas**. La convention est donc *actif = niveau bas*,
-gérée par `IN_ACTIVE_LOW[]` dans `board_io.cpp`.
+| Broche Nano | Rôle |
+|---|---|
+| D2, D3, D4, D5, D6 | Entrées optocouplées IN1 à IN5 |
+| D7, D8, D9, D10 | Boutons K1 à K4 (sur la carte) |
+| D11, D12 | Entrées optocouplées IN8 et **IN7** (ordre inversé) |
+| **D13** | **Données** de la chaîne de registres — *et LED intégrée du Nano* |
+| A0 | Entrée optocouplée IN6 |
+| A1 | **OE** du registre relais — validation, active à l'état bas |
+| A2 | **Verrou** (latch) de la chaîne |
+| A3 | **Horloge** de la chaîne |
+| A4 | Libre → écoute UART Bafang (RX logiciel) |
+| A5 | Libre → TX logiciel, **non câblé** |
+| A6, A7 | Libres, analogiques seules |
+| D0, D1 | Console série — **à vérifier**, le RS485 y est probablement raccordé |
+
+> **La LED D13 n'est pas utilisable comme témoin.** Elle est sur la ligne de
+> données du registre et papillote au rythme du rafraîchissement. Le battement
+> de cœur est reporté sur le **deux-points de l'afficheur** : 1 Hz en
+> fonctionnement nominal, ~4 Hz si un défaut est actif.
+
+## 3. Entrées — IN1 … IN8
+
+Optocoupleurs NPN : un signal appliqué sur la borne fait conduire
+l'optocoupleur, qui tire la broche du Nano **à l'état bas**. Le firmware
+active `INPUT_PULLUP`, ce qui donne un état inactif franc même carte non
+alimentée.
 
 | # | Broche | Nom logique | Source | Type | Anti-rebond |
 |---|---|---|---|---|---|
-| IN1 | A0 | `IN_TURN_LEFT` | Comodo, position gauche | maintenu | 30 ms |
-| IN2 | A1 | `IN_TURN_RIGHT` | Comodo, position droite | maintenu | 30 ms |
-| IN3 | A2 | `IN_HORN` | Comodo, bouton klaxon | momentané | 20 ms |
-| IN4 | A3 | `IN_BRAKE_FRONT` | Contacteur frein avant | momentané | 15 ms |
-| IN5 | A4 | `IN_BRAKE_REAR` | Contacteur frein arrière | momentané | 15 ms |
-| IN6 | A5 | `IN_LOWBEAM` | Comodo, éclairage / croisement | maintenu | 30 ms |
-| IN7 | A6 * | `IN_HIGHBEAM` | Comodo, feu de route | maintenu | 30 ms |
-| IN8 | A7 * | `IN_HAZARD` | Interrupteur détresse dédié | maintenu | 30 ms |
+| IN1 | D2 | `IN_TURN_LEFT` | Comodo, position gauche | maintenu | 30 ms |
+| IN2 | D3 | `IN_TURN_RIGHT` | Comodo, position droite | maintenu | 30 ms |
+| IN3 | D4 | `IN_HORN` | Comodo, bouton klaxon | momentané | 20 ms |
+| IN4 | D5 | `IN_BRAKE_FRONT` | Contacteur frein avant | momentané | 15 ms |
+| IN5 | D6 | `IN_BRAKE_REAR` | Contacteur frein arrière | momentané | 15 ms |
+| IN6 | A0 | `IN_LOWBEAM` | Comodo, croisement | maintenu | 30 ms |
+| IN7 | D12 | `IN_HIGHBEAM` | Comodo, feu de route | maintenu | 30 ms |
+| IN8 | D11 | `IN_HAZARD` | Interrupteur détresse dédié | maintenu | 30 ms |
 
-\* lecture par `analogRead()`, seuil 512.
+**Gain par rapport à l'ancienne hypothèse** : les huit entrées sont sur de
+vraies broches numériques. Le contournement `analogRead()` sur A6/A7, et le
+risque de broche flottante qu'il traînait, ont entièrement disparu.
 
-> A6 et A7 n'ont **pas de résistance de tirage interne**. Sur les six autres
-> entrées, le firmware active `INPUT_PULLUP`, ce qui donne un état inactif
-> franc même carte d'E/S non alimentée. Sur A6/A7, l'état au repos dépend
-> entièrement du tirage présent sur la carte DN22D08. Le vérifier à l'étape 4
-> de la procédure du §5 : si la valeur brute affichée flotte au lieu d'être
-> stable, ajouter une résistance de 10 kΩ vers +5 V sur la broche concernée.
+## 4. Sorties — 8 relais
 
-Le comodo ne fournissant pas de commande de détresse, IN8 attend un
-**interrupteur à bascule dédié**, à monter sur le tableau de bord.
+Contacts secs 10 A. **Aucun étage de puissance externe n'est nécessaire** :
+ni module MOSFET, ni relais de klaxon, ni optocoupleur de coupure moteur.
 
-## 3. Sorties — OUT1 … OUT8
+| Relais | Bit registre | Nom logique | Charge | Régime |
+|---|---|---|---|---|
+| R1 | 1 | `OUT_LOWBEAM` | Feu de croisement | continu |
+| R2 | 2 | `OUT_HIGHBEAM` | Feu de route | continu |
+| R3 | 3 | `OUT_TURN_LEFT` | Clignotants gauche (AV + AR) | **cyclique 1,33 Hz** |
+| R4 | 4 | `OUT_TURN_RIGHT` | Clignotants droite (AV + AR) | **cyclique 1,33 Hz** |
+| R5 | 5 | `OUT_TAIL_PARK` | Feux de position arrière | continu |
+| R6 | 6 | `OUT_TAIL_STOP` | Feux stop arrière | intermittent |
+| R7 | 7 | `OUT_HORN` | Klaxon | intermittent |
+| R8 | **0** | `OUT_MOTOR_CUT` | Ligne frein du contrôleur | intermittent |
 
-Broche Arduino à l'état haut = sortie active (`OUT_ACTIVE_HIGH[]`).
+> L'ordre des bits n'est pas séquentiel : le relais 8 occupe le **bit 0**, les
+> relais 1 à 7 les bits 1 à 7. C'est le câblage de la carte. Le tableau
+> `RELAY_BIT[]` de `board_io.cpp` encode cette bizarrerie une fois pour
+> toutes ; aucun module métier ne la voit.
 
-| # | Broche | Nom logique | Charge | Courant | Étage de puissance |
-|---|---|---|---|---|---|
-| OUT1 | D2 | `OUT_LOWBEAM` | Feu de croisement LED | ~1,7 A | Relais ou module MOSFET |
-| OUT2 | D3 | `OUT_HIGHBEAM` | Feu de route LED | ~1,7 A | Relais ou module MOSFET |
-| OUT3 | D4 | `OUT_TURN_LEFT` | 2 clignotants gauche | ~0,5 A | Direct si la sortie tient 1 A |
-| OUT4 | D5 | `OUT_TURN_RIGHT` | 2 clignotants droite | ~0,5 A | Direct si la sortie tient 1 A |
-| OUT5 | **D6** | `OUT_TAIL` | Feux rouges arrière | ~0,5 A | **Module MOSFET obligatoire (PWM)** |
-| OUT6 | D7 | `OUT_HORN` | Klaxon 12 V | 5–8 A crête | **Relais 12 V / 20 A obligatoire** |
-| OUT7 | D8 | `OUT_MOTOR_CUT` | Ligne frein contrôleur | < 10 mA | **Optocoupleur** (isolation 5 V/12 V) |
-| OUT8 | D9 | `OUT_AUX` | Buzzer clignotants (défaut) ou relais accessoires | < 0,1 A | Direct |
+### Ce que les relais changent, en bien
 
-Contraintes de brochage à ne pas casser en réaffectant :
+- **La coupure moteur devient un contact sec.** Plus besoin d'optocoupleur :
+  un relais est galvaniquement isolé par construction. C'est plus simple *et*
+  plus sûr que la solution initiale.
+- **Le klaxon n'a plus besoin de son relais externe.** Une voie de 10 A suffit
+  pour 5 à 8 A. Prévoir tout de même le fusible F8 : un klaxon à compresseur
+  peut avoir une pointe d'appel supérieure au calibre du contact.
+- **Les phares se branchent en direct.** Plus de modules MOSFET.
 
-- `OUT_TAIL` **doit** rester sur une broche PWM matérielle. Sur le Nano, parmi
-  D2–D9, seules **D3, D5, D6, D9** le sont. D6 (Timer0) est retenue.
-  Timer0 pilote aussi `millis()` : `analogWrite()` sur D5/D6 n'interfère pas
-  avec `millis()`, seul un changement de prescaler le ferait — le firmware n'en
-  change aucun.
-- `OUT_MOTOR_CUT` passe par un optocoupleur et **jamais** en liaison directe :
-  la ligne frein du contrôleur Bafang est un circuit ~5 V référencé à la masse
-  du contrôleur, il ne faut y injecter ni 12 V ni le 5 V de l'Arduino.
+### Ce qu'ils changent, en moins bien
 
-## 4. Câblage des freins — deux variantes
+- **Aucune modulation possible.** Un relais ne fait pas de PWM. Le feu arrière
+  à circuit unique et intensité variable est **matériellement impossible** :
+  il faut deux circuits, R5 et R6 (§4 du tableau).
+- **Les clignotants usent de la mécanique.** À 1,33 Hz, chaque heure de
+  clignotement représente 4 800 manœuvres. Pour une endurance électrique
+  courante de l'ordre de 10⁵ manœuvres sous charge, cela donne ≈ 20 heures de
+  clignotement **continu**. À raison de 5 % du temps de roulage, on est de
+  l'ordre de plusieurs dizaines de milliers de kilomètres — acceptable, mais
+  R3 et R4 sont les pièces d'usure du montage, et il faut le savoir.
+- **Le claquement est audible en permanence.** Ce n'est pas un défaut : c'est
+  exactement le bruit d'un relais de clignotant d'origine, et il **remplace le
+  buzzer** qui était prévu. Une sortie et un composant économisés.
+- **Temps de commutation ~5 à 10 ms**, à ajouter au budget de réaction du feu
+  stop. On reste très en dessous des 50 ms exigés par F-2.2.
 
-### Variante A — freins en parallèle sur la ligne frein *(recommandée)*
+### Validation globale des sorties (OE)
 
-Les deux contacteurs sont câblés **en parallèle directement sur le connecteur
-frein du contrôleur Bafang**. La coupure moteur est alors 100 % matérielle
-(principe P1) et fonctionne même Arduino débranché.
+La broche A1 pilote l'entrée OE du registre des relais. À l'état haut, **tous
+les relais retombent en un cycle d'horloge**, sans toucher au contenu du
+registre : l'état antérieur est restitué intact à la réactivation. C'est un
+arrêt d'urgence matériel, exploitable pour un futur mode sécurité.
 
-L'Arduino lit l'état de cette ligne via une **interface transistor haute
-impédance**, pour ne pas la charger :
+Au démarrage, le firmware écrit `HIGH` sur A1 **avant** de la passer en sortie.
+Sur une broche encore en entrée, `digitalWrite(HIGH)` active le tirage interne,
+donc la broche est déjà haute au moment où elle devient une sortie. L'ordre
+inverse produirait une impulsion basse — **tous les relais collés** — pendant
+quelques microsecondes à chaque mise sous tension.
 
-```
-Ligne frein Bafang (~5 V au repos, 0 V au freinage)
-      |
-     10k
-      |
-    [B] Q1 = BC547            Q2 = P-MOSFET (IRF9540 / AO3401)
-   Q1.E = GND                 Q2.S = +12 V
-   Q1.C ---- 10k ---- Q2.G    Q2.G ---- 100k ---- +12 V
-                              Q2.D ---> borne IN4 de la DN22D08
-   (10k entre base et émetteur de Q1)
-```
+## 5. Câblage des freins — deux variantes
 
-Comportement : au repos la ligne est à 5 V, Q1 conduit, Q2 conduit, +12 V arrive
-sur IN4 → **entrée active = frein relâché**. Au freinage la ligne tombe à 0 V,
-Q2 se bloque, IN4 retombe → entrée inactive.
+La coupure moteur passant maintenant par un contact sec, la variante A perd
+son principal intérêt (l'isolation était déjà résolue). Les deux restent
+possibles.
 
-La logique est donc **inversée**, ce que le firmware gère par
-`IN_INVERT_BRAKE_FRONT 1`. Effet de bord bénéfique : une rupture de fil fait
-retomber l'entrée, donc le firmware conclut « freinage » — état sûr.
+### Variante B — détection discriminante *(défaut du firmware)*
 
-En variante A, `IN_BRAKE_REAR` (IN5 / A4) est **libre** et disponible pour une
-extension.
+- **Frein avant** : contacteur alimenté vers IN4. Pour qu'il ferme *aussi* la
+  ligne frein du contrôleur, il faut un contacteur **bipolaire** — sinon on
+  injecterait la tension d'entrée dans le contrôleur.
+- **Frein arrière** : ajouter un micro-rupteur dédié sur le levier, vers IN5.
+  Le contacteur Bafang d'origine reste câblé au contrôleur.
 
-### Variante B — détection discriminante *(par défaut dans le firmware)*
+### Variante A — freins en parallèle sur la ligne frein
 
-Deux entrées distinctes, ce qui permet de savoir *quel* frein est actionné
-(utile au diagnostic et pour un futur bridage différencié) :
+Les deux contacteurs sont câblés en parallèle directement sur le connecteur
+frein du contrôleur ; l'Arduino lit cette ligne via l'interface transistor
+décrite dans `hardware/cablage.md` §5. Une seule entrée est alors utilisée,
+IN5 reste libre, et la logique est inversée (`IN_INVERT_BRAKE_FRONT 1`) — une
+rupture de fil est alors interprétée comme un freinage, ce qui est l'état sûr.
 
-- **Frein avant** (contacteur simple, non Bafang) : contacteur alimenté en
-  +12 V, sortie vers IN4. Contact fermé = 12 V = actif. Câbler **en plus** le
-  contacteur sur la ligne frein Bafang exige un contacteur **bipolaire**
-  (deux circuits isolés) — sinon on injecterait du 12 V dans le contrôleur.
-- **Frein arrière** (contacteur Bafang existant) : ajouter un **micro-rupteur
-  dédié** sur le levier, alimenté en +12 V vers IN5. Le contacteur Bafang
-  d'origine reste câblé sur le contrôleur et assure la coupure matérielle.
+Choix dans `config.h` : `BRAKE_WIRING_VARIANT 1` ou `2`.
 
-> Le choix se fait dans `config.h` : `BRAKE_WIRING_VARIANT 1` ou `2`.
+## 6. Procédure de vérification
 
-## 5. Procédure de vérification du brochage
+À faire **avant** de brancher autre chose que l'USB.
 
-À faire **avant** de brancher quoi que ce soit d'autre que l'USB.
+1. Téléverser le croquis de contrôle :
+   ```bash
+   VHELIO_SKETCH=$PWD/tools/pinscan ./tools/build-nix.sh
+   ./tools/upload.sh /dev/ttyUSB0
+   ```
+2. Ouvrir la console à 115 200 bauds.
+3. **Chaîne de registres.** Un digit doit s'allumer sur l'afficheur et les
+   relais doivent coller **un par un**, 1,5 s chacun, dans l'ordre annoncé.
+   - Si rien ne bouge : les broches data / horloge / verrou sont fausses.
+   - Si tous les relais collent en même temps : OE est mal identifiée.
+   - Si l'ordre ne correspond pas : corriger `RELAY_BIT[]` dans `board_io.cpp`.
+4. **Entrées.** Au repos, la console doit afficher `IN1..IN8 = 11111111`.
+   Appliquer le signal sur chaque borne : le chiffre correspondant doit passer
+   à `0`. Noter tout écart d'ordre et corriger `IN_PIN[]`.
+5. **Boutons.** Appuyer sur K1 à K4 : `K1..K4` doit passer à `0`.
+6. **RS485.** Vérifier si un circuit type MAX485 est relié à D0/D1. Si oui, la
+   console série de mise au point entre en conflit avec lui — voir Q11 dans
+   `09-questions-ouvertes.md`.
+7. Reporter les écarts dans `firmware/vhelio/src/pins.h` et
+   `firmware/vhelio/src/board_io.cpp`.
 
-1. Carte DN22D08 **non alimentée en 12 V**, Nano alimenté par l'USB seul.
-2. Téléverser le croquis fourni :
-   `VHELIO_SKETCH=$PWD/tools/pinscan ./tools/build-nix.sh` puis
-   `./tools/upload.sh /dev/ttyUSB0`.
-3. **Sorties** : le croquis active D2 … D9 l'une après l'autre, 1 s chacune, et
-   affiche le nom de la broche sur le port série. Mesurer à l'ohmmètre ou au
-   voltmètre sur chaque bornier de sortie et noter la correspondance réelle.
-4. **Entrées** : alimenter la carte en 12 V, appliquer +12 V successivement sur
-   chaque borne d'entrée. Le croquis affiche en continu l'état des broches
-   A0 … A7. Noter quelle broche bascule, et **dans quel sens**.
-5. Reporter les écarts dans `firmware/vhelio/src/pins.h` (tableaux `DN_OUT_PIN`
-   et `DN_IN_PIN`) et dans `board_io.cpp` (`IN_ACTIVE_LOW`, `OUT_ACTIVE_HIGH`).
-6. Vérifier au datasheet **le courant admissible par sortie** et par la carte
-   entière. Si une sortie ne tient pas la charge annoncée en §3, insérer un
-   relais ou un module MOSFET.
+## 7. Comment l'hypothèse initiale a été invalidée
 
-## 6. Bilan des ressources
+Elle venait d'un mapping très répandu sur les cartes rail DIN pour Nano
+(`OUT → D2..D9`, `IN → A0..A7`), plausible mais pas vérifié pour ce modèle. La
+spécification l'assumait explicitement et prévoyait sa vérification — c'est ce
+qui a permis de la corriger sans rien casser d'autre.
+
+Trois choses ont limité les dégâts :
+
+- **Le brochage était concentré** dans `pins.h` et deux tableaux de
+  `board_io.cpp`. Aucun module métier n'a été touché par le changement de
+  brochage lui-même.
+- **La couche `board_io` existait déjà** comme abstraction. Elle est passée de
+  « masquer une polarité » à « masquer un registre à décalage » sans que ses
+  appelants changent d'une ligne.
+- **L'incertitude était documentée** comme question ouverte bloquante, avec
+  une procédure de vérification. Elle a été traitée comme un risque connu, pas
+  découverte au câblage.
+
+Ce qui a réellement dû changer : le module d'éclairage (deux relais au lieu
+d'une sortie modulée), la suppression du buzzer, l'ajout du pilotage de
+l'afficheur, et le déplacement de l'écoute UART de D10 vers A4.
+
+## 8. Bilan des ressources
 
 | Ressource | Utilisé | Libre |
 |---|---|---|
-| Entrées carte | 8 / 8 (7 / 8 en variante A) | 0 (ou 1) |
-| Sorties carte | 8 / 8 | 0 |
-| Broches Nano hors carte | D0, D1, D10, D11, D13 | D12 (si vitesse UART) |
-| Timers | Timer0 (millis + PWM D5/D6) | Timer1, Timer2 |
-| Interruptions externes | aucune (D2/D3 en sortie) | — |
-| UART matériel | console de debug | — |
+| Entrées optocouplées | 8 / 8 (7 / 8 en variante A) | 0 (ou 1) |
+| Relais | 8 / 8 | 0 |
+| Boutons carte | 1 / 4 (page d'afficheur) | 3 |
+| Afficheur | vitesse, charge, défauts, odomètre | — |
+| Broches Nano hors carte | A4, A5 (écoute Bafang) | A6, A7 |
+| Timers | Timer0 (`millis`) | Timer1, Timer2 |
+| UART matériel | console de mise au point | — |
 
-Le système est **saturé côté E/S**. Toute fonction supplémentaire (feux de
-recul, éclairage de cabine, capteur de température…) impose soit de libérer
-A4/A5 pour un expandeur I²C (PCF8574), soit une seconde carte, soit un passage
-sur un Arduino Mega.
+Les relais et les entrées sont saturés. Les marges restantes sont **trois
+boutons** et **deux broches analogiques**. Toute fonction supplémentaire
+nécessitant une sortie de puissance impose une seconde carte.

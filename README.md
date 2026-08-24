@@ -7,7 +7,9 @@ alternative au montage décrit dans le
 Le câblage « en dur » est remplacé par un calculateur central :
 
 - **Arduino Nano** (ATmega328P, 5 V, 16 MHz)
-- **Carte d'E/S rail DIN DN22D08** — 8 entrées optocouplées 12–24 V, 8 sorties
+- **Carte d'E/S rail DIN DN22D08** (Eletechsup) — 8 relais 10 A, 8 entrées
+  optocouplées, 4 boutons, afficheur 4 digits, le tout piloté par une chaîne de
+  registres à décalage
 
 Ce calculateur gère l'éclairage, la signalisation, le klaxon, la détection de
 freinage et la télémétrie moteur. Il **ne gère pas** la traction : le contrôleur
@@ -78,8 +80,9 @@ installer au niveau système.
 ### Empreinte mesurée
 
 Configuration par défaut, avr-gcc 15.3, `-Os -flto` :
-**8 494 octets de flash (27 %)** et **641 octets de RAM (31 %)** sur les
-30 720 / 2 048 disponibles.
+**8 750 octets de flash (28 %)** et **703 octets de RAM (34 %)** sur les
+30 720 / 2 048 disponibles. Compile sans avertissement dans les onze
+combinaisons d'options couvertes par `tools/check-variants.sh`.
 
 ## Régler le firmware
 
@@ -103,6 +106,13 @@ sortie de l'Arduino n'étant qu'un troisième chemin redondant. Le test T2.4 du
 plan de tests vérifie explicitement que **le moteur se coupe toujours, Arduino
 débranché**.
 
-Vérifiez le brochage de votre carte au multimètre avant la première mise sous
-tension : celui documenté ici est celui de la variante la plus courante, mais
-il existe des révisions différentes.
+Vérifiez le brochage de votre carte avec `tools/pinscan` avant la première mise
+sous tension. Le brochage documenté ici vient de la bibliothèque de référence
+de la famille de cartes IO22/DN22, pas du datasheet de votre exemplaire précis.
+
+> **Une hypothèse a déjà été prise en défaut sur ce projet.** La première
+> version supposait des sorties à transistor pilotées par des broches dédiées ;
+> ce sont en réalité des relais commandés par registre à décalage. Le coût de
+> la correction est resté faible parce que le brochage était concentré dans
+> deux fichiers et que l'incertitude était documentée comme telle. Le
+> post-mortem est en [`specs/03-affectation-es.md`](specs/03-affectation-es.md) §7.

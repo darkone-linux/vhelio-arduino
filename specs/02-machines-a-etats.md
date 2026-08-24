@@ -54,12 +54,23 @@ stateDiagram-v2
 Le compteur de phase est **remis à zéro à chaque changement d'état**, ce qui
 garantit F-3.3 (démarrage sur une phase allumée) et évite un premier flash tronqué.
 
+### Retour sonore
+
+Aucun buzzer. Les clignotants sont portés par les relais R3 et R4, dont le
+claquement mécanique à 1,33 Hz **est** le retour sonore — c'est le bruit d'un
+relais de clignotant classique. Une sortie et un composant économisés, et le
+retour ne peut pas tomber en panne indépendamment du clignotant qu'il annonce.
+
 ### Rappel d'oubli (F-3.7)
 
 Un compteur démarre à l'entrée dans `LEFT` ou `RIGHT` (pas en `HAZARD`, qui est
 intentionnellement durable). Au-delà de 45 s **ou** 300 m parcourus — si la
-vitesse est valide — le retour sonore passe de « clic 25 ms » à « bip 150 ms »
-à chaque début de phase. Les clignotants continuent normalement.
+vitesse est valide — l'état de rappel est levé. Il est publié au journal série
+et exploitable par l'afficheur ; les clignotants continuent normalement.
+
+**Limite assumée** : faute de sortie disponible pour un buzzer, ce rappel n'est
+pas audible. Le rendre audible imposerait de renoncer à l'écoute UART (qui
+occupe A4/A5) ou d'utiliser une broche de bouton en sortie. Voir Q12.
 
 ---
 
@@ -106,21 +117,25 @@ Un relâchement pendant la séquence l'interrompt immédiatement.
 
 ---
 
-## 2.3 Feux rouges arrière (arbitrage PWM)
+## 2.3 Feux rouges arrière — deux circuits
 
-Une seule sortie PWM (`OUT5`) porte les deux fonctions. L'arbitrage est un ordre
-de priorité strict, réévalué à chaque cycle :
+Les sorties de la carte sont des relais : aucune modulation n'est possible. Les
+deux fonctions occupent donc **deux relais et deux circuits distincts**, comme
+un feu automobile à deux filaments.
 
-| Priorité | Condition | Rapport cyclique |
+| Relais | Fonction | Condition |
 |---|---|---|
-| 1 | Freinage actif | 255 (100 %) |
-| 2 | Éclairage allumé, ou `TAIL_ALWAYS_ON` | 52 (~20 %) |
-| 3 | sinon | 0 |
+| R5 | Feux de position | éclairage allumé, ou `TAIL_ALWAYS_ON` |
+| R6 | Feu stop | freinage actif |
 
-La transition 0 → veilleuse suit une rampe de 200 ms. La transition
-veilleuse → stop est **immédiate** : aucune rampe ne doit retarder le feu stop.
-La transition stop → veilleuse est immédiate elle aussi, pour que le conducteur
-derrière voie clairement la fin du freinage.
+Il n'y a plus d'arbitrage : les deux sont indépendants et peuvent être allumés
+simultanément. C'est plus simple que la version modulée, et conforme au
+câblage automobile usuel — mais cela consomme deux des huit relais, ce qui est
+ce qui a fait disparaître le buzzer.
+
+La différenciation visuelle entre position et stop repose désormais sur le
+**matériel** : le feu stop doit être nettement plus lumineux que le feu de
+position. À vérifier au test T3.3.
 
 ---
 

@@ -12,58 +12,77 @@ résistances en guise de charges, huit interrupteurs vers +12 V, un multimètre.
 
 ### T1.1 — Brochage (bloquant)
 
-Suivre `03-affectation-es.md` §5 avec `tools/pinscan`.
-**Critère** : les 16 correspondances sont notées et concordent avec `pins.h`,
-ou `pins.h` a été corrigé.
+Suivre `03-affectation-es.md` §6 avec `tools/pinscan`.
+
+**Critères**, tous obligatoires :
+- un digit s'allume sur l'afficheur → la chaîne de registres répond ;
+- les relais collent **un par un**, dans l'ordre annoncé sur la console →
+  `RELAY_BIT[]` est correct ;
+- au repos, la console affiche `IN1..IN8 = 11111111` ;
+- chaque borne d'entrée sollicitée fait passer **un seul** chiffre à `0` ;
+- les quatre boutons répondent.
+
+Tout écart se corrige dans `pins.h` et `board_io.cpp` avant de continuer.
 
 ### T1.2 — Autotest
 
 Mise sous tension.
-**Critère** : les six sorties d'éclairage/signalisation s'activent l'une après
-l'autre, 150 ms chacune. Le klaxon et la coupure moteur **ne** sont **pas**
-activés pendant l'autotest.
+**Critère** : les six relais d'éclairage et de signalisation collent l'un après
+l'autre, 200 ms chacun — c'est audible autant que visible. Le klaxon (R7) et la
+coupure moteur (R8) **ne** sont **pas** activés.
+L'afficheur reste multiplexé pendant toute la séquence : s'il s'éteint,
+`board::refresh()` n'est pas appelé dans la boucle d'attente.
 
 ### T1.3 — Éclairage
 
 | Action | Attendu |
 |---|---|
-| `IN_LOWBEAM` seule | OUT1 actif, OUT5 à ~20 % |
-| `IN_HIGHBEAM` seule (sans croisement) | OUT2 **inactif** |
-| `IN_LOWBEAM` + `IN_HIGHBEAM` | OUT1 et OUT2 actifs |
-| Relâcher tout | OUT1, OUT2, OUT5 inactifs |
-
-Mesurer le rapport cyclique de OUT5 à l'oscilloscope ou avec un multimètre en
-mode tension moyenne : ≈ 2,4 V sur 12 V.
+| `IN_LOWBEAM` seule | R1 collé, R5 collé (feux de position) |
+| `IN_HIGHBEAM` seule (sans croisement) | R2 **relâché** |
+| `IN_LOWBEAM` + `IN_HIGHBEAM` | R1 et R2 collés |
+| Relâcher tout | R1, R2, R5 relâchés |
 
 ### T1.4 — Clignotants
 
 | Action | Attendu |
 |---|---|
-| `IN_TURN_LEFT` | OUT3 clignote, OUT4 éteint, démarrage **allumé** |
+| `IN_TURN_LEFT` | R3 claque à 1,33 Hz, R4 muet, démarrage sur une phase **allumée** |
 | Chronométrer 30 cycles | 22,5 s ± 1 s (750 ms/cycle) |
-| `IN_TURN_LEFT` + `IN_TURN_RIGHT` | OUT3 **et** OUT4 éteints, `FLT_TURN_CONFLICT` au journal |
-| `IN_HAZARD` + `IN_TURN_LEFT` | OUT3 et OUT4 clignotent **en phase** |
-| Laisser `IN_TURN_LEFT` 50 s | Le retour sonore passe en bip long |
+| `IN_TURN_LEFT` + `IN_TURN_RIGHT` | R3 **et** R4 relâchés, `FLT_TURN_CONFLICT` au journal |
+| `IN_HAZARD` + `IN_TURN_LEFT` | R3 et R4 claquent **en phase** |
+| Laisser `IN_TURN_LEFT` 50 s | Le rappel d'oubli apparaît au journal |
+
+Le claquement des relais est le retour sonore du clignotant : il doit être
+audible depuis le poste de conduite. Si le boîtier l'étouffe complètement,
+c'est un élément de réponse à Q12.
 
 ### T1.5 — Freinage
 
 | Action | Attendu |
 |---|---|
-| `IN_BRAKE_FRONT`, éclairage éteint | OUT5 à 100 %, OUT7 actif |
-| `IN_BRAKE_REAR`, éclairage allumé | OUT5 passe de 20 % à 100 % |
-| Relâcher | OUT5 revient à son état d'éclairage **immédiatement** ; OUT7 reste actif 300 ms |
-| Impulsions à 20 Hz sur l'entrée | Pas de scintillement de OUT7 (le maintien absorbe) |
+| `IN_BRAKE_FRONT`, éclairage éteint | R6 collé, R5 relâché, R8 collé |
+| `IN_BRAKE_REAR`, éclairage allumé | R6 collé **en plus** de R5 |
+| Relâcher | R6 retombe immédiatement ; R8 reste collé 300 ms |
+| Impulsions à 20 Hz sur l'entrée | R8 ne bat pas (le maintien de 300 ms absorbe) |
 | Maintenir 130 s | `FLT_BRAKE_STUCK` au journal |
 
-Mesurer le délai contact → OUT5 à 100 % : **< 50 ms** (F-2.2).
+Mesurer le délai contact → R6 collé : **< 50 ms** (F-2.2), temps de collage du
+relais inclus.
+
+> R5 et R6 sont deux circuits distincts. Vérifier au contrôleur de continuité
+> qu'ils ne se rebouclent pas : le feu stop doit pouvoir s'allumer feux
+> éteints, et les feux de position rester allumés hors freinage.
 
 ### T1.6 — Klaxon
 
 | Action | Attendu |
 |---|---|
-| Appui bref | OUT6 actif pendant l'appui |
-| Appui maintenu 15 s | OUT6 coupe à 10 s, `FLT_HORN_STUCK` |
-| Relâcher puis rappuyer | OUT6 réactif |
+| Appui bref | R7 collé pendant l'appui |
+| Appui maintenu 15 s | R7 retombe à 10 s, `FLT_HORN_STUCK` |
+| Relâcher puis rappuyer | R7 réactif |
+
+Après le test, contrôler que R7 n'est pas resté collé mécaniquement : c'est le
+relais qui voit le courant le plus élevé du montage.
 
 ### T1.7 — Chien de garde
 
@@ -71,11 +90,23 @@ Injecter temporairement `while(1);` dans `loop()`.
 **Critère** : redémarrage en ~1 s, et `FLT_WDT_RESET` présent au journal après
 reprise. **Retirer l'injection ensuite.**
 
+### T1.7 bis — Arrêt d'urgence par la broche OE
+
+Injecter temporairement un appel à `board::outputsEnabled(false)` déclenché par
+un bouton de la carte.
+**Critère** : les huit relais retombent **immédiatement**, et l'état antérieur
+est intégralement restitué au relâchement — sans que le firmware ait eu à
+recalculer quoi que ce soit. **Retirer l'injection ensuite.**
+
 ### T1.8 — Temps de cycle
 
 Lire `loopMax` au journal après 5 min.
 **Critère** : < 10 ms (F-6.6). Attention, avec `BAFANG_ENABLE 1` et une source
 UART branchée, des pics à ~9 ms sont normaux (`SoftwareSerial`).
+
+Observer aussi l'afficheur : un léger scintillement toutes les ~200 ms est
+attendu et sans gravité, c'est la trace des octets Bafang. Un scintillement
+permanent signalerait en revanche une boucle trop lente.
 
 ---
 
@@ -141,7 +172,8 @@ Avec `BAFANG_LEARN_MODE 1`, suivre la procédure de calibration de
 - [ ] Clignotant gauche, clignotant droit, détresse
 - [ ] Feu stop au frein avant **et** au frein arrière (observateur derrière)
 - [ ] Klaxon
-- [ ] Aucun défaut au journal série (ou LED D13 à 1 Hz, pas 5 Hz)
+- [ ] Aucun défaut : deux-points de l'afficheur à 1 Hz, pas ~4 Hz
+- [ ] Page « défauts » de l'afficheur (bouton K1) : `F000`
 
 ### T3.2 — Comportement dynamique
 
@@ -172,6 +204,7 @@ Avec `BAFANG_LEARN_MODE 1`, suivre la procédure de calibration de
 | T1.5 | | | |
 | T1.6 | | | |
 | T1.7 | | | |
+| T1.7 bis | | | |
 | T1.8 | | | |
 | T2.1 | | | |
 | T2.2 | | | |

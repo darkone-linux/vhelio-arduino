@@ -6,7 +6,7 @@
  */
 #pragma once
 
-#define VHELIO_FW_VERSION "0.1.0"
+#define VHELIO_FW_VERSION "0.2.0"
 
 /* ======================================================================
  * Variantes de câblage
@@ -16,7 +16,7 @@
  *     l'Arduino ne lit qu'une seule entrée (IN_BRAKE_FRONT). IN_BRAKE_REAR
  *     est alors libre.
  * 2 = freins avant et arrière lus séparément (défaut).
- * Voir specs/03-affectation-es.md §4. */
+ * Voir specs/03-affectation-es.md §5. */
 #define BRAKE_WIRING_VARIANT      2
 
 /* Mettre à 1 si l'entrée frein correspondante passe par l'interface
@@ -25,30 +25,27 @@
 #define IN_INVERT_BRAKE_FRONT     0
 #define IN_INVERT_BRAKE_REAR      0
 
-/* Rôle de OUT8 : 1 = buzzer de retour clignotants, 0 = relais accessoires. */
-#define OUT8_ROLE_BUZZER          1
-
 /* ======================================================================
  * Éclairage
  * ====================================================================== */
 
-#define HIGHBEAM_REQUIRES_LOWBEAM 1   /* le feu de route exige le croisement  */
+#define HIGHBEAM_REQUIRES_LOWBEAM 1   /* le feu de route exige le croisement   */
 #define HIGHBEAM_KEEPS_LOWBEAM    1   /* le croisement reste allumé avec route */
-#define TAIL_ALWAYS_ON            0   /* veilleuse arrière permanente (DRL)   */
+#define TAIL_ALWAYS_ON            0   /* veilleuse arrière permanente (DRL)    */
 
-#define TAIL_PWM_PARK             52  /* ~20 % — veilleuse                    */
-#define TAIL_PWM_BRAKE            255 /* 100 % — feu stop                     */
-#define TAIL_SOFTSTART_MS         200 /* rampe d'allumage de la veilleuse     */
+/* Les feux arrière sont sur DEUX relais distincts (veilleuse et stop) : un
+ * relais ne module pas, la variante « circuit unique à intensité variable »
+ * est matériellement impossible sur cette carte. Voir specs/03 §4. */
 
 /* ======================================================================
  * Freinage
  * ====================================================================== */
 
-#define BRAKE_HOLD_MS             300   /* maintien de la coupure après relâche */
-#define BRAKE_STUCK_MS            120000UL /* freinage continu => défaut       */
+#define BRAKE_HOLD_MS             300      /* maintien de la coupure après relâche */
+#define BRAKE_STUCK_MS            120000UL /* freinage continu => défaut           */
 
-/* Flash d'attaque du feu stop. Laisser à 0 : un feu stop clignotant n'est pas
- * conforme au code de la route français (specs/07-securite.md §6). */
+/* Flash d'attaque du feu stop. Laisser à 0 : non conforme au code de la route
+ * français, et surtout destructeur pour un relais (specs/07 §6). */
 #define BRAKE_FLASH_ENABLE        0
 #define BRAKE_FLASH_COUNT         3
 #define BRAKE_FLASH_ON_MS         60
@@ -58,18 +55,20 @@
  * Clignotants
  * ====================================================================== */
 
-#define BLINK_PERIOD_MS           750   /* 1,33 Hz = 80 cycles/min           */
-#define BLINK_ON_MS               375   /* rapport cyclique 50 %             */
-#define BLINK_REMINDER_MS         45000UL /* rappel d'oubli : durée          */
-#define BLINK_REMINDER_MM         300000UL /* rappel d'oubli : 300 m en mm   */
-#define BUZZ_CLICK_MS             25    /* clic normal                       */
-#define BUZZ_REMINDER_MS          150   /* bip long de rappel                */
+/* 1,33 Hz = 80 cycles/min, dans la plage réglementaire 60-120.
+ * Les clignotants sont portés par des relais : chaque cycle est une
+ * manoeuvre mécanique. Ralentir la cadence allonge la durée de vie, mais
+ * sortir de la plage réglementaire n'est pas une option. */
+#define BLINK_PERIOD_MS           750
+#define BLINK_ON_MS               375
+#define BLINK_REMINDER_MS         45000UL   /* rappel d'oubli : durée        */
+#define BLINK_REMINDER_MM         300000UL  /* rappel d'oubli : 300 m en mm  */
 
 /* ======================================================================
  * Klaxon
  * ====================================================================== */
 
-#define HORN_MAX_ON_MS            10000UL /* anti-blocage                    */
+#define HORN_MAX_ON_MS            10000UL   /* anti-blocage                  */
 
 /* ======================================================================
  * Anti-rebond (ms)
@@ -78,9 +77,16 @@
 #define DEBOUNCE_BRAKE_MS         15
 #define DEBOUNCE_HORN_MS          20
 #define DEBOUNCE_COMODO_MS        30
+#define DEBOUNCE_BUTTON_MS        40
 
-/* Seuil de basculement pour A6/A7, lues en analogique (0..1023). */
-#define ANALOG_INPUT_THRESHOLD    512
+/* ======================================================================
+ * Afficheur 4 digits
+ * ====================================================================== */
+
+#define DISPLAY_ENABLE            1
+#define DISPLAY_DEFAULT_PAGE      0    /* 0=vitesse 1=charge 2=défauts 3=odomètre */
+#define DISPLAY_BLINK_MS          500  /* deux-points = battement de cœur, 1 Hz  */
+#define DISPLAY_BLINK_FAULT_MS    120  /* deux-points rapide = défaut actif      */
 
 /* ======================================================================
  * Télémétrie
@@ -97,12 +103,17 @@
  *   1 = période de rotation de roue en millisecondes  */
 #define BAFANG_SPEED_FORMULA      1
 
-/* Source de vitesse alternative : capteur de roue scruté sur PIN_WHEEL. */
+/* Source de vitesse alternative : capteur de roue sur PIN_WHEEL.
+ * PIN_WHEEL est A6, analogique seule : pas de tirage interne possible, il
+ * faut une résistance de 10 kΩ vers +5 V à l'extérieur. */
 #define SPEED_SOURCE_WHEEL        0
 #define WHEEL_MIN_PULSE_GAP_MS    20      /* ~ vitesse max plausible         */
 #define WHEEL_TIMEOUT_MS          3000UL  /* sans impulsion => vitesse nulle */
 
 #define WHEEL_CIRCUMFERENCE_MM    2200    /* roue 700C ; à ajuster           */
+
+/* Seuil de basculement pour les broches lues en analogique (0..1023). */
+#define ANALOG_INPUT_THRESHOLD    512
 
 /* ======================================================================
  * Diagnostic
@@ -113,14 +124,11 @@
 #define DEBUG_PERIOD_MS           1000
 
 #define SELFTEST_ENABLE           1
-#define SELFTEST_STEP_MS          150
+#define SELFTEST_STEP_MS          200     /* audible : un relais par pas      */
 
 #define WATCHDOG_ENABLE           1
-#define LOOP_SLOW_US              10000UL /* seuil de défaut sur le cycle    */
-#define BRAKE_NEVER_MM            2000000UL /* 2 km sans freinage => défaut  */
-
-#define HEARTBEAT_OK_MS           500     /* LED 1 Hz  : nominal             */
-#define HEARTBEAT_FAULT_MS        100     /* LED 5 Hz  : défaut actif        */
+#define LOOP_SLOW_US              10000UL /* seuil de défaut sur le cycle     */
+#define BRAKE_NEVER_MM            2000000UL /* 2 km sans freinage => défaut   */
 
 /* ======================================================================
  * Cohérence des options
@@ -138,10 +146,10 @@
 #error "BAFANG_LEARN_MODE exige DEBUG_SERIAL 1 pour publier les trames"
 #endif
 
-#if TAIL_PWM_PARK >= TAIL_PWM_BRAKE
-#error "La veilleuse doit etre moins lumineuse que le feu stop"
-#endif
-
 #if BLINK_ON_MS >= BLINK_PERIOD_MS
 #error "BLINK_ON_MS doit etre inferieur a BLINK_PERIOD_MS"
+#endif
+
+#if BRAKE_FLASH_ENABLE
+#warning "Flash d'attaque actif : usure mecanique acceleree du relais de stop"
 #endif

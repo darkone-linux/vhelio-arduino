@@ -2,10 +2,10 @@
  * wheelspeed.h — Vitesse depuis le capteur de roue, par scrutation.
  *
  * Source alternative au décodage Bafang (SPEED_SOURCE_WHEEL). Volontairement
- * scrutée et non interrompue : D10/D11 (SoftwareSerial) et D12 partagent le
- * même vecteur PCINT0 sur l'ATmega328P, et deux gestionnaires du même vecteur
- * ne peuvent pas coexister. À 40 km/h la roue fait 5 tours/s, la scrutation à
- * chaque cycle de boucle est largement suffisante.
+ * scrutée et non interrompue : la seule broche encore libre est A6, qui n'a ni
+ * tampon numérique ni interruption sur changement d'état. À 40 km/h la roue
+ * fait 5 tours/s ; une scrutation à chaque cycle de boucle est largement
+ * suffisante. Prévoir une résistance de tirage externe de 10 kOhm vers +5 V.
  */
 #pragma once
 

@@ -14,13 +14,15 @@ bool g_valid = false;
 }  // namespace
 
 void wheelspeed::begin() {
-  pinMode(PIN_WHEEL, INPUT_PULLUP);
-  g_last = (digitalRead(PIN_WHEEL) == HIGH);
+  /* PIN_WHEEL est A6 : entrée analogique seule, sans tirage interne. Une
+   * résistance de 10 kOhm vers +5 V est indispensable à l'extérieur, sinon
+   * la broche flotte et génère des impulsions fantômes. */
+  g_last = (analogRead(PIN_WHEEL) >= ANALOG_INPUT_THRESHOLD);
   g_valid = false;
 }
 
 void wheelspeed::update(uint32_t now) {
-  const bool level = (digitalRead(PIN_WHEEL) == HIGH);
+  const bool level = (analogRead(PIN_WHEEL) >= ANALOG_INPUT_THRESHOLD);
 
   if (g_last && !level) {                       /* front descendant */
     const uint32_t gap = now - g_lastPulse;
