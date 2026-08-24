@@ -28,7 +28,7 @@ BMS, MPPT, comodo, feux, klaxon, convertisseur, boîtier fusibles).
 | Rep. | Désignation | Qté | Remarque |
 |---|---|---|---|
 | — | Convertisseur 48 → 12 V non isolé, 10 A | 1 | **Déjà en possession.** Entrée 36–48 V, 60 V max — voir la réserve ci-dessous |
-| C1 | Condensateur électrolytique **10 000 µF / 25 V** | 1 | Au plus près du boîtier fusibles. **Sans lui, un coup de klaxon fait cligner les phares** : le convertisseur de 10 A ne couvre pas les deux. Le composant le plus rentable du montage |
+| C1 | Condensateur électrolytique **10 000 µF / 25 V** | 0 ou 1 | Au plus près du boîtier fusibles. Nécessaire **seulement si le klaxon dépasse ~4 A** : l'éclairage complet ne consomme que 5,0 A (phares mesurés à 12 W pièce), il reste donc 5 A pour le klaxon. Un klaxon à compresseur (7,5 A) dépasserait et ferait cligner les phares. 3 € pour supprimer la question |
 
 > **Marge de tension d'entrée insuffisante.** Le pack 16S monte à 58,4 V à
 > 3,65 V/cellule, le convertisseur est donné pour 60 V : **2,7 % de marge**.
@@ -44,12 +44,13 @@ contacts secs 10 A : les charges se branchent directement dessus. Cela
 supprime de la nomenclature initiale trois modules MOSFET, un relais de klaxon
 et un optocoupleur.
 
-Deux réserves, toutes deux optionnelles et conditionnées à une mesure :
+Une seule réserve, optionnelle :
 
 | Rep. | Désignation | Qté | Quand |
 |---|---|---|---|
 | K1 | Relais automobile 12 V / 20 A + support | 0 ou 1 | **Uniquement** si le klaxon est à compresseur : sa pointe d'appel peut dépasser le calibre 10 A du contact et le souder. R7 ne pilote alors que la bobine de K1. |
-| K2 | Relais automobile 12 V / 30 A + support | 0 ou 1 | **Uniquement** si les phares font 60 W **chacun** (120 W = 10 A, soit le calibre exact de R2, inrush compris). À mesurer au test T2.3. |
+*(Le relais automobile envisagé pour les phares est sans objet : ils ont été
+mesurés à **12 W chacun**, soit 2,5 A pour la paire sur un contact de 10 A.)*
 
 > Prévoir une diode de roue libre sur toute charge inductive ajoutée plus tard :
 > les contacts de relais n'aiment pas les surtensions de coupure.
@@ -82,7 +83,7 @@ et une intervention sur le faisceau moteur, contre un rupteur à 2 €.
 | S1 | Interrupteur à bascule **lumineux** 12 V, feux de détresse | 1 | Le comodo n'en fournit pas. Le modèle lumineux sert de témoin, ce qui évite tout câblage de voyant |
 | S2 | Micro-rupteur pour levier de frein **arrière** | 1 | **Indispensable** : il informe le firmware sans qu'on ait à toucher au connecteur Bafang jaune. Contact sec vers IN5 et la masse |
 | S3 | Interrupteur à bascule **lumineux** 12 V, veilleuse | 1 | Premier niveau d'éclairage, déjà en possession |
-| S4 | Micro-rupteur pour levier de frein **avant** | 0 ou 1 | **Fortement recommandé** dès que possible. Câblé en parallèle sur la ligne frein du contrôleur, il rétablit la coupure d'assistance indépendante de l'Arduino au frein avant (`specs/07` §2). C'est la seule évolution matérielle de ce projet qui touche à la sécurité |
+| **D1** | **Diode 1N4148** | **1** | **Indispensable.** Montée dans le boîtier entre la borne `IN4` et le fil vers la dérivation en Y, **cathode côté IN4**. Elle permet au contacteur de frein avant, pourtant unipolaire, de servir à la fois l'entrée de la carte et la ligne frein du contrôleur : la coupure d'assistance au frein avant cesse ainsi de dépendre du firmware (`hardware/cablage.md` §4). **Ne pas remplacer par une Schottky** : son courant de fuite inverse ferait remonter le potentiel de la ligne frein |
 | — | LED verte 12 V + résistance 1 kΩ / 1 W | 0 à 2 | Témoins de clignotant, en parallèle sur R3 et R4. Purement électriques, aucun relais ni broche consommés |
 
 > **Pas de buzzer.** Les clignotants sont portés par les relais R3 et R4, dont

@@ -15,16 +15,17 @@ flowchart TB
   subgraph BT["Bus 12 V"]
     CONV -->|F5| FB[Boîtier fusibles 12 V]
     FB -->|F11 2A| DN[Carte DN22D08<br/>+ Arduino Nano]
-    FB -->|F6 7,5A| AV[Phares + veilleuse avant]
+    FB -->|F6 5A| AV[Phares + veilleuse avant]
     FB -->|F7 5A| AR[Feux arrière + clignotants]
     FB -->|F8 10A| KL[Klaxon]
     FB -->|F9,F10 5A| AC[Prises allume-cigare]
     CT[Condensateur 10 000 µF] --- FB
   end
   COM[Comodo + inter veilleuse + inter détresse] --> DN
-  FRA[Frein avant<br/>contact sec] --> DN
+  FRA[Frein avant<br/>contact sec unipolaire] --> DN
+  FRA ==>|via diode D1<br/>failsafe| CTRL
   FRR[Micro-rupteur S2<br/>levier arrière] --> DN
-  CTAR[Contacteur Bafang d'origine] -->|inchangé| CTRL
+  CTAR[Contacteur Bafang d'origine] ==>|inchangé<br/>failsafe| CTRL
   DN --> AV
   DN --> AR
   DN --> KL
@@ -34,9 +35,11 @@ flowchart TB
 
 ## 2. Faisceau « commandes » — vers les entrées
 
-Les entrées de la carte sont **NPN** : une borne s'active en la fermant sur la
-**masse**. Tous les organes de commande sont donc de simples **contacts secs
-vers GND**, et le fil de commun du comodo va à la masse, **pas** au +12 V.
+Les entrées de la carte sont **NPN** — confirmé par la fiche du constructeur :
+« 8x opto-isolated inputs (low level trigger, NPN type) ». Une borne s'active
+en la fermant sur la **masse**. Tous les organes de commande sont donc de
+simples **contacts secs vers GND**, et le fil de commun du comodo va à la
+masse, **pas** au +12 V.
 
 C'est ce qui rend directement utilisable le contacteur de frein avant, qui est
 unipolaire.
@@ -53,11 +56,9 @@ unipolaire.
 | Détresse | orange | Interrupteur dédié S1 | IN8 | D11 |
 | **Masse commune** | noir | Masse châssis | Commun de tous les contacts |
 
-> **Le pinscan tranche avant de sertir quoi que ce soit** (`specs/03` §6,
-> étape 4). Si les entrées s'avéraient PNP sur cet exemplaire, le seul
-> changement est que le fil de commun va au +12 V au lieu de la masse — le
-> firmware, lui, est identique. Mais un faisceau serti à l'envers se
-> re-sertit.
+> Le pinscan reste à dérouler (`specs/03` §6, étape 4), mais il ne s'agit plus
+> que d'une confirmation de trente secondes : la polarité est donnée par le
+> constructeur.
 
 ## 3. Faisceau « puissance » — depuis les relais
 
@@ -67,7 +68,7 @@ direct, sans aucun étage intermédiaire.
 | Relais | Vers | Courant |
 |---|---|---|
 | R1 | Veilleuse avant | 0,8 A |
-| R2 | Phares (éclairage fort) | 5,0 A — voir réserve ci-dessous |
+| R2 | Phares (éclairage fort) | 2,5 A **mesurés** |
 | R3 | Clignotant avant gauche **+** arrière gauche | 0,5 A |
 | R4 | Clignotant avant droit **+** arrière droit | 0,5 A |
 | R5 | Feux de position arrière (les deux en parallèle) | 0,5 A |
@@ -75,10 +76,8 @@ direct, sans aucun étage intermédiaire.
 | R7 | Klaxon | 5–8 A |
 | R8 | Ligne frein du contrôleur — **contact sec** | < 50 mA |
 
-> **Réserve sur R2.** 5,0 A si les deux phares totalisent 60 W. Si chacun fait
-> 60 W, le courant monte à 10 A, soit le calibre exact du contact — inrush des
-> alimentations LED compris. Dans ce cas, intercaler un relais automobile 30 A,
-> R2 n'en pilotant que la bobine. Mesurer avant de câbler (test T2.3).
+> Mesure à la pince : **12 W par phare**, et non les 60 W annoncés. R2 voit
+> 2,5 A pour un calibre de 10 A. Aucun relais externe n'est nécessaire.
 
 **R5 et R6 sont deux circuits séparés jusqu'aux feux.** Un relais ne module
 pas : la distinction entre feu de position et feu stop est entièrement
@@ -87,57 +86,114 @@ d'intensités différentes.
 
 ## 4. Coupure moteur — le point critique
 
+### Le problème posé par le contacteur avant
+
+Le contacteur de frein avant est un contact sec **unipolaire** : un seul jeu de
+contacts. Il ne peut pas à la fois informer la carte (borne `IN4`) et fermer la
+ligne frein du contrôleur. Poser un second micro-rupteur sur le levier n'est
+pas praticable proprement.
+
+**Une diode résout entièrement le problème**, et elle se monte **dans le
+boîtier du calculateur** — rien à modifier au levier, aucun fil supplémentaire
+à faire courir jusqu'au guidon.
+
+### Pourquoi ça marche
+
+Les deux circuits veulent exactement la même chose : que quelque chose soit
+tiré **à la masse**.
+
+- L'entrée `IN4` est NPN : elle s'active quand sa borne est mise à la masse.
+- La ligne frein Bafang coupe l'assistance quand son signal est mis à la masse.
+
+Un seul contact peut donc servir les deux, **à condition d'empêcher le +12 V
+de la carte d'atteindre la ligne 5 V du contrôleur** quand le contact est
+ouvert. C'est le seul rôle de la diode.
+
 ```
-Levier arrière ──┬── Contacteur Bafang d'origine ──┐
-                 │   (connecteur jaune 3 br.,      │
-                 │    INTACT, non dérivé)          │
-                 │                                 ├──> Connecteur FREIN
-                 └── Micro-rupteur S2 ──> IN5      │     du contrôleur
-                                                    │
-Levier avant ────── Contacteur unipolaire ──> IN4   │
-                                                    │
-R8 (contact sec, via dérivation en Y) ──────────────┘
+                                         ┌─────────── borne IN4
+                                         │            (tirée à +12 V en interne
+Contacteur                               │             par son optocoupleur)
+frein avant ──────────────── N ──────────┤
+     │                                   │
+     │                                D1 │ 1N4148
+    GND                            ──────┤ cathode côté N
+                                         │
+                                         └─────────── signal frein Bafang
+                                                      (via la dérivation en Y)
 ```
 
-### Ce qui coupe quoi
+| Contact | Nœud N | Diode | Entrée IN4 | Ligne Bafang |
+|---|---|---|---|---|
+| **Ouvert** | ~12 V | bloquée (anode 5 V < cathode 12 V) | inactive | **intacte, isolée du 12 V** |
+| **Fermé** | 0 V | passante | active | tirée à ~0,6 V → assistance coupée |
 
-| Freinage | Chemin de coupure | Dépend de l'Arduino ? |
+Les 0,6 V de chute directe sont très en dessous du seuil de basculement d'une
+entrée logique 5 V. En sens inverse, le courant de fuite d'une 1N4148 est de
+l'ordre de quelques dizaines de nanoampères : la ligne du contrôleur ne bouge
+pas d'un millivolt mesurable.
+
+> **Ne pas utiliser de Schottky ici**, malgré sa chute plus faible. Son courant
+> de fuite inverse, qui peut atteindre le milliampère à chaud, ferait remonter
+> le potentiel de la ligne frein. La 1N4148 est le bon choix précisément parce
+> qu'elle fuit peu.
+
+### Ce que ça rétablit
+
+Les trois chemins de coupure redeviennent parallèles, et **deux d'entre eux ne
+passent pas par l'Arduino** :
+
+```
+Levier arrière ──┬── Contacteur Bafang d'origine ────┐
+                 │   (connecteur jaune, INTACT)      │
+                 └── Micro-rupteur S2 ──> IN5        │
+                                                     ├──> Connecteur FREIN
+Levier avant ────── Contacteur unipolaire ──┬──> IN4 │     du contrôleur
+                                            └── D1 ──┤
+                                                     │
+R8 (contact sec, via la dérivation en Y) ────────────┘
+```
+
+| Freinage | Chemins de coupure | Indépendant de l'Arduino ? |
 |---|---|---|
-| Arrière | Contacteur Bafang d'origine | **Non** |
-| Arrière | R8, via S2 et le firmware | Oui (redondant) |
-| Avant | R8 uniquement | **Oui** |
+| Arrière | Contacteur d'origine, **+** R8 | **Oui** |
+| Avant | **D1**, **+** R8 | **Oui** |
 
-**Freiner du seul levier avant ne coupe pas l'assistance si l'Arduino est en
-panne.** C'est la conséquence directe du contacteur unipolaire disponible :
-un contact ne peut pas à la fois informer la carte et fermer la ligne frein.
-Analyse complète et remède en `specs/07-securite.md` §2. Le remède tient en un
-micro-rupteur supplémentaire sur le levier avant, câblé en parallèle sur la
-ligne frein.
+Le principe P1 est intégralement rétabli, pour une diode à 5 centimes.
 
-### Câblage de R8
+### Prérequis : mesurer la polarité avant de souder
 
-Dérivation en **Y** au format Higo sur le connecteur jaune, sans couper le
-faisceau — le montage reste réversible. Mesurer d'abord le fil signal :
+Tout ce qui précède suppose que la ligne frein Bafang est **active à l'état
+bas**, ce qui est le cas courant. À vérifier au multimètre sur le fil signal du
+connecteur jaune, par rapport à la masse :
 
-| Au multimètre, fil signal / masse | Câblage de R8 |
+| Mesure | Câblage |
 |---|---|
-| ~5 V au repos, ~0 V au freinage *(cas courant)* | Contact **NO**, entre signal et masse |
-| ~0 V au repos, ~5 V au freinage | Contact **NC**, en série sur le signal |
+| ~5 V au repos, ~0 V au freinage *(cas courant)* | **D1 comme ci-dessus**, et R8 en contact **NO** entre signal et masse |
+| ~0 V au repos, ~5 V au freinage | **D1 est inopérante** : la retirer. R8 en contact **NC**, en série sur le signal. Le frein avant redevient dépendant du firmware |
 
-R8 est un contact sec : il **n'injecte aucun potentiel**, ce qui est
-exactement l'avantage que les relais ont apporté sur la conception initiale à
-optocoupleur.
+### Câblage physique
 
-### La règle absolue
+- **La diode vit dans le boîtier**, sur le bornier, entre la borne `IN4` et le
+  fil qui part vers la dérivation en Y. Gaine thermorétractable, et c'est fini.
+- **Dérivation en Y** au format Higo sur le connecteur jaune, sans couper le
+  faisceau : le montage reste réversible. Ce fil existe déjà pour R8.
+- La masse du contacteur avant peut être prise sur la masse du véhicule : le
+  convertisseur étant non isolé, c'est la même que celle du contrôleur.
+- **Attention au sens de la diode.** Cathode (l'anneau imprimé) côté `IN4`.
+  Montée à l'envers, elle n'endommage rien mais ne fait rien non plus : le
+  frein avant ne coupera pas l'assistance. Le test T2.4 le détecte.
 
-> **Ne jamais raccorder la ligne frein Bafang à une borne d'entrée de la
-> carte.** Les entrées sont tirées au +12 V à travers la LED de leur
+### La règle absolue, qui ne change pas
+
+> **Ne jamais raccorder la ligne frein Bafang à une borne d'entrée de la carte
+> sans diode.** Les entrées sont tirées au +12 V à travers la LED de leur
 > optocoupleur : on injecterait 12 V dans une entrée 5 V du contrôleur.
-> Destruction probable. C'est précisément pourquoi le frein arrière est lu par
-> un micro-rupteur séparé (S2) et non par une dérivation du connecteur jaune.
+> Destruction probable. C'est exactement ce que D1 empêche, et c'est aussi
+> pourquoi le frein arrière est lu par un micro-rupteur séparé (S2) plutôt que
+> par une dérivation directe du connecteur jaune.
 
-Le test T2.4 vérifie que le moteur se coupe **Arduino débranché** au frein
-arrière. S'il échoue, le câblage est à reprendre avant toute sortie.
+Le test T2.4 vérifie que le moteur se coupe **Arduino débranché**, aux deux
+freins. S'il échoue, le câblage est à reprendre avant toute sortie.
 
 ## 5. Interface de lecture de la ligne frein *(optionnelle, si S2 est refusé)*
 

@@ -88,7 +88,9 @@ Conséquences pratiques :
 
 ## 3. Entrées — IN1 … IN8
 
-Optocoupleurs **NPN, déclenchement à l'état bas** : la LED de l'optocoupleur
+Optocoupleurs **NPN, déclenchement à l'état bas** — confirmé par la fiche du
+constructeur : « 8x opto-isolated inputs (low level trigger, NPN type) ». La
+LED de l'optocoupleur
 est alimentée depuis le +12 V de la carte à travers une résistance, et l'on
 active une entrée en **fermant sa borne sur la masse**. Côté Nano,
 l'optocoupleur tire la broche à l'état bas ; le firmware active `INPUT_PULLUP`,
@@ -99,10 +101,9 @@ ce qui donne un état inactif franc même carte non alimentée.
 > de frein. C'est ce qui rend utilisable le contacteur de frein avant, qui est
 > unipolaire (§5). Le commun du comodo va à **GND**, pas au +12 V.
 >
-> Ce point est le seul du brochage qui puisse encore surprendre : certaines
-> variantes de la même famille sont câblées en PNP (activation par +12 V). Le
-> pinscan tranche en trente secondes (§6, étape 4), et **le firmware est
-> identique dans les deux cas** — seul le fil de commun change de borne.
+> Le pinscan le confirme en trente secondes (§6, étape 4). Et si l'exemplaire
+> démentait sa propre fiche, **le firmware serait identique** : seul le fil de
+> commun changerait de borne.
 
 | # | Broche | Nom logique | Source | Type | Anti-rebond |
 |---|---|---|---|---|---|
@@ -191,27 +192,33 @@ différentes :
 | Commande | Les deux freins des roues avant | Le frein arrière |
 | Nature électrique | Un seul jeu de contacts, rien d'autre | Ligne logique ~5 V référencée à la masse du contrôleur |
 
-### Frein avant — vers IN4, en contact sec
+### Frein avant — un seul contact pour deux circuits, grâce à une diode
 
 Les entrées étant NPN (§3), le contacteur se câble entre la borne `IN4` et la
 masse. Rien d'autre n'est nécessaire : pas de +12 V commuté, pas d'interface.
 
-**Mais un contact unipolaire ne peut servir qu'une fois.** Câblé sur IN4, il
-informe l'Arduino ; il ne ferme pas simultanément la ligne frein du contrôleur.
-La coupure d'assistance au frein avant passe donc **uniquement par R8**, donc
-par le firmware. C'est une régression réelle du principe P1, analysée et
-assumée en `07-securite.md` §2.
+**Un contact unipolaire semble ne pouvoir servir qu'une fois** : câblé sur IN4
+il informe l'Arduino, mais ne ferme pas la ligne frein du contrôleur — ce qui
+ferait dépendre du firmware la coupure d'assistance au frein principal d'un
+tricycle.
 
-L'alternative — câbler le contacteur sur la ligne frein plutôt que sur IN4 —
-est **pire** : l'assistance se couperait nativement, mais le feu stop ne
-s'allumerait plus au frein avant, c'est-à-dire au frein principal d'un
-tricycle. Entre « l'assistance dépend du firmware » et « le feu stop ne
-fonctionne pas », le choix n'est pas discutable.
+Il se trouve que les deux circuits demandent exactement la même chose : une
+mise à la **masse**. Une **diode 1N4148**, cathode côté `IN4`, laisse donc un
+seul contact les servir tous les deux, en bloquant le seul flux indésirable —
+le +12 V de la carte remontant vers la ligne 5 V du contrôleur quand le contact
+est ouvert.
 
-**Remède quand il sera possible** : un second micro-rupteur sur le même levier
-avant (identique à S2), câblé en parallèle sur la ligne frein du contrôleur.
-Coût dérisoire, et le principe P1 est intégralement rétabli. C'est la seule
-évolution matérielle réellement importante de ce montage.
+| Contact | Entrée IN4 | Ligne frein Bafang |
+|---|---|---|
+| Ouvert | inactive | intacte, isolée du 12 V par la diode |
+| Fermé | active | tirée à ~0,6 V → assistance coupée |
+
+Coût : cinq centimes, et la diode se monte **dans le boîtier**, sur le bornier.
+Rien à modifier au levier. Schéma complet et modes de défaillance en
+`hardware/cablage.md` §4 et `07-securite.md` §2.
+
+> Ceci suppose la ligne frein **active à l'état bas**, ce qui est le cas
+> courant mais reste à mesurer au multimètre avant de souder.
 
 ### Frein arrière — ne pas toucher au connecteur jaune
 
@@ -233,6 +240,11 @@ Si l'ajout de S2 est refusé, `hardware/cablage.md` §5 décrit une interface
 transistor qui lit la ligne frein Bafang sans lui imposer de potentiel
 (`IN_INVERT_BRAKE_REAR 1`). Elle fonctionne, mais coûte quatre composants et
 une soudure sur le faisceau moteur, pour remplacer un micro-rupteur à 2 €.
+
+> La diode D1 du frein avant ne transpose **pas** au frein arrière : le
+> contacteur Bafang d'origine est déjà câblé au contrôleur et n'est pas
+> accessible comme contact sec libre. C'est bien un organe séparé qu'il faut
+> pour informer le firmware.
 
 ### R8 — la coupure moteur
 
@@ -271,7 +283,8 @@ initiale à optocoupleur.
    - Si rien ne bouge : les broches data / horloge / verrou sont fausses.
    - Si tous les relais collent en même temps : OE est mal identifiée.
    - Si l'ordre ne correspond pas : corriger `RELAY_BIT[]` dans `board_io.cpp`.
-4. **Entrées, et surtout leur polarité.** Au repos, la console doit afficher
+4. **Entrées.** La polarité est donnée par le constructeur (NPN) ; il ne
+   s'agit que de la confirmer. Au repos, la console doit afficher
    `IN1..IN8 = 11111111`. Relier alors chaque borne d'entrée **à la masse**,
    une par une, avec un simple fil volant :
    - le chiffre correspondant passe à `0` → **entrées NPN**, hypothèse

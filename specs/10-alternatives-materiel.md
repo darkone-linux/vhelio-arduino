@@ -152,10 +152,12 @@ résoudre des problèmes qu'on n'a pas encore rencontrés.
 3. **« Je veux ajouter une fonction et il n'y a plus ni entrée ni relais. »**
    Le mur est net et sans contournement : 8 sur 8, des deux côtés.
 
-En attendant, deux améliorations à quelques euros valent mieux qu'un
-changement de carte :
+En attendant, deux composants à moins de 5 € valent mieux qu'un changement de
+carte :
 
-- **le micro-rupteur S4 sur le levier de frein avant** (`07-securite.md` §2) —
-  la seule évolution du projet qui touche à la sécurité ;
-- **le condensateur tampon de 10 000 µF** (`04-electricite.md` §2.3), sans
-  lequel un coup de klaxon fait cligner les phares.
+- **la diode D1 (1N4148)** sur le contacteur de frein avant
+  (`hardware/cablage.md` §4) — elle rétablit une coupure d'assistance
+  indépendante du firmware, et c'est la seule modification du projet qui touche
+  à la sécurité ;
+- **le condensateur tampon de 10 000 µF** (`04-electricite.md` §2.3), si le
+  klaxon dépasse 4 A.

@@ -105,17 +105,19 @@ Ce projet pilote de l'éclairage et une fonction de coupure moteur sur un
 véhicule circulant sur la voie publique.
 
 La spécification impose que **aucune fonction de sécurité ne dépende
-uniquement du firmware**. C'est tenu au frein **arrière** : le contacteur
-Bafang d'origine coupe l'assistance sans passer par l'Arduino, et le test T2.4
-le vérifie explicitement.
+uniquement du firmware**. C'est tenu aux deux freins :
 
-> **Ce ne l'est pas au frein avant.** Le contacteur disponible est unipolaire :
-> il ne peut pas à la fois allumer le feu stop et fermer la ligne frein du
-> contrôleur. Le feu stop ayant été jugé prioritaire, la coupure d'assistance
-> au frein avant passe par le firmware. C'est documenté, mesuré au test T2.4,
-> et réparable pour 2 € avec un micro-rupteur supplémentaire — voir
-> [`specs/07-securite.md`](specs/07-securite.md) §2. **À connaître avant de
-> rouler.**
+- à l'**arrière**, le contacteur Bafang d'origine coupe l'assistance sans
+  passer par l'Arduino, son connecteur restant intact ;
+- à l'**avant**, le contacteur est unipolaire et ne pourrait donc a priori pas
+  servir à la fois le feu stop et la ligne frein. Une **diode 1N4148** montée
+  dans le boîtier lui permet de faire les deux, en bloquant le +12 V de la
+  carte vers la ligne 5 V du contrôleur
+  ([`hardware/cablage.md`](hardware/cablage.md) §4).
+
+Le test T2.4 vérifie explicitement que **le moteur se coupe, Arduino
+débranché, aux deux freins**. Tant qu'il ne passe pas, ne pas rouler sur route
+ouverte.
 
 Vérifiez le brochage de votre carte avec `tools/pinscan` avant la première mise
 sous tension. Le brochage documenté ici vient de la bibliothèque de référence

@@ -42,54 +42,63 @@ tout ce qui suit.
 > isolé qui claque en court-circuit met le 48 V sur le réseau 12 V, donc sur
 > les feux, le comodo et la carte.
 
-> **120 W ne couvrent pas la somme des charges.** Il faut arbitrer, voir §2.3.
+> **120 W ne couvrent pas la somme de toutes les charges**, mais l'éclairage
+> complet n'en consomme que la moitié. Les arbitrages restants sont en §2.3.
 
 ### 2.2. Bilan des charges
 
-Les phares sont annoncés « 2 phares 6 LED, 60 W ». **L'énoncé est ambigu** et
-l'écart entre les deux lectures décide du dimensionnement :
+Les phares ont été **mesurés à la pince** : **12 W chacun** (12 V / 1 A), et
+non les 60 W de l'étiquette — écart typique des projecteurs LED annoncés en
+« watts crête ». Le bilan retient **15 W chacun**, soit 30 W pour la paire,
+pour se garder une marge.
 
-| Lecture | Puissance | Courant | Conséquence |
-|---|---|---|---|
-| **60 W pour la paire** | 60 W | 5,0 A | Tient sur R2 en direct, il reste 5 A pour le reste |
-| **60 W par phare** | 120 W | 10,0 A | Sature le convertisseur **à lui seul**, et R2 est à son calibre exact |
-
-Le bilan ci-dessous retient l'hypothèse **60 W pour la paire**. Voir Q9.
+La consommation de la carte est celle du constructeur : 12 mA en veille
+afficheur éteint, **48 mA afficheur allumé**, environ 30 mA par relais collé,
+**288 mA les huit relais collés**.
 
 | Charge | Puissance | Courant 12 V | Régime |
 |---|---|---|---|
-| Phares (éclairage fort) | 60 W | 5,0 A | continu de nuit |
+| Phares (2 × 15 W retenus, **12 W mesurés**) | 30 W | 2,5 A | continu de nuit |
 | Veilleuse avant | 10 W | 0,8 A | continu de nuit |
 | Feux rouges arrière position (2 × 3 W) | 6 W | 0,5 A | continu de nuit |
 | Feux stop (2 × 3 W) | 6 W | 0,5 A | intermittent |
 | Clignotants (2 × 3 W par côté) | 6 W | 0,5 A | intermittent |
-| Klaxon 12 V | 60–90 W | 5–7,5 A | crête, < 5 s |
+| Arduino + DN22D08, 6 relais collés | ~2,5 W | 0,21 A | continu |
+| **Sous-total « nuit + freinage + clignotant »** | | **≈ 5,0 A** | **la moitié du convertisseur** |
+| Klaxon électromagnétique | 40–50 W | 3,3–4,2 A | crête, < 5 s |
+| Klaxon à compresseur | 60–90 W | 5–7,5 A | crête, < 5 s |
 | Prise allume-cigare n°1 | 60 W *(fusible 5 A)* | 5 A | selon usage |
 | Prise allume-cigare n°2 | 60 W *(fusible 5 A)* | 5 A | selon usage |
-| Arduino + DN22D08 + relais | ~2,5 W | 0,2 A | continu |
-| **Nuit + freinage + clignotant** | | **≈ 7,3 A** | tenable |
-| **… + coup de klaxon** | | **≈ 14,8 A** | **dépasse les 10 A** |
 
-### 2.3. Les trois arbitrages qu'impose la limite de 10 A
+### 2.3. Ce que la mesure des phares change
 
-1. **Fusibler les prises allume-cigare à 5 A**, pas 10 A. Deux prises à 10 A
-   consommeraient à elles seules 20 A, soit le double du convertisseur. 5 A
-   (60 W) suffisent très largement pour de la recharge de téléphone ou une
-   pompe. C'est ce qui est retenu au tableau des fusibles F9/F10.
-2. **Ajouter un condensateur tampon de 10 000 µF / 25 V** sur le bus 12 V, au
-   plus près du boîtier fusibles. Le klaxon est une charge brève : sans
-   tampon, un convertisseur à 10 A entre en limitation pendant le coup de
-   klaxon, ce qui fait **cligner les phares** — comportement inacceptable de
-   nuit. Le condensateur fournit la pointe et le convertisseur ne la voit
-   presque pas. C'est le composant le plus rentable de tout le montage.
-3. **Préférer un klaxon électromagnétique** (40–50 W) à un klaxon à
-   compresseur. Moindre appel, moindre risque de coller les contacts de R7.
+Le budget passe de tendu à confortable. **L'éclairage complet ne consomme que
+la moitié du convertisseur.** Les arbitrages se réduisent à deux, et le second
+n'est plus qu'une précaution :
 
-Si l'hypothèse « 60 W par phare » se confirme, ces trois mesures ne suffisent
-plus : il faut passer à un convertisseur **20 A** et intercaler un relais
-automobile pour les phares (voir §4 bis).
+1. **Fusibler les prises allume-cigare à 5 A**, pas 10 A. Éclairage de nuit
+   (5,0 A) + une prise à 5 A = 10,1 A, soit déjà le convertisseur. Deux prises
+   à 10 A en feraient le double. 5 A (60 W) suffisent largement pour de la
+   recharge de téléphone ou une petite pompe.
+2. **Condensateur tampon de 10 000 µF / 25 V** sur le bus 12 V, au plus près du
+   boîtier fusibles. Le calcul décide :
 
-Côté 48 V, un convertisseur de 120 W consomme 120 / 51,2 / 0,9 ≈ **2,6 A**.
+   | Klaxon | Total avec éclairage de nuit | Verdict |
+   |---|---|---|
+   | Électromagnétique, ~4 A | 9,0 A | Passe sans tampon |
+   | À compresseur, ~7,5 A | 12,5 A | **Dépasse** : sans tampon, le convertisseur entre en limitation et les phares clignent |
+
+   **Mesurer le klaxon à la pince avant de conclure.** Le condensateur coûte
+   3 € et supprime la question ; le monter d'office reste le choix
+   raisonnable, mais ce n'est plus une obligation comme lorsqu'on croyait les
+   phares à 60 W.
+
+Le relais R2 voit 2,5 A pour un calibre de 10 A : **aucun étage de puissance
+externe n'est nécessaire**, et l'idée d'un relais automobile intercalé est
+abandonnée.
+
+Côté 48 V, la consommation réelle de nuit (60 W au secondaire) représente
+60 / 51,2 / 0,9 ≈ **1,3 A**, et la pointe théorique de 120 W ≈ **2,6 A**.
 Le convertisseur est **non isolé**, donc la masse 12 V est déjà la masse 48 V :
 rien de particulier à faire pour l'écoute UART (§5, cas 1).
 
@@ -109,13 +118,13 @@ rien de particulier à faire pour l'écoute UART (§5, cas 1).
 | F3 | MPPT → pack | 48 V | selon panneau (typ. 15 A) | 10×38 gPV |
 | F4 | Panneau → MPPT | 48 V+ | selon panneau | 10×38 gPV |
 | F5 | Sortie générale 12 V | 12 V | 15 A | MIDI / lame maxi (convertisseur 10 A) |
-| F6 | Phares (éclairage fort) | 12 V | 7,5 A | lame |
+| F6 | Phares (éclairage fort) — 2,5 A mesurés | 12 V | 5 A | lame |
 | F6b | Veilleuse avant | 12 V | 2 A | lame |
 | F7 | Éclairage arrière + clignotants | 12 V | 5 A | lame |
 | F8 | Klaxon | 12 V | 10 A | lame |
 | F9 | Prise allume-cigare n°1 | 12 V | **5 A** | lame — voir §2.3 |
 | F10 | Prise allume-cigare n°2 | 12 V | **5 A** | lame — voir §2.3 |
-| F11 | Arduino + carte DN22D08 + comodo | 12 V | 2 A | lame |
+| F11 | Arduino + carte DN22D08 + comodo — 288 mA max | 12 V | 2 A | lame |
 
 Ajouter un **sectionneur / coupe-circuit 48 V DC** (≥ 63 V DC, ≥ 40 A) entre le
 pack et tout le reste — pour la maintenance et en cas d'incident. Un
@@ -131,7 +140,7 @@ Dimensionnement thermique et chute de tension < 3 %, cuivre souple.
 | Pack ↔ convertisseur 48/12 | 3 A | 3 m | **1,5 mm²** |
 | MPPT ↔ pack | 15 A | 2 m | **4 mm²** |
 | Convertisseur → boîtier fusibles 12 V | 10 A | 1,5 m | **4 mm²** |
-| Départ éclairage 12 V | 5 A | 6 m | **1,5 mm²** |
+| Départ éclairage 12 V | 3 A | 6 m | **1,5 mm²** |
 | Départ klaxon | 8 A | 4 m | **2,5 mm²** |
 | Départ allume-cigare | 5 A | 3 m | **1,5 mm²** |
 | Signaux comodo / freins vers DN22D08 | < 0,05 A | 4 m | **0,75 mm²** |
@@ -144,8 +153,7 @@ relais externe, aucun optocoupleur n'est nécessaire :
 | Charge | Courant | Verdict |
 |---|---|---|
 | Veilleuse avant | 0,8 A | direct sur R1 |
-| Phares 60 W *(pour la paire)* | 5,0 A | direct sur R2 |
-| Phares 60 W *(par phare, soit 120 W)* | 10,0 A | **R2 est à son calibre exact** — intercaler un relais automobile 30 A, R2 n'en pilotant que la bobine |
+| Phares, **12 W mesurés par phare** (15 W retenus) | 2,5 A | direct sur R2 |
 | Clignotants (2 × 3 W par côté) | 0,5 A | direct sur R3 / R4 |
 | Feux de position arrière | 0,5 A | direct sur R5 |
 | Feux stop arrière | 0,5 A | direct sur R6 |
@@ -157,11 +165,6 @@ charge résistive. Un klaxon à compresseur présente une pointe d'appel qui peu
 dépasser ce calibre et coller les contacts. Deux options : rester sur un
 klaxon électromagnétique classique (appel modéré), ou conserver le relais
 externe K1 comme étage intermédiaire, R7 ne pilotant alors que sa bobine.
-
-**Réserve sur les phares.** Le calibre 10 A du contact est donné en charge
-résistive et sans appel. Des projecteurs LED de 120 W présentent un pic
-d'inrush de leurs alimentations à découpage qui peut coller le contact.
-Au-delà de ~5 A permanents, passer par un relais automobile externe.
 
 **Réserve sur les charges inductives.** Si une charge inductive est un jour
 ajoutée, prévoir une diode de roue libre : les contacts de relais n'aiment pas

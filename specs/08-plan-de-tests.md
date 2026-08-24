@@ -131,7 +131,11 @@ Véhicule sur béquille, roue motrice libre, **personne devant la roue**.
 
 1. Fermer le sectionneur 48 V, contrôleur moteur **débranché**.
 2. Vérifier 12,0–13,8 V en sortie de convertisseur, à vide.
-3. Brancher la carte DN22D08 seule. Contrôler la consommation : < 300 mA.
+3. Brancher la carte DN22D08 seule. Contrôler la consommation contre les
+   valeurs du constructeur : **12 mA** en veille afficheur éteint, **48 mA**
+   afficheur allumé, environ **+30 mA par relais collé**, **288 mA** les huit
+   collés. Un écart franc signale un relais collé mécaniquement ou une charge
+   parasite.
 4. Brancher les charges d'éclairage une par une, en contrôlant le courant.
 
 ### T2.3 — Rejouer T1.3 à T1.6 avec les vraies charges
@@ -140,12 +144,13 @@ Mêmes critères. Ajouter :
 
 - l'échauffement du relais R7 (klaxon) après dix coups consécutifs ;
 - **le contrôle du courant total** : phares + veilleuse + arrière allumés,
-  mesurer à la pince sur l'entrée du boîtier fusibles. Si le résultat dépasse
-  6 A, l'hypothèse « phares 60 W pour la paire » est fausse et il faut
-  reprendre `04-electricite.md` §2.2 ;
+  mesurer à la pince sur l'entrée du boîtier fusibles. Attendu **≈ 5 A**
+  (phares mesurés à 12 W pièce). Au-delà de 6 A, reprendre
+  `04-electricite.md` §2.2 ;
+- **la mesure du klaxon à la pince**. Sous 4 A, le condensateur tampon est
+  superflu ; au-delà, il est nécessaire ;
 - **le test du klaxon sous charge d'éclairage** : de nuit, tout allumé,
-  klaxonner. Les phares ne doivent **pas** cligner. S'ils clignent, le
-  condensateur tampon est absent ou insuffisant (F-4.5).
+  klaxonner. Les phares ne doivent **pas** cligner (F-4.5).
 
 ### T2.4 — Coupure moteur : ce qui coupe, et ce qui ne coupe pas
 
@@ -155,14 +160,16 @@ Roue en l'air, assistance engagée à faible niveau :
 |---|---|
 | Actionner le frein arrière | La roue s'arrête d'être entraînée |
 | Actionner le frein avant | Idem |
-| **Débrancher l'Arduino**, actionner le frein **arrière** | La roue s'arrête **quand même**. C'est le test critique du principe P1 : s'il échoue, le connecteur Bafang d'origine a été altéré — **reprendre le câblage avant toute mise sur route** |
-| **Arduino débranché**, actionner le frein **avant** | La roue **continue** d'être entraînée. Résultat **attendu** et documenté (`07` §2) : le contacteur avant est unipolaire. À consigner au journal de recette, pas à corriger dans le firmware |
-| Rebrancher, débrancher le seul fil de `OUT_MOTOR_CUT` | Le frein arrière coupe toujours, le frein avant ne coupe plus |
+| **Débrancher l'Arduino**, actionner le frein **arrière** | La roue s'arrête **quand même**. Si ce test échoue, le connecteur Bafang d'origine a été altéré — **reprendre le câblage avant toute mise sur route** |
+| **Arduino débranché**, actionner le frein **avant** | La roue s'arrête **quand même**, par la diode D1. Si elle continue : D1 est absente, montée à l'envers, ou la ligne frein n'est pas active à l'état bas (`hardware/cablage.md` §4) |
+| Rebrancher, débrancher le seul fil de `OUT_MOTOR_CUT` | Les deux freins coupent toujours |
 
-> Le quatrième test est celui qui justifie l'ajout d'un micro-rupteur sur le
-> levier avant. Tant qu'il n'est pas monté, le rappeler dans le contrôle avant
-> départ : **le frein avant seul ne coupe l'assistance que si l'Arduino
-> fonctionne.**
+> Les deux tests « Arduino débranché » sont **le** test du principe P1. Tant
+> qu'ils ne passent pas tous les deux, ne pas rouler sur route ouverte.
+> Mesurer aussi, au multimètre, la tension de la ligne frein au repos avec
+> l'Arduino débranché : elle doit être **inchangée** par rapport à la mesure
+> faite avant de monter D1. Une tension qui aurait monté signale une diode en
+> court-circuit ou montée à l'envers.
 
 ### T2.5 — Écoute Bafang
 

@@ -26,7 +26,7 @@ vérification. Les priorités : **M** = obligatoire (Must), **S** = souhaitable
 | F-2.2 | M | Dès qu'un frein au moins est actionné, le feu stop (relais R6) s'allume. | Chrono : < 50 ms entre contact et allumage, temps de collage du relais inclus. |
 | F-2.3 | M | Le feu stop reste allumé tant qu'un frein est actionné, quel que soit l'état de l'éclairage. Il est sur un circuit distinct des feux de position. | Éclairage éteint + freinage : R6 collé, R5 relâché. |
 | F-2.4 | M | La coupure moteur au frein **arrière** est indépendante de l'Arduino : le contacteur Bafang d'origine reste câblé au contrôleur. | Arduino débranché, frein arrière : le moteur doit se couper. |
-| F-2.4bis | — | **Limite connue.** Le contacteur de frein **avant** est unipolaire : câblé sur `IN4`, il ne ferme pas la ligne frein. La coupure au frein avant passe donc par R8, donc par le firmware. Analysé en `07-securite.md` §2 ; se corrige par l'ajout d'un micro-rupteur sur le levier avant. | Arduino débranché, frein avant : le moteur ne se coupe **pas**. Résultat attendu, à consigner. |
+| F-2.4bis | M | La coupure moteur au frein **avant** est également indépendante de l'Arduino, bien que le contacteur soit unipolaire : une diode **D1 (1N4148)** lui permet de servir à la fois l'entrée `IN4` et la ligne frein, en bloquant le +12 V de la carte vers la ligne 5 V du contrôleur. | Arduino débranché, frein avant : le moteur doit se couper. Et la tension de la ligne frein au repos doit être inchangée par rapport à l'avant-montage. |
 | F-2.5 | S | La sortie `OUT_MOTOR_CUT` reproduit l'état de freinage, avec un maintien minimum de 300 ms après relâche (anti-battement). | Relâche brève : la sortie reste active 300 ms. |
 | F-2.6 | S | L'anti-rebond des entrées frein est ≤ 15 ms, pour ne pas retarder l'allumage du stop. | Injection d'un rebond de 5 ms : pas de scintillement, pas de retard > 20 ms. |
 | F-2.7 | C | Option « flash d'attaque » : 3 clignotements rapides du stop avant l'allumage fixe. **Désactivée par défaut** — non conforme au code de la route français, et surtout six manœuvres mécaniques supplémentaires par freinage sur un relais. | Compilation avec `BRAKE_FLASH_ENABLE 1` (le compilateur émet un avertissement). |
@@ -49,7 +49,7 @@ vérification. Les priorités : **M** = obligatoire (Must), **S** = souhaitable
 |---|---|---|---|
 | F-4.1 | M | Le klaxon sonne tant que le bouton du comodo est enfoncé. | Appui / relâche. |
 | F-4.2 | M | Le klaxon est branché **directement** sur R7 : le contact sec supporte 10 A. Un relais externe n'est requis que pour un klaxon à compresseur, dont la pointe d'appel peut coller le contact. | Contrôle de la nomenclature + échauffement après 10 coups. |
-| F-4.5 | M | Un coup de klaxon ne doit pas faire varier l'éclairage. Le convertisseur de 10 A ne couvre pas l'appel du klaxon en plus des phares : un condensateur tampon de 10 000 µF le fournit. | De nuit, phares allumés, klaxonner : aucune variation visible. |
+| F-4.5 | M | Un coup de klaxon ne doit pas faire varier l'éclairage. L'éclairage complet consommant 5,0 A sur un convertisseur de 10 A, un klaxon de plus de ~4 A impose un condensateur tampon de 10 000 µF. | Mesurer le klaxon à la pince. De nuit, phares allumés, klaxonner : aucune variation visible. |
 | F-4.3 | S | Anti-blocage : au-delà de 10 s continues, le klaxon est coupé jusqu'au relâchement du bouton. | Maintenir l'appui 15 s. |
 | F-4.4 | S | Anti-rebond 20 ms sur le bouton. | Injection de rebonds. |
 

@@ -2,7 +2,7 @@
 
 Ce qui reste à trancher pour figer la conception. Classé par urgence.
 
-**Douze questions ont été posées, dix sont tranchées.** Le détail de chaque
+**Douze questions ont été posées, onze sont tranchées.** Le détail de chaque
 réponse et ses conséquences sont dans les documents concernés ; ce fichier
 n'en garde que la conclusion et ce qui reste à faire.
 
@@ -20,29 +20,14 @@ IO22/DN22, pas du datasheet de cet exemplaire précis. Trois points restent
    documentée mais non vérifiée ici.
 2. **L'ordre des boutons.** La sérigraphie `K1..K4` serait imprimée à
    l'envers : le poussoir marqué `K4` serait celui relié à D7.
-3. **La polarité des entrées.** NPN attendu — on active une borne en la
-   fermant sur la **masse**. Si cet exemplaire était PNP, le firmware ne
-   changerait pas d'une ligne, mais **tous les communs du faisceau iraient au
-   +12 V au lieu de la masse**.
+3. **La polarité des entrées.** ~~À déterminer~~ — **confirmée NPN par la
+   fiche du constructeur** : « 8x opto-isolated inputs (low level trigger, NPN
+   type) ». On active une borne en la fermant sur la **masse**, et tous les
+   communs du faisceau vont donc à la masse. Il ne reste qu'à le vérifier au
+   passage.
 
 **Action** : dérouler `03-affectation-es.md` §6 avec `tools/pinscan`. Une
 demi-heure, avant de sertir quoi que ce soit.
-
-### Q9 — Les phares font-ils 60 W au total, ou 60 W chacun ?
-
-« 2 phares 6 LED, 60 W » se lit des deux façons, et l'écart décide du
-dimensionnement :
-
-| Lecture | Courant | Conséquence |
-|---|---|---|
-| 60 W pour la paire | 5,0 A | Tout va bien : branchement direct sur R2 |
-| 60 W par phare | 10,0 A | **Sature le convertisseur de 10 A à lui seul**, et R2 est à son calibre exact. Il faut un convertisseur 20 A et un relais automobile K2 |
-
-Le projet retient l'hypothèse basse. Deux façons de trancher :
-
-- lire l'étiquette ou la fiche produit ;
-- **mesurer à la pince**, ce qui est plus sûr : les projecteurs LED chinois
-  « 60 W » consomment très souvent 15 à 20 W réels. C'est le test T2.3.
 
 ### Q10 — Circonférence de roue
 
@@ -76,11 +61,13 @@ Conforme à toute la spécification. Rien à changer.
 C'est la réponse qui a eu le plus de conséquences.
 
 - **Avant** : contact sec unipolaire, ouvert au repos. Se câble directement sur
-  `IN4` et la masse, sans interface — les entrées étant NPN. Mais **un contact
-  unipolaire ne peut servir qu'une fois** : câblé sur IN4, il ne ferme pas la
-  ligne frein du contrôleur. La coupure d'assistance au frein avant passe donc
-  uniquement par R8, **donc par le firmware**. Régression réelle de P1,
-  analysée en `07-securite.md` §2, corrigible par un micro-rupteur S4 à 2 €.
+  `IN4` et la masse, sans interface — les entrées étant NPN. Un contact
+  unipolaire semblait ne pouvoir servir qu'une fois, laissant la coupure
+  d'assistance au frein avant dépendre du firmware. **Une diode 1N4148 lève la
+  limite** : les deux circuits demandent une mise à la masse, la diode bloque
+  simplement le +12 V de la carte quand le contact est ouvert. Un seul contact
+  sert donc les deux, la diode se monte dans le boîtier, et rien n'est modifié
+  au levier. Voir `hardware/cablage.md` §4.
 - **Arrière** : connecteur Higo rond jaune 3 broches, ligne logique ~5 V.
   **Il ne doit surtout pas être raccordé à une borne d'entrée** — celle-ci est
   tirée au +12 V à travers son optocoupleur et détruirait probablement le
@@ -102,9 +89,11 @@ Deux conséquences, dont une qui demande une action :
    JK à 3,50 V/cellule (56,0 V pack)** — gratuit, sans perte de capacité
    utile, bénéfique pour le pack. Et prendre un modèle 72 ou 80 V au prochain
    achat : un buck non isolé qui claque met le 48 V sur les feux.
-3. **10 A ne couvrent pas tout** : prises allume-cigare fusiblées à 5 A, et
-   condensateur tampon de 10 000 µF sans lequel un coup de klaxon fait cligner
-   les phares (`04-electricite.md` §2.3).
+3. **10 A suffisent, mais sans marge pour le klaxon.** Depuis la mesure des
+   phares (Q9), l'éclairage complet ne prend que 5,0 A. Prises allume-cigare
+   fusiblées à **5 A** — deux prises à 10 A feraient le double du
+   convertisseur. Condensateur tampon de 10 000 µF **si le klaxon dépasse
+   ~4 A** (`04-electricite.md` §2.3).
 
 ### ~~Q7 — Commandes d'éclairage et de détresse~~ — **trois interrupteurs dédiés**
 
@@ -131,6 +120,23 @@ S3 : la position du contacteur est le témoin, sans aucun câblage de voyant.
 ### ~~Q8 — Rôle de `OUT8`~~ — **sans objet**
 
 Les huit relais sont exactement consommés par les huit fonctions.
+
+### ~~Q9 — Puissance des phares~~ — **12 W chacun, mesurés**
+
+Mesure à la pince : **12 V / 1 A par phare**, soit 24 W pour la paire, contre
+60 W annoncés. Écart typique des projecteurs LED vendus en « watts crête ».
+Le bilan retient **15 W chacun** pour se garder une marge.
+
+Conséquences, toutes favorables :
+
+- **L'éclairage complet ne consomme que 5,0 A**, soit la moitié du
+  convertisseur. Le budget passe de tendu à confortable.
+- **Aucun relais externe** : R2 voit 2,5 A pour un calibre de 10 A.
+- **Le condensateur tampon devient optionnel** : il ne s'impose que si le
+  klaxon dépasse ~4 A. Avec un klaxon électromagnétique, le total plafonne à
+  9 A et tout passe. Reste 3 € bien dépensés pour supprimer la question.
+- Fusible F6 ramené de 7,5 A à **5 A**, section d'éclairage confirmée en
+  1,5 mm².
 
 ### ~~Q11 — Le RS485 est-il câblé sur D0/D1 ?~~ — **oui, et l'inverseur le règle**
 
@@ -191,7 +197,7 @@ ci-dessus devient gênante à l'usage.
 
 | Idée | Coût | Obstacle |
 |---|---|---|
-| **Micro-rupteur S4 sur le levier avant** | **~2 €** | **Aucun — c'est l'évolution la plus utile du projet** (`07` §2) |
+| ~~Micro-rupteur sur le levier avant~~ | — | **Sans objet** : la diode D1 obtient le même résultat sans toucher au levier |
 | Convertisseur 48/12 V donné pour 72 V | ~15 € | Aucun, au prochain achat |
 | Lecture du MPPT en VE.Direct | Faible | Plus d'UART libre (`04-electricite.md` §7) |
 | ~~Écran de bord dédié~~ | — | Sans objet : la carte a son afficheur… mais il est sous la coque |

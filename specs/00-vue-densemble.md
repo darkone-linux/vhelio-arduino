@@ -39,14 +39,13 @@ La coupure moteur au freinage est assurée **matériellement** par le câblage d
 contacteur de frein sur la ligne frein du contrôleur Bafang. La sortie
 `OUT_MOTOR_CUT` de l'Arduino est *redondante*, pas indispensable.
 
-> **Entorse connue et documentée, au frein avant.** Le contacteur avant
-> disponible est **unipolaire** : un seul jeu de contacts, qui ne peut pas à la
-> fois informer la carte et fermer la ligne frein. Câblé sur l'entrée de la
-> carte — parce que le feu stop est prioritaire — il laisse la coupure
-> d'assistance au frein avant dépendre du firmware. Le frein **arrière**, lui,
-> respecte intégralement P1. Analyse et remède (un micro-rupteur à 2 €) en
-> `07-securite.md` §2. C'est la seule entorse du projet à ses propres
-> principes, et elle est réparable.
+> **Le contacteur de frein avant est unipolaire**, donc incapable a priori de
+> servir à la fois l'entrée de la carte et la ligne frein du contrôleur. Une
+> **diode de découplage** (1N4148, montée dans le boîtier) lui permet de faire
+> les deux : les deux circuits demandent une mise à la masse, la diode empêche
+> simplement le +12 V de la carte de remonter vers la ligne 5 V du contrôleur.
+> P1 est donc respecté aux deux freins. Détail du montage en
+> `hardware/cablage.md` §4, analyse en `07-securite.md` §2.
 
 **P2 — La télémétrie est un confort, pas une fonction de sécurité.**
 La perte totale du bus Bafang (fil coupé, afficheur débranché, décodage erroné)
@@ -97,15 +96,18 @@ flowchart LR
   FUSE --> LOADS[Phares · Feux AR · Clignotants<br/>Klaxon · Allume-cigare]
   COMODO[Comodo] --> NANO
   BAV[Contacteur frein AVANT<br/>unipolaire] --> NANO
+  BAV ==>|via diode D1<br/>failsafe| CTRL
   BAR[Contacteur frein ARRIÈRE<br/>Bafang d'origine] ==>|câblage direct<br/>failsafe| CTRL
   S2[Micro-rupteur S2<br/>levier arrière] --> NANO
   NANO --> LOADS
   NANO -.->|R8, coupure redondante| CTRL
 ```
 
-Le trait épais matérialise le principe P1 : au frein **arrière**, le chemin de
-sécurité ne passe pas par l'Arduino. Au frein **avant**, il y passe — voir la
-réserve du §3 et `07-securite.md` §2.
+Les traits épais matérialisent le principe P1 : **aux deux freins**, un chemin
+de coupure ne passe pas par l'Arduino. À l'arrière c'est le contacteur Bafang
+d'origine ; à l'avant, le contacteur unipolaire y parvient grâce à une diode de
+découplage qui l'autorise à servir les deux circuits sans que le +12 V de la
+carte n'atteigne la ligne 5 V du contrôleur (`hardware/cablage.md` §4).
 
 ## 6. Glossaire
 
