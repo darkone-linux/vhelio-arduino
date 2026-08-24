@@ -25,10 +25,24 @@ enum Fault : uint8_t {
 void begin(uint8_t mcusr);
 
 /* Balayage visuel des sorties d'éclairage et de signalisation.
- * La voie auxiliaire (R7) et la coupure moteur (R8) en sont exclues. */
+ * Le voyant de défaut (R7) est inclus : c'est le contrôle de la LED elle-même.
+ * Seule la coupure moteur (R8) est exclue. */
 void selfTest();
 
 void update(uint32_t now);
+
+/* Voyant de défaut sur R7 : au moins un défaut du masque FAULT_LAMP_MASK est
+ * actif et non acquitté. */
+bool lampOn();
+
+/* Acquittement, déclenché par le bouton sur IN3.
+ *   - efface les défauts MÉMORISÉS (reset chien de garde, cycle lent), qui
+ *     sinon persisteraient jusqu'à la coupure de l'alimentation ;
+ *   - éteint le voyant pour les défauts encore actifs, sans les masquer sur
+ *     l'afficheur ni au journal.
+ * Un défaut qui disparaît puis revient rallume le voyant : l'acquittement
+ * porte sur un événement, pas sur une catégorie. */
+void acknowledge();
 
 /* Durée du cycle précédent, en microsecondes. */
 void noteLoop(uint32_t us);

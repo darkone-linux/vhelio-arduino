@@ -43,20 +43,23 @@ vérification. Les priorités : **M** = obligatoire (Must), **S** = souhaitable
 | F-3.6 | S | Un retour sonore accompagne chaque transition du clignotant. **Assuré sans aucun composant** : les clignotants sont portés par des relais, dont le claquement à 1,33 Hz est exactement le bruit d'un relais de clignotant d'origine. | Écoute. |
 | F-3.7 | S | Rappel d'oubli : au-delà de 45 s **ou** 300 m de clignotement continu, la phase allumée est raccourcie de 375 à 200 ms (`BLINK_REMINDER_ON_MS`). La **période est inchangée**, donc la cadence reste réglementaire, mais le rythme du claquement des relais devient syncopé et audible. C'est le seul canal vers le conducteur, le boîtier étant sous la coque (Q12). Le clignotant n'est **pas** annulé automatiquement : le comodo est un inverseur maintenu, une annulation logicielle créerait une incohérence entre la position du levier et l'état réel. | Laisser le clignotant 50 s, écouter le changement de rythme. |
 
-## F-4 — Voie auxiliaire (klaxon)
+## F-4 — Voyant de défaut et acquittement
 
-> **Le klaxon du véhicule est autonome** : batterie et interrupteur propres,
-> aucun lien avec la carte. `HORN_ENABLE` vaut **0**, l'entrée `IN3` et le
-> relais `R7` sont libres, et les exigences ci-dessous ne s'appliquent que si
-> l'on décide un jour de raccorder un klaxon à la carte.
+La voie `IN3` / `R7`, libérée par le klaxon autonome, porte le diagnostic au
+poste de conduite. C'est la réponse au trou ouvert par Q12 : le boîtier étant
+sous la coque, rien ne signalait un défaut avant l'ouverture.
 
 | Id | Prio | Exigence | Vérification |
 |---|---|---|---|
-| F-4.1 | C | *(si `HORN_ENABLE 1`)* Le klaxon sonne tant que le bouton est enfoncé. | Appui / relâche. |
-| F-4.2 | C | *(si `HORN_ENABLE 1`)* Le klaxon se branche directement sur R7 : le contact sec supporte 10 A. Un relais externe n'est requis que pour un klaxon à compresseur, dont la pointe d'appel peut coller le contact. | Contrôle de la nomenclature. |
-| F-4.3 | C | *(si `HORN_ENABLE 1`)* Anti-blocage : au-delà de 10 s continues, le klaxon est coupé jusqu'au relâchement du bouton. | Maintenir l'appui 15 s. |
-| F-4.4 | C | *(si `HORN_ENABLE 1`)* Anti-rebond 20 ms sur le bouton. | Injection de rebonds. |
-| F-4.6 | M | Désactivé, le module ne doit consommer **aucune** ressource : ni flash, ni RAM, ni sortie. R7 reste relâché en permanence. | Comparaison des empreintes `HORN_ENABLE` 0 / 1, et continuité sur R7 après 30 min. |
+| F-4.1 | M | `R7` alimente un voyant rouge dès qu'un défaut du masque `FAULT_LAMP_MASK` est actif et non acquitté. | Provoquer un conflit de clignotants : le voyant s'allume. |
+| F-4.2 | M | L'allumage est **fixe**, jamais clignotant : un relais n'est pas fait pour battre. La discrimination entre défauts se lit sur l'afficheur, coque ouverte. | Observation ; comptage des manœuvres de R7 sur un trajet. |
+| F-4.3 | M | **Le lien Bafang perdu n'allume PAS le voyant.** La télémétrie est un confort (P2) : afficheur débranché ou bus muet, le voyant resterait allumé en permanence et ne voudrait plus rien dire. Contrôlé à la compilation par un `static_assert`. | Débrancher l'afficheur Bafang : `FLT_BAFANG_LINK` au journal, voyant **éteint**. |
+| F-4.4 | M | Le voyant s'allume pendant l'autotest de mise sous tension, puis s'éteint — comme un témoin de tableau de bord au contact. Sans cela, une LED grillée serait indiscernable d'une absence de défaut. | Mise sous tension : R7 colle 200 ms en fin de séquence. |
+| F-4.5 | M | Le bouton `IN3` efface les défauts **mémorisés** (reset chien de garde, cycle lent), qui sinon survivraient jusqu'à la coupure de l'alimentation. | Provoquer un reset WDT, acquitter : `FLT_WDT_RESET` disparaît du journal. |
+| F-4.6 | M | Pour un défaut **encore actif**, l'acquittement éteint le voyant sans masquer le défaut sur l'afficheur ni au journal. | Frein collé + acquittement : voyant éteint, `flt=0x08 ack` au journal. |
+| F-4.7 | M | Un défaut acquitté qui **disparaît puis revient** rallume le voyant. L'acquittement porte sur un événement, pas sur une catégorie. | Conflit clignotants, acquitter, relâcher, refaire : le voyant se rallume. |
+| F-4.8 | M | Le bouton d'acquittement n'a **aucun** effet sur les feux, les freins ou la coupure moteur. C'est le seul organe actionnable en roulant, il ne doit toucher que `diag`. | Revue de code : `acknowledge()` n'écrit que sur `g_faults` et `g_acked`. |
+| F-4.9 | C | *(si `HORN_ENABLE 1`)* La voie redevient un klaxon avec verrou anti-blocage à 10 s. Les deux usages s'excluent, `config.h` le vérifie par `#error`. | Compilation avec l'option. |
 
 ## F-5 — Télémétrie Bafang (écoute passive)
 
@@ -75,7 +78,7 @@ vérification. Les priorités : **M** = obligatoire (Must), **S** = souhaitable
 |---|---|---|---|
 | F-6.1 | M | Un chien de garde matériel (WDT 1 s) redémarre l'Arduino en cas de blocage. | Boucle infinie injectée en test. |
 | F-6.2 | M | Le WDT est explicitement désarmé au tout début de `setup()` (`MCUSR = 0; wdt_disable();`) pour éviter le redémarrage en boucle avec les anciens bootloaders. | Revue de code. |
-| F-6.3 | S | Un autotest au démarrage active chaque sortie 200 ms dans l'ordre, hors voie auxiliaire (R7) et coupure moteur (R8). | Observation visuelle et **auditive** — c'est le seul contrôle de bon fonctionnement des relais audible depuis le poste de conduite. |
+| F-6.3 | S | Un autotest au démarrage active chaque sortie 200 ms dans l'ordre : les six relais d'éclairage et de signalisation, **puis le voyant de défaut**. Seule la coupure moteur (R8) est exclue. | Observation visuelle et **auditive** — le claquement est le seul contrôle des relais perceptible coque fermée. |
 | F-6.4 | S | Le **deux-points de l'afficheur** bat à 1 Hz en fonctionnement nominal, à ~4 Hz si un défaut est actif. La LED D13 du Nano n'est pas utilisable : elle porte la ligne de données du registre à décalage. | Observation, coque ouverte. |
 | F-6.5 | S | Un journal série (115 200 bauds) publie l'état consolidé toutes les secondes, désactivable à la compilation. L'inverseur de la carte doit être sur **`PRO`**, faute de quoi le RS485 occupe D0/D1. | Terminal série. |
 | F-6.6 | M | Le temps de cycle maximal observé est journalisé ; il doit rester < 10 ms. | Champ `loopMax` du journal. |
@@ -84,8 +87,8 @@ vérification. Les priorités : **M** = obligatoire (Must), **S** = souhaitable
 
 | Id | Prio | Exigence |
 |---|---|---|
-| NF-1 | M | Empreinte flash < 24 ko et RAM statique < 1,4 ko (marge sur les 30,7 ko / 2 ko utilisables du ATmega328P). **Mesuré : 8 734 o de flash (28 %) et 700 o de RAM (34 %).** |
+| NF-1 | M | Empreinte flash < 24 ko et RAM statique < 1,4 ko (marge sur les 30,7 ko / 2 ko utilisables du ATmega328P). **Mesuré : 8 890 o de flash (28 %) et 715 o de RAM (34 %).** |
 | NF-2 | M | Aucun `String`, aucune allocation dynamique. |
 | NF-3 | M | Tout le brochage est concentré dans `src/pins.h` et les tableaux en tête de `src/board_io.cpp` ; tout le réglage dans `src/config.h`. C'est ce qui a permis d'absorber le changement complet d'architecture de la carte sans toucher un seul module métier. |
 | NF-4 | S | Chaque fonction est un module indépendant, testable en isolant ses entrées. |
-| NF-5 | M | Le firmware compile sans avertissement avec `--warnings all`, dans **toutes** les combinaisons d'options de `config.h` (`tools/check-variants.sh` — 13 variantes). |
+| NF-5 | M | Le firmware compile sans avertissement avec `--warnings all`, dans **toutes** les combinaisons d'options de `config.h` (`tools/check-variants.sh` — 14 variantes). |

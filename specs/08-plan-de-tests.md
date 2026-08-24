@@ -28,8 +28,8 @@ Tout écart se corrige dans `pins.h` et `board_io.cpp` avant de continuer.
 
 Mise sous tension.
 **Critère** : les six relais d'éclairage et de signalisation collent l'un après
-l'autre, 200 ms chacun — c'est audible autant que visible. La voie auxiliaire
-(R7) et la coupure moteur (R8) **ne** sont **pas** activées.
+l'autre, 200 ms chacun, **puis le voyant de défaut (R7)** — c'est audible
+autant que visible. Seule la coupure moteur (R8) **n'est pas** activée.
 L'afficheur reste multiplexé pendant toute la séquence : s'il s'éteint,
 `board::refresh()` n'est pas appelé dans la boucle d'attente.
 
@@ -78,18 +78,27 @@ relais inclus.
 > qu'ils ne se rebouclent pas : le feu stop doit pouvoir s'allumer feux
 > éteints, et les feux de position rester allumés hors freinage.
 
-### T1.6 — Voie auxiliaire IN3 / R7 libre
-
-Le klaxon est autonome et n'est pas relié à la carte. Ce test vérifie
-simplement que la voie reste inerte.
+### T1.6 — Voyant de défaut et acquittement
 
 | Action | Attendu |
 |---|---|
-| Laisser tourner 30 min, toutes fonctions sollicitées | **R7 ne colle jamais** — contrôler à l'oreille et au contrôleur de continuité |
-| Solliciter la borne IN3 | Le 3ᵉ chiffre de `IN1..IN8` passe à `0` au journal, **aucune sortie ne bouge** |
+| Mise sous tension | R7 colle 200 ms en fin d'autotest, puis retombe. **C'est le contrôle de la LED elle-même** |
+| Forcer `IN_TURN_LEFT` **et** `IN_TURN_RIGHT` | R7 colle et **reste collé** — pas de clignotement |
+| Appuyer sur le bouton d'acquittement (IN3) | R7 retombe. Au journal : `flt=0x01 ack` — le défaut est **toujours** signalé |
+| Relâcher les entrées, puis refaire le conflit | R7 se **rallume** : l'acquittement portait sur l'événement passé |
+| **Débrancher la source Bafang** | `FLT_BAFANG_LINK` au journal (`flt=0x04`), R7 **reste éteint** — c'est le principe P2, et c'est le critère le plus important de ce test |
+| Injecter un reset chien de garde, puis acquitter | `FLT_WDT_RESET` disparaît du journal, sans coupure d'alimentation |
+| Appuyer sur IN3 pendant que tout fonctionne | **Aucune sortie ne bouge** : ni feux, ni clignotants, ni R8 |
 
-Si R7 colle, c'est que `HORN_ENABLE` a été laissé à 1, ou qu'un module écrit
-sur `OUT_AUX` — ce qu'aucun ne doit faire.
+> La ligne « bus Bafang » est celle qu'il ne faut pas rater. Si le voyant
+> s'allume quand l'afficheur d'origine est débranché, `FAULT_LAMP_MASK` a été
+> modifié : le voyant serait allumé en permanence sur un véhicule dont la
+> télémétrie n'est pas branchée, et ne voudrait plus rien dire. Le
+> `static_assert` de `diag.cpp` est censé rendre cette erreur impossible.
+
+Compter les manœuvres de R7 sur un trajet complet : elles doivent se compter
+sur les doigts d'une main. Un relais qui bat signale un défaut intermittent,
+pas un voyant qui fonctionne.
 
 ### T1.7 — Chien de garde
 
@@ -194,6 +203,10 @@ Avec `BAFANG_LEARN_MODE 1`, suivre la procédure de calibration de
 - [ ] Clignotant gauche, clignotant droit, détresse
 - [ ] Feu stop au frein avant **et** au frein arrière (observateur derrière)
 - [ ] Klaxon *(autonome — vérifier sa propre batterie)*
+- [ ] **Le voyant rouge s'est allumé puis éteint à la mise sous tension.**
+      S'il ne s'est pas allumé, la LED ou son câblage sont morts et il n'y
+      aura aucune alerte de tout le trajet
+- [ ] Le voyant rouge est éteint au départ
 - [ ] Aucun défaut : à l'ouverture de la coque, l'afficheur montre `F000`
       (c'est la page par défaut) et le deux-points bat à 1 Hz, pas ~4 Hz
 - [ ] Autotest au démarrage : les six relais claquent l'un après l'autre.
@@ -207,7 +220,7 @@ Avec `BAFANG_LEARN_MODE 1`, suivre la procédure de calibration de
 | Freinage modulé (pompage du levier) | Le stop suit, l'assistance ne se réengage pas par à-coups |
 | Clignotant maintenu 300 m | Le rythme du claquement devient syncopé, audible du poste de conduite |
 | Passage sur pavés / vibrations | Aucun scintillement de feu, aucun déclenchement parasite |
-| 30 min de roulage continu | `loopMax` < 10 ms, aucun reset WDT |
+| 30 min de roulage continu | `loopMax` < 10 ms, aucun reset WDT, **voyant resté éteint** |
 
 ### T3.3 — Visibilité (à valider par l'observateur, à 30 m)
 

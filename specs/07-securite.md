@@ -14,7 +14,8 @@ Pour chaque panne plausible : ce qui se passe, et pourquoi c'est acceptable.
 | **Ligne frein Bafang raccordée à une borne d'entrée SANS diode** | +12 V injecté dans une entrée 5 V du contrôleur | — | **Destruction probable du contrôleur.** C'est exactement ce que D1 empêche à l'avant ; à l'arrière, le connecteur jaune reste intact et S2 est un contact sec séparé (`03` §5) |
 | **D1 en court-circuit** | ~1,4 mA de +12 V remontent vers la ligne frein au repos | — | Assistance possiblement inhibée en permanence. Gênant, pas dangereux ; le vélo reste utilisable sans assistance |
 | **Contacteur de frein collé** | Stop allumé en permanence, assistance coupée | Non (côté sûr) | `FLT_BRAKE_STUCK` après 120 s, journal série |
-| **Bouton klaxon collé** | *(sans objet — klaxon autonome, non relié à la carte)* | Non | `LOCKED` après 10 s si `HORN_ENABLE 1` |
+| **Bouton d'acquittement collé** | Les défauts mémorisés sont effacés en boucle, les défauts actifs restent acquittés : **le voyant ne s'allume plus** | Le voyant, oui | Non détectable par le firmware. Reste visible sur la page « défauts » et au journal. Contrôle avant départ T3.1 : le voyant doit s'allumer pendant l'autotest |
+| **LED du voyant grillée** | Plus aucune alerte en roulant | Le voyant, oui | Détecté à chaque mise sous tension : le voyant s'allume 200 ms pendant l'autotest. C'est la raison d'être de ce balayage |
 | **Comodo : gauche et droite simultanés** | Deux directions contradictoires | Signalisation | Retombée sur `OFF` + `FLT_TURN_CONFLICT` |
 | **Bus Bafang muet** | Vitesse invalide | Non (P2) | Rappel clignotant bascule sur le critère temps seul |
 | **Bus Bafang bruité (trames fausses)** | Trames rejetées par la somme de contrôle | Non | Compteur `framesRejected` dans le journal |
@@ -92,7 +93,7 @@ Défini comme l'état des sorties à la mise sous tension et après reset :
 | `OUT_PARK_FRONT` / `OUT_MAIN` | inactif | Rétabli en < 10 ms dès le premier balayage des entrées |
 | `OUT_TAIL_PARK` / `OUT_TAIL_STOP` | inactif | idem |
 | `OUT_TURN_*` | inactif | idem |
-| `OUT_AUX` (R7) | inactif | Voie libre, jamais commandée tant que `HORN_ENABLE` vaut 0 |
+| `OUT_FAULT` (R7) | inactif | Voyant éteint au reset, puis allumé 200 ms par l'autotest — ce qui prouve que la LED fonctionne |
 | `OUT_MOTOR_CUT` | **relâché** | Voir §2 |
 
 L'état sûr est obtenu **matériellement** avant même que le firmware ne
@@ -145,11 +146,14 @@ imperceptiblement — sauf si l'autotest est actif, auquel cas il faut compter
   du test T3.1 n'est pas une formalité.
 - **Aucune fonction de freinage.** Le système allume un feu et coupe une
   assistance ; il ne freine pas.
-- **Aucun annonciateur en roulant.** Le boîtier est sous la coque et
-  l'afficheur n'est pas lisible. Le seul canal vers le conducteur en marche est
-  le **claquement des relais** — d'où le rappel d'oubli des clignotants par
-  changement de rythme. Tout le reste du diagnostic se lit à l'arrêt, coque
-  ouverte, sur l'afficheur ou la console série.
+- **Un seul bit d'information en roulant.** Le voyant de R7 dit qu'un défaut
+  est actif, pas lequel. Le détail se lit à l'arrêt, coque ouverte, sur
+  l'afficheur ou la console série. Et il ne couvre délibérément **pas** la
+  perte du bus Bafang (P2, `02-machines-a-etats.md` §2.4).
+- **Le voyant ne surveille pas les relais eux-mêmes.** Il rapporte ce que le
+  firmware *croit*, pas ce que le matériel *fait* — le registre à décalage
+  n'est pas relisible. Voyant éteint ne veut pas dire feux fonctionnels.
+  Le contrôle avant départ T3.1 reste la seule vérification réelle.
 
 ## 6. Conformité réglementaire
 

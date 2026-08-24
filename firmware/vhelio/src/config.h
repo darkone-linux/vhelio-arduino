@@ -92,15 +92,35 @@
 #define BLINK_REMINDER_ON_MS      200
 
 /* ======================================================================
- * Voie auxiliaire IN3 / R7 — klaxon (désactivé)
+ * Voie IN3 / R7 — voyant de défaut et acquittement
  * ====================================================================== */
 
-/* Le klaxon du véhicule est AUTONOME : batterie et interrupteur propres, il
- * n'est pas relié à la carte. Le module est conservé, désactivé, pour le cas
- * où l'on déciderait de le raccorder — il ne coûte alors rien en flash.
+#define FAULT_LAMP_ENABLE         1
+
+/* QUELS défauts allument le voyant. Ce masque est la décision la plus
+ * importante de tout ce fichier : un voyant qui s'allume pour rien est un
+ * voyant qu'on cesse de regarder, et il vaut alors moins que pas de voyant
+ * du tout.
  *
- * Tant que HORN_ENABLE vaut 0, l'entrée IN3 et le relais R7 sont LIBRES.
- * Ce sont les seules ressources disponibles du montage. */
+ *   bit 0  conflit clignotants ....... OUI, la signalisation est perdue
+ *   bit 1  voie auxiliaire bloquée ... OUI (sans objet si pas de klaxon)
+ *   bit 2  lien Bafang perdu ......... NON — principe P2, voir ci-dessous
+ *   bit 3  frein collé ............... OUI, assistance coupée en continu
+ *   bit 4  cycle lent ................ NON, information de maintenance
+ *   bit 5  reset chien de garde ...... OUI, les feux se sont éteints ~1,5 s
+ *   bit 6  aucun freinage vu en 2 km . OUI, fil de contacteur probablement coupé
+ *
+ * Le lien Bafang est délibérément exclu : la télémétrie est un confort, pas
+ * une fonction de sécurité (P2). Afficheur d'origine débranché, bus muet ou
+ * trames non reconnues, le voyant resterait allumé en permanence et ne
+ * voudrait plus rien dire. Ces défauts restent lisibles sur la page
+ * « défauts » de l'afficheur et au journal série. */
+#define FAULT_LAMP_MASK           0x6B
+
+/* Le klaxon du véhicule est AUTONOME : batterie et interrupteur propres. Le
+ * module est conservé, désactivé, pour le cas où l'on raccorderait un klaxon
+ * à cette même voie — il ne coûte alors rien en flash. Les deux usages
+ * s'excluent : R7 ne peut pas être à la fois un voyant et un klaxon. */
 #define HORN_ENABLE               0
 
 #define HORN_MAX_ON_MS            10000UL   /* anti-blocage                  */
@@ -110,7 +130,7 @@
  * ====================================================================== */
 
 #define DEBOUNCE_BRAKE_MS         15
-#define DEBOUNCE_HORN_MS          20
+#define DEBOUNCE_ACK_MS           20
 #define DEBOUNCE_COMODO_MS        30
 #define DEBOUNCE_BUTTON_MS        40
 
@@ -185,8 +205,12 @@
 #error "BAFANG_LEARN_MODE exige DEBUG_SERIAL 1 pour publier les trames"
 #endif
 
-#if HORN_ENABLE && !DEBOUNCE_HORN_MS
-#error "HORN_ENABLE exige un DEBOUNCE_HORN_MS non nul"
+#if HORN_ENABLE && FAULT_LAMP_ENABLE
+#error "R7 ne peut pas etre a la fois voyant de defaut et klaxon"
+#endif
+
+#if FAULT_LAMP_ENABLE && !FAULT_LAMP_MASK
+#warning "FAULT_LAMP_MASK vide : le voyant ne s'allumera jamais"
 #endif
 
 #if BLINK_ON_MS >= BLINK_PERIOD_MS

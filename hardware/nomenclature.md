@@ -89,7 +89,8 @@ et une intervention sur le faisceau moteur, contre un rupteur à 2 €.
 | S3 | Interrupteur à bascule **lumineux** 12 V, veilleuse | 1 | Premier niveau d'éclairage, déjà en possession |
 | **D1** | **Diode 1N4148** | **1** | **Indispensable.** Montée dans le boîtier entre la borne `IN4` et le fil vers la dérivation en Y, **cathode côté IN4**. Elle permet au contacteur de frein avant, pourtant unipolaire, de servir à la fois l'entrée de la carte et la ligne frein du contrôleur : la coupure d'assistance au frein avant cesse ainsi de dépendre du firmware (`hardware/cablage.md` §4). **Ne pas remplacer par une Schottky** : son courant de fuite inverse ferait remonter le potentiel de la ligne frein |
 | — | LED verte 12 V + résistance 1 kΩ / 1 W | 0 à 2 | Témoins de clignotant, en parallèle sur R3 et R4. Purement électriques, aucun relais ni broche consommés |
-| — | LED rouge 12 V + résistance 1 kΩ / 1 W | 0 ou 1 | **Voyant de défaut** sur R7, la voie libérée par le klaxon. Proposition Q14 : c'est aujourd'hui le seul moyen de savoir en roulant qu'un défaut est actif, l'afficheur étant sous la coque |
+| H1 | LED rouge 12 V + résistance 1 kΩ / 1 W | 1 | **Voyant de défaut** sur R7. Seul moyen de savoir en roulant qu'un défaut est actif, l'afficheur étant sous la coque. À monter dans le champ de vision |
+| S5 | Bouton poussoir NO, contact sec | 1 | **Acquittement des défauts**, vers IN3 et la masse. Efface les défauts mémorisés et éteint le voyant sans couper l'alimentation. N'a aucun effet sur les feux, les freins ou le moteur |
 
 > **Pas de buzzer.** Les clignotants sont portés par les relais R3 et R4, dont
 > le claquement à 1,33 Hz est exactement le bruit d'un relais de clignotant

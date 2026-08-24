@@ -3,6 +3,8 @@
 
 #if HORN_ENABLE
 
+/* Le klaxon réutilise la voie IN3 / R7, normalement affectée au voyant de
+ * défaut ; config.h interdit les deux à la fois. */
 #include "board_io.h"
 
 namespace {
@@ -16,11 +18,11 @@ uint32_t g_soundSince = 0;
 
 void horn::begin() {
   g_state = IDLE;
-  board::setOutput(OUT_AUX, false);
+  board::setOutput(OUT_FAULT, false);
 }
 
 void horn::update(uint32_t now, const InputState& in) {
-  const bool pressed = in.level[IN_AUX];
+  const bool pressed = in.level[IN_ACK];
 
   switch (g_state) {
     case IDLE:
@@ -45,7 +47,7 @@ void horn::update(uint32_t now, const InputState& in) {
       break;
   }
 
-  board::setOutput(OUT_AUX, g_state == SOUND);
+  board::setOutput(OUT_FAULT, g_state == SOUND);
 }
 
 bool horn::sounding() { return g_state == SOUND; }
@@ -53,8 +55,8 @@ bool horn::stuck() { return g_state == LOCKED; }
 
 #else
 
-/* Klaxon autonome : la voie IN3 / R7 est libre. R7 est laissé relâché par
- * board::allOff() au démarrage et n'est plus jamais touché. */
+/* Klaxon autonome : la voie IN3 / R7 porte le voyant de défaut et son bouton
+ * d'acquittement (module diag). Rien à faire ici. */
 void horn::begin() {}
 void horn::update(uint32_t, const InputState&) {}
 bool horn::sounding() { return false; }

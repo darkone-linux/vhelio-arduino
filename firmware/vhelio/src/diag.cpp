@@ -1,5 +1,6 @@
 #include "diag.h"
 #include "bafang.h"
+#include "debounce.h"
 #include "board_io.h"
 #include "brakes.h"
 #include "config.h"
@@ -13,11 +14,24 @@
 namespace {
 
 uint8_t g_faults = 0;
+uint8_t g_acked = 0;      /* défauts acquittés, voyant éteint pour eux */
 uint32_t g_loopUs = 0;
 uint32_t g_loopMaxUs = 0;
 
 uint32_t g_colonToggled = 0;
 bool g_colonOn = false;
+
+#if FAULT_LAMP_ENABLE
+Debouncer g_ackBtn;
+
+/* P2 — la télémétrie est un confort, pas une fonction de sécurité. Un bus
+ * Bafang muet ne doit pas allumer un voyant rouge devant le conducteur :
+ * il resterait allumé en permanence et le voyant ne voudrait plus rien dire.
+ * Ce contrôle existe pour qu'on ne puisse pas l'oublier en modifiant le
+ * masque sans relire la justification. */
+static_assert((FAULT_LAMP_MASK & diag::FLT_BAFANG_LINK) == 0,
+              "FLT_BAFANG_LINK ne doit pas allumer le voyant (principe P2)");
+#endif
 
 #if DEBUG_SERIAL
 uint32_t g_lastLog = 0;
@@ -33,6 +47,11 @@ void printFixed1(uint16_t x10) {
 
 void diag::begin(uint8_t mcusr) {
   g_faults = 0;
+  g_acked = 0;
+#if FAULT_LAMP_ENABLE
+  g_ackBtn.begin(DEBOUNCE_ACK_MS, false);
+  board::setOutput(OUT_FAULT, false);
+#endif
   /* WDRF : un reset par chien de garde en roulage est une anomalie, elle
    * doit rester visible après la reprise. */
   if (mcusr & _BV(WDRF)) g_faults |= FLT_WDT_RESET;
@@ -50,9 +69,16 @@ void diag::selfTest() {
   /* setup() est le seul endroit où bloquer est acceptable : le chien de
    * garde n'est pas encore armé et rien ne roule.
    * Le klaxon et la coupure moteur sont volontairement exclus. */
+  /* Le voyant de défaut est inclus : c'est le contrôle du voyant lui-même,
+   * exactement comme les témoins d'un tableau de bord qui s'allument à la
+   * mise du contact. Sans cela, une LED grillée serait indiscernable d'une
+   * absence de défaut. La coupure moteur (R8) reste exclue. */
   const uint8_t seq[] = {
     OUT_PARK_FRONT, OUT_MAIN, OUT_TURN_LEFT, OUT_TURN_RIGHT,
-    OUT_TAIL_PARK, OUT_TAIL_STOP
+    OUT_TAIL_PARK, OUT_TAIL_STOP,
+#if FAULT_LAMP_ENABLE
+    OUT_FAULT
+#endif
   };
   for (uint8_t i = 0; i < sizeof(seq); ++i) {
     board::setOutput(seq[i], true);
@@ -70,6 +96,15 @@ void diag::noteLoop(uint32_t us) {
   g_loopUs = us;
   if (us > g_loopMaxUs) g_loopMaxUs = us;
   if (us > LOOP_SLOW_US) g_faults |= FLT_LOOP_SLOW;
+}
+
+void diag::acknowledge() {
+  /* Les défauts mémorisés disparaissent : ce sont des événements passés, et
+   * sans cela ils survivraient jusqu'à la coupure de l'alimentation. */
+  g_faults &= (uint8_t)~(FLT_WDT_RESET | FLT_LOOP_SLOW);
+  /* Les défauts encore actifs restent signalés à l'afficheur et au journal,
+   * mais cessent d'allumer le voyant. */
+  g_acked |= (uint8_t)(g_faults & FAULT_LAMP_MASK);
 }
 
 void diag::update(uint32_t now) {
@@ -93,6 +128,20 @@ void diag::update(uint32_t now) {
     f |= FLT_BRAKE_NEVER;
   }
   g_faults = f;
+
+  /* --- Voyant de défaut sur R7. ---
+   * Allumage FIXE : un relais n'est pas fait pour clignoter, c'est déjà la
+   * raison pour laquelle R3 et R4 sont les pièces d'usure du montage. La
+   * distinction entre défauts se lit sur l'afficheur, coque ouverte. */
+#if FAULT_LAMP_ENABLE
+  g_ackBtn.update(inputs::state().level[IN_ACK], now);
+  if (g_ackBtn.rose()) acknowledge();
+
+  /* Un défaut qui disparaît perd son acquittement : s'il revient, il rallume
+   * le voyant. L'acquittement porte sur un événement, pas sur une catégorie. */
+  g_acked &= g_faults;
+  board::setOutput(OUT_FAULT, (g_faults & FAULT_LAMP_MASK & ~g_acked) != 0);
+#endif
 
   /* --- Battement de cœur sur le deux-points de l'afficheur.
    * La LED D13 du Nano n'est PAS utilisable : cette broche porte la ligne
@@ -147,8 +196,21 @@ void diag::update(uint32_t now) {
   Serial.print('/'); Serial.print(g_loopMaxUs); Serial.print(F("us"));
   Serial.print(F(" flt=0x"));
   if (g_faults < 0x10) Serial.print('0');
-  Serial.println(g_faults, HEX);
+  Serial.print(g_faults, HEX);
+#if FAULT_LAMP_ENABLE
+  if (lampOn()) Serial.print(F(" LAMP"));
+  else if (g_acked) Serial.print(F(" ack"));
+#endif
+  Serial.println();
 #endif
 }
 
 uint8_t diag::faults() { return g_faults; }
+
+bool diag::lampOn() {
+#if FAULT_LAMP_ENABLE
+  return (g_faults & FAULT_LAMP_MASK & ~g_acked) != 0;
+#else
+  return false;
+#endif
+}

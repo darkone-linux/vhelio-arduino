@@ -26,7 +26,7 @@
 enum InIdx : uint8_t {
   IN_TURN_LEFT   = 0,  /* IN1 / D2  — comodo, position gauche       */
   IN_TURN_RIGHT  = 1,  /* IN2 / D3  — comodo, position droite       */
-  IN_AUX         = 2,  /* IN3 / D4  — LIBRE (voir note ci-dessous)  */
+  IN_ACK         = 2,  /* IN3 / D4  — bouton d'acquittement défaut  */
   IN_BRAKE_FRONT = 3,  /* IN4 / D5  — contacteur frein avant        */
   IN_BRAKE_REAR  = 4,  /* IN5 / D6  — contacteur frein arrière      */
   IN_PARK        = 5,  /* IN6 / A0  — inter dédié « veilleuse »     */
@@ -44,19 +44,27 @@ enum OutIdx : uint8_t {
   OUT_TURN_RIGHT = 3,  /* R4 — clignotants droite (avant + arrière) */
   OUT_TAIL_PARK  = 4,  /* R5 — feux de position arrière (veilleuse) */
   OUT_TAIL_STOP  = 5,  /* R6 — feux stop arrière                    */
-  OUT_AUX        = 6,  /* R7 — LIBRE (voir note ci-dessous)         */
+  OUT_FAULT      = 6,  /* R7 — voyant rouge de défaut               */
   OUT_MOTOR_CUT  = 7,  /* R8 — coupure moteur (contact sec)         */
   OUT_COUNT      = 8
 };
 
-/* ---- La voie auxiliaire IN3 / R7 -----------------------------------------
- * Le klaxon est autonome : batterie et interrupteur propres, il n'est pas
- * relié à la carte. L'entrée IN3 et le relais R7 sont donc disponibles.
+/* ---- La voie IN3 / R7 ----------------------------------------------------
+ * Le klaxon est autonome, ce qui a libéré cette voie — la seule marge du
+ * montage. Elle porte désormais le diagnostic au poste de conduite :
  *
- * `HORN_ENABLE` dans config.h les rend au klaxon si l'on décidait un jour de
- * le raccorder. Sinon, ils attendent une affectation — voir specs/09 Q14.
- * Ce sont les SEULES ressources libres du montage : les sept autres entrées
- * et les sept autres relais sont tous consommés.                           */
+ *   R7  -> voyant rouge de défaut. Le boîtier est sous la coque et son
+ *          afficheur illisible en roulant ; sans ce voyant, RIEN ne signale
+ *          un défaut avant l'ouverture de la coque.
+ *   IN3 -> bouton d'acquittement. Efface les défauts mémorisés et éteint le
+ *          voyant pour ceux qui persistent, sans couper l'alimentation.
+ *
+ * Le bouton d'acquittement est le seul organe que le conducteur peut
+ * actionner en roulant sans effet sur les feux, les freins ou le moteur :
+ * il ne touche QUE le module diag. C'est une contrainte, pas un hasard.
+ *
+ * `HORN_ENABLE` rend la voie à un klaxon si l'on en raccordait un ; les deux
+ * usages s'excluent, config.h le vérifie.                                  */
 
 /* ---- Boutons de la carte -------------------------------------------------
  * Quatre poussoirs sur D7, D8, D9, D10. Ils sont SUR la carte, donc dans le

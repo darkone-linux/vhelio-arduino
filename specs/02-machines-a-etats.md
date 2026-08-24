@@ -171,32 +171,71 @@ position. À vérifier au test T3.3.
 
 ---
 
-## 2.4 Voie auxiliaire — klaxon *(désactivé)*
+## 2.4 Voyant de défaut et acquittement
 
-Le klaxon du véhicule est **autonome** : sa propre batterie, son propre
-interrupteur, aucun lien avec la carte. `HORN_ENABLE` vaut 0, l'automate
-ci-dessous n'est pas compilé, et l'entrée IN3 comme le relais R7 sont libres.
+La voie `IN3` / `R7` porte le diagnostic au poste de conduite. Il n'y a pas
+d'automate à proprement parler, mais trois règles qui se combinent.
 
-L'automate est conservé pour le cas où l'on raccorderait un klaxon à la voie
-auxiliaire :
+### Quels défauts allument le voyant
 
-| État | R7 | Transition |
-|---|---|---|
-| `IDLE` | 0 | bouton appuyé → `SOUND` |
-| `SOUND` | 1 | bouton relâché → `IDLE` ; T > 10 s → `LOCKED` |
-| `LOCKED` | 0 | bouton relâché → `IDLE` |
+Un masque, `FAULT_LAMP_MASK`, sépare ce qui interrompt le conducteur de ce qui
+attend l'ouverture de la coque.
 
-`LOCKED` protège la charge si le bouton reste collé ou si un fil se met à la
-masse. Le drapeau `FLT_HORN_STUCK` est levé.
+| Bit | Défaut | Voyant | Pourquoi |
+|---|---|---|---|
+| 0 | Conflit clignotants | **oui** | La signalisation de direction est perdue |
+| 1 | Voie auxiliaire bloquée | oui | Sans objet tant qu'il n'y a pas de klaxon |
+| 2 | Lien Bafang perdu | **non** | Confort, pas sécurité — voir ci-dessous |
+| 3 | Frein collé | **oui** | Assistance coupée en continu, stop allumé en permanence |
+| 4 | Cycle lent | non | Information de maintenance |
+| 5 | Reset chien de garde | **oui** | Les feux se sont éteints ~1,5 s en roulant |
+| 6 | Aucun freinage vu en 2 km | **oui** | Fil de contacteur probablement coupé : le feu stop ne fonctionne pas |
 
-```mermaid
-stateDiagram-v2
-  [*] --> IDLE
-  IDLE --> SOUND: appui
-  SOUND --> IDLE: relâche
-  SOUND --> LOCKED: T > 10 s
-  LOCKED --> IDLE: relâche
+> **L'exclusion du lien Bafang est la décision de conception de ce module.**
+> C'est le principe P2 appliqué : la télémétrie est un confort. Afficheur
+> d'origine débranché, bus muet ou trames non reconnues, le voyant resterait
+> allumé en permanence — et un voyant toujours allumé est un voyant qu'on
+> cesse de regarder, ce qui vaut moins que pas de voyant du tout. Ces défauts
+> restent lisibles sur la page « défauts » et au journal série.
+>
+> La règle est vérifiée **à la compilation** par un `static_assert` dans
+> `diag.cpp` : on ne peut pas l'annuler sans lire sa justification.
+
+### Allumage fixe, jamais clignotant
+
+Un relais n'est pas fait pour battre — c'est déjà ce qui fait de R3 et R4 les
+pièces d'usure du montage. Le voyant est donc **fixe**. La discrimination
+entre défauts se lit sur l'afficheur, coque ouverte.
+
+Il s'allume aussi 200 ms **pendant l'autotest de mise sous tension**, comme un
+témoin de tableau de bord au contact : sans cela, une LED grillée serait
+indiscernable d'une absence de défaut.
+
+### Acquittement
+
 ```
+Appui sur IN3 (front montant, anti-rebond 20 ms)
+  ├─ efface les défauts MÉMORISÉS (bits 4 et 5)
+  │    sinon ils survivraient jusqu'à la coupure de l'alimentation
+  └─ marque acquittés les défauts ENCORE ACTIFS
+       voyant éteint, mais afficheur et journal inchangés
+
+À chaque cycle :  acquittés &= défauts_actifs
+       un défaut qui disparaît perd son acquittement
+```
+
+Cette dernière ligne est ce qui donne à l'acquittement sa sémantique correcte :
+il porte sur **un événement, pas sur une catégorie**. Un conflit de clignotants
+acquitté puis résolu rallumera le voyant s'il se reproduit.
+
+### La contrainte de sûreté
+
+`IN3` est le **seul organe que le conducteur peut actionner en roulant**
+en dehors des commandes d'éclairage. Il ne touche que le module `diag` :
+aucun effet sur les feux, les freins ou la coupure moteur. Ce n'est pas un
+hasard de conception mais une exigence (F-4.8), vérifiable par revue de code —
+`acknowledge()` n'écrit que sur deux variables de défaut.
+
 
 ---
 

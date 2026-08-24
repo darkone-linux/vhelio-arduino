@@ -46,7 +46,7 @@ unipolaire.
 |---|---|---|---|---|
 | Clignotant gauche | vert | Comodo | IN1 | D2 |
 | Clignotant droit | vert/blanc | Comodo | IN2 | D3 |
-| *(libre)* | — | — | **IN3** | D4 |
+| Acquittement défaut | gris | Bouton poussoir NO au tableau de bord | IN3 | D4 |
 | Frein avant | brun | Contacteur AV (contact sec unipolaire) | IN4 | D5 |
 | Frein arrière | brun/blanc | Micro-rupteur S2 sur levier AR | IN5 | D6 |
 | Veilleuse | jaune | Interrupteur dédié S3 | IN6 | A0 |
@@ -71,7 +71,7 @@ direct, sans aucun étage intermédiaire.
 | R4 | Clignotant avant droit **+** arrière droit | 0,5 A |
 | R5 | Feux de position arrière (les deux en parallèle) | 0,5 A |
 | R6 | Feux stop arrière (les deux en parallèle) | 0,5 A |
-| R7 | **Libre** | — |
+| R7 | Voyant rouge de défaut (LED + résistance) | < 0,05 A |
 | R8 | Ligne frein du contrôleur — **contact sec** | < 50 mA |
 
 > Mesure à la pince : **12 W par phare**, et non les 60 W annoncés. R2 voit
@@ -272,7 +272,7 @@ maintenance. Les témoins de conduite, s'ils sont souhaités, sont **purement
 | Clignotants | LED verte + résistance 1 kΩ / 1 W, en parallèle sur chaque circuit R3 et R4 (une LED par côté, ou une seule sur les deux via deux diodes de découplage) | Le rappel d'oubli reste **audible** au changement de rythme du claquement |
 | Veilleuse / phares | LED + résistance en parallèle sur R1 ou R2 | Facultatif |
 | Détresse | Un interrupteur à bascule lumineux 12 V pour S1 fait office de témoin | Le plus simple |
-| **Défaut** | LED rouge + résistance sur **R7**, la voie laissée libre par le klaxon | Voir Q14 : c'est le meilleur usage proposé pour ce relais |
+| **Défaut** | LED rouge 12 V + résistance 1 kΩ / 1 W sur **R7**, et un bouton poussoir NO vers **IN3** et la masse | **Le seul témoin réellement utile en roulant.** Il s'allume à chaque mise sous tension puis s'éteint : c'est ainsi qu'on sait que la LED n'est pas grillée |
 
 Un interrupteur à bascule **lumineux** pour S1 et S3 règle la question sans
 aucun câblage supplémentaire : la position du contacteur est le témoin.

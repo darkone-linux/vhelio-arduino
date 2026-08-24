@@ -2,8 +2,8 @@
 
 Ce qui reste à trancher pour figer la conception. Classé par urgence.
 
-**Quatorze questions ont été posées, treize sont tranchées** — la dernière,
-Q14, appelle un choix plutôt qu'une information. Le détail de chaque
+**Quatorze questions ont été posées, douze sont tranchées.** Les deux
+restantes attendent du matériel ou une manipulation, pas une décision. Le détail de chaque
 réponse et ses conséquences sont dans les documents concernés ; ce fichier
 n'en garde que la conclusion et ce qui reste à faire.
 
@@ -138,42 +138,36 @@ Conséquences, toutes favorables :
 - Fusible F6 ramené de 7,5 A à **5 A**, section d'éclairage confirmée en
   1,5 mm².
 
-### ~~Q14 — Le klaxon~~ — **autonome, IN3 et R7 sont libres**
+### ~~Q14 — Que faire de la voie libérée par le klaxon ?~~ — **option A retenue**
 
 Le klaxon a sa propre batterie et son propre interrupteur : aucun lien avec la
 carte. `HORN_ENABLE` passe à 0 — le module est conservé mais n'est plus
 compilé — et le fusible F8 comme le condensateur tampon disparaissent.
 
-Cela libère **la seule marge du montage** : l'entrée `IN3` (D4) et le relais
-`R7`. Elle mérite d'être affectée délibérément plutôt que consommée par la
-première idée venue. Trois usages, par ordre de valeur décroissante à mon
-sens :
+La voie `IN3` / `R7` ainsi libérée est affectée au **diagnostic au poste de
+conduite**, seul moyen d'apprendre en roulant qu'un défaut est actif
+maintenant que l'afficheur est sous la coque (Q12) :
 
-**A — Voyant de défaut au poste de conduite** *(recommandé)*
-`R7` allume une LED rouge dès qu'un défaut est actif, `IN3` reçoit un bouton
-d'acquittement pour effacer les défauts latchés (reset chien de garde, cycle
-lent) sans couper l'alimentation. C'est la réponse directe au trou ouvert par
-Q12 : aujourd'hui, **rien** ne signale un défaut en roulant, puisque
-l'afficheur est sous la coque. Un relais qui commute rarement, aucune usure,
-deux composants à moins d'un euro.
+- **`R7`** alimente un **voyant rouge**, allumage fixe.
+- **`IN3`** reçoit un **bouton d'acquittement**.
 
-**B — Feu antibrouillard arrière**
-`R7` alimente un feu rouge intense, `IN3` son interrupteur. Un vélomobile est
-bas et difficile à voir sous la pluie ; l'utilité est réelle. **Réserve** :
-un feu antibrouillard arrière sur un cycle n'a pas de statut clair au code de
-la route français, et un rouge intense fixe peut être confondu avec un feu
-stop — ce qui est précisément ce qu'on ne veut pas.
+Trois points de conception valent d'être retenus :
 
-**C — Buzzer d'alerte**
-`R7` pilote un buzzer piézo 12 V, ce qui donnerait un vrai rappel d'oubli des
-clignotants au lieu du rythme syncopé actuel. **Mais** le rythme syncopé
-fonctionne déjà et ne coûte rien, et chaque bip est une manœuvre de relais.
-Peu de gain pour de l'usure.
+1. **Tous les défauts n'allument pas le voyant.** Le masque `FAULT_LAMP_MASK`
+   exclut délibérément la perte du bus Bafang : c'est le principe P2 appliqué,
+   la télémétrie est un confort. Afficheur d'origine débranché, le voyant
+   resterait allumé en permanence et cesserait de vouloir dire quoi que ce
+   soit. La règle est vérifiée **à la compilation** par un `static_assert`.
+2. **Le voyant s'allume pendant l'autotest**, comme un témoin de tableau de
+   bord au contact. Sans cela, une LED grillée serait indiscernable d'une
+   absence de défaut — et c'est le seul mode de panne de ce dispositif.
+3. **L'acquittement porte sur un événement, pas sur une catégorie.** Un défaut
+   acquitté qui disparaît puis revient rallume le voyant.
 
-**Laisser la voie libre est aussi une réponse défendable** : c'est la seule
-réserve du montage, et rien n'oblige à la dépenser maintenant.
+Détail en `02-machines-a-etats.md` §2.4, exigences F-4.1 à F-4.9, test T1.6.
 
-**Action** : choisir, ou décider de ne rien choisir.
+Coût : une LED rouge, une résistance, un bouton poussoir. **156 octets de
+flash et 15 octets de RAM.**
 
 ### ~~Q11 — Le RS485 est-il câblé sur D0/D1 ?~~ — **oui, et l'inverseur le règle**
 
@@ -236,7 +230,6 @@ ci-dessus devient gênante à l'usage.
 |---|---|---|
 | ~~Micro-rupteur sur le levier avant~~ | — | **Sans objet** : la diode D1 obtient le même résultat sans toucher au levier |
 | Convertisseur 48/12 V donné pour 72 V | ~15 € | Aucun, au prochain achat |
-| **Voyant de défaut sur R7 + acquittement sur IN3** | **~1 €** | Aucun — voir Q14, option A |
 | Lecture du MPPT en VE.Direct | Faible | Plus d'UART libre (`04-electricite.md` §7) |
 | ~~Écran de bord dédié~~ | — | Sans objet : la carte a son afficheur… mais il est sous la coque |
 | Journalisation sur carte SD | Élevé | Le SPI est inutilisable : D11/D12 sont des entrées, D13 la ligne de données du registre |

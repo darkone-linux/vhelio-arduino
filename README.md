@@ -39,14 +39,14 @@ actionneur de sécurité redondant.
 |---|---|
 | [`00-vue-densemble.md`](specs/00-vue-densemble.md) | Périmètre, rôles des équipements, architecture générale |
 | [`01-exigences-fonctionnelles.md`](specs/01-exigences-fonctionnelles.md) | 39 exigences `F-xx` et 5 contraintes `NF-x` avec critère de vérification |
-| [`02-machines-a-etats.md`](specs/02-machines-a-etats.md) | Automates clignotants, freinage, feu arrière |
+| [`02-machines-a-etats.md`](specs/02-machines-a-etats.md) | Automates clignotants, freinage, feu arrière, voyant de défaut |
 | [`03-affectation-es.md`](specs/03-affectation-es.md) | Table d'E/S, variantes de câblage des freins, procédure de vérification |
 | [`04-electricite.md`](specs/04-electricite.md) | Bilan de puissance, fusibles, sections, masses |
 | [`05-protocole-bafang.md`](specs/05-protocole-bafang.md) | Écoute passive UART, décodage, mode apprentissage |
 | [`06-architecture-logicielle.md`](specs/06-architecture-logicielle.md) | Modules, ordonnancement, budget mémoire |
 | [`07-securite.md`](specs/07-securite.md) | Analyse de défaillances, état sûr, conformité |
 | [`08-plan-de-tests.md`](specs/08-plan-de-tests.md) | 17 tests, de l'établi à la route |
-| [`09-questions-ouvertes.md`](specs/09-questions-ouvertes.md) | Quatorze questions, treize tranchées ; ce qu'il reste à vérifier |
+| [`09-questions-ouvertes.md`](specs/09-questions-ouvertes.md) | Quatorze questions, douze tranchées ; ce qu'il reste à vérifier |
 | [`10-alternatives-materiel.md`](specs/10-alternatives-materiel.md) | Faut-il changer de carte ? Analyse comparée et recommandation |
 
 ## Compilation
@@ -85,8 +85,8 @@ installer au niveau système.
 ### Empreinte mesurée
 
 Configuration par défaut, avr-gcc 15.3, `-Os -flto` :
-**8 734 octets de flash (28 %)** et **700 octets de RAM (34 %)** sur les
-30 720 / 2 048 disponibles. Compile sans avertissement dans les treize
+**8 890 octets de flash (28 %)** et **715 octets de RAM (34 %)** sur les
+30 720 / 2 048 disponibles. Compile sans avertissement dans les quatorze
 combinaisons d'options couvertes par `tools/check-variants.sh`.
 
 ## Régler le firmware
