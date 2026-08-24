@@ -30,7 +30,7 @@ loop()
   ├─ brakes::update(now, in)  → braking(), pilote OUT_MOTOR_CUT
   ├─ turnsignals::update(...) → OUT_TURN_*, rappel d'oubli
   ├─ lights::update(now, in, brakes::braking())  → OUT_PARK_FRONT/MAIN/TAIL_*
-  ├─ horn::update(now, in)    → OUT_HORN
+  ├─ horn::update(now, in)    → OUT_AUX (compilé seulement si HORN_ENABLE)
   ├─ telemetry::update(now)   consolide vitesse, intègre l'odomètre
   └─ diag::update(now)        LED, journal, temps de cycle
   wdt_reset()
@@ -50,7 +50,7 @@ dans le `.ino`.
 | `brakes` | `OUT_MOTOR_CUT` | `inputs` |
 | `turnsignals` | `OUT_TURN_LEFT`, `OUT_TURN_RIGHT` | `inputs`, `telemetry` |
 | `lights` | `OUT_PARK_FRONT`, `OUT_MAIN`, `OUT_TAIL_PARK`, `OUT_TAIL_STOP` | `inputs`, `brakes` |
-| `horn` | `OUT_HORN` | `inputs` |
+| `horn` | `OUT_AUX` — **désactivé** (`HORN_ENABLE 0`) | `inputs` |
 | `display` | les 4 digits de l'afficheur | `telemetry`, `bafang`, `diag` |
 | `bafang` | le port logiciel, le décodeur | — |
 | `telemetry` | vitesse consolidée, odomètre | `bafang`, `wheelspeed` |
@@ -77,7 +77,7 @@ firmware/vhelio/
     ├── brakes.h/.cpp   automate freinage + coupure moteur
     ├── turnsignals.h/.cpp automate clignotants + détresse
     ├── lights.h/.cpp   phares + arbitrage PWM feu arrière
-    ├── horn.h/.cpp     automate klaxon
+    ├── horn.h/.cpp     automate klaxon — désactivé, voie IN3/R7 libre
     ├── display.h/.cpp  pages de l'afficheur 4 digits
     ├── bafang.h/.cpp   écoute passive + décodage
     ├── wheelspeed.h/.cpp capteur de roue par scrutation (option)
@@ -147,7 +147,7 @@ et sans effet sur les relais ; `BAFANG_ENABLE 0` le supprime.
 ## 6. Anti-rebond
 
 Une seule classe, `Debouncer`, instanciée huit fois avec des durées différentes
-(15 ms pour les freins, 20 ms pour le klaxon, 30 ms pour le comodo).
+(15 ms pour les freins, 20 ms pour la voie auxiliaire, 30 ms pour le comodo).
 
 Algorithme : la sortie stable ne change que si l'entrée brute est restée
 identique pendant `stableMs`. Les drapeaux `rose()` / `fell()` ne sont valides
@@ -164,16 +164,17 @@ flash utilisables après bootloader, 2 048 o de RAM) :
 
 | Configuration | Flash | RAM |
 |---|---|---|
-| **Défaut** (Bafang + afficheur + journal + autotest + WDT) | **8 918 o — 29 %** | **705 o — 34 %** |
-| Sans bus Bafang, vitesse par capteur de roue | 7 050 o — 22 % | — |
-| Sans afficheur | 8 212 o — 26 % | — |
-| Production silencieuse (ni journal ni autotest ni WDT) | 6 452 o — 21 % | — |
-| Mode apprentissage Bafang | 8 130 o — 26 % | — |
-| Minimal (ni afficheur, ni bus, ni journal) | 3 514 o — 11 % | — |
+| **Défaut** (Bafang + afficheur + journal + autotest + WDT) | **8 734 o — 28 %** | **700 o — 34 %** |
+| Sans bus Bafang, vitesse par capteur de roue | 6 848 o — 22 % | — |
+| Sans afficheur | 8 028 o — 26 % | — |
+| Production silencieuse (ni journal ni autotest ni WDT) | 6 300 o — 20 % | — |
+| Mode apprentissage Bafang | 7 972 o — 25 % | — |
+| Klaxon raccordé à la voie auxiliaire | 8 918 o — 29 % | — |
+| Minimal (ni afficheur, ni bus, ni journal) | 3 364 o — 10 % | — |
 
 Cible NF-1 (< 24 ko flash / < 1,4 ko RAM) tenue avec une marge de plus du
 double. Les chaînes du journal sont placées en flash via `F()` : c'est ce qui
-maintient la RAM à 705 o malgré une trentaine de messages.
+maintient la RAM à 700 o malgré une trentaine de messages.
 
 Le balayage de toutes ces variantes est automatisé par
 `tools/check-variants.sh` : une branche `#if` non prise n'est pas vérifiée par
@@ -199,5 +200,6 @@ incompatibles.
 | `MAIN_REQUIRES_PARK` | 0 | Le phare exige la veilleuse (0 = jamais bloqué) |
 | `MAIN_KEEPS_PARK` | 1 | La veilleuse reste allumée avec le phare |
 | `BLINK_REMINDER_ON_MS` | 200 | Phase allumée pendant le rappel d'oubli ; 0 = rappel muet |
+| `HORN_ENABLE` | 0 | Compile ou non le klaxon sur la voie auxiliaire IN3 / R7 |
 | `DEBUG_SERIAL` | 1 | Journal série 115 200 bd |
 | `WATCHDOG_ENABLE` | 1 | Chien de garde 1 s |

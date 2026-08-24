@@ -1,6 +1,9 @@
 #include "horn.h"
-#include "board_io.h"
 #include "config.h"
+
+#if HORN_ENABLE
+
+#include "board_io.h"
 
 namespace {
 
@@ -13,11 +16,11 @@ uint32_t g_soundSince = 0;
 
 void horn::begin() {
   g_state = IDLE;
-  board::setOutput(OUT_HORN, false);
+  board::setOutput(OUT_AUX, false);
 }
 
 void horn::update(uint32_t now, const InputState& in) {
-  const bool pressed = in.level[IN_HORN];
+  const bool pressed = in.level[IN_AUX];
 
   switch (g_state) {
     case IDLE:
@@ -42,8 +45,19 @@ void horn::update(uint32_t now, const InputState& in) {
       break;
   }
 
-  board::setOutput(OUT_HORN, g_state == SOUND);
+  board::setOutput(OUT_AUX, g_state == SOUND);
 }
 
 bool horn::sounding() { return g_state == SOUND; }
 bool horn::stuck() { return g_state == LOCKED; }
+
+#else
+
+/* Klaxon autonome : la voie IN3 / R7 est libre. R7 est laissé relâché par
+ * board::allOff() au démarrage et n'est plus jamais touché. */
+void horn::begin() {}
+void horn::update(uint32_t, const InputState&) {}
+bool horn::sounding() { return false; }
+bool horn::stuck() { return false; }
+
+#endif

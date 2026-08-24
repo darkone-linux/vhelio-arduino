@@ -109,7 +109,7 @@ ce qui donne un état inactif franc même carte non alimentée.
 |---|---|---|---|---|---|
 | IN1 | D2 | `IN_TURN_LEFT` | Comodo, position gauche | maintenu | 30 ms |
 | IN2 | D3 | `IN_TURN_RIGHT` | Comodo, position droite | maintenu | 30 ms |
-| IN3 | D4 | `IN_HORN` | Comodo, bouton klaxon | momentané | 20 ms |
+| IN3 | D4 | `IN_AUX` | **Libre** — le klaxon est autonome | — | 20 ms |
 | IN4 | D5 | `IN_BRAKE_FRONT` | Contacteur frein avant (unipolaire, contact sec) | momentané | 15 ms |
 | IN5 | D6 | `IN_BRAKE_REAR` | Micro-rupteur S2 sur le levier arrière | momentané | 15 ms |
 | IN6 | A0 | `IN_PARK` | Interrupteur dédié « veilleuse » | maintenu | 30 ms |
@@ -123,7 +123,7 @@ risque de broche flottante qu'il traînait, ont entièrement disparu.
 ## 4. Sorties — 8 relais
 
 Contacts secs 10 A. **Aucun étage de puissance externe n'est nécessaire** :
-ni module MOSFET, ni relais de klaxon, ni optocoupleur de coupure moteur.
+ni module MOSFET, ni relais externe, ni optocoupleur de coupure moteur.
 
 | Relais | Bit registre | Nom logique | Charge | Régime |
 |---|---|---|---|---|
@@ -133,7 +133,7 @@ ni module MOSFET, ni relais de klaxon, ni optocoupleur de coupure moteur.
 | R4 | 4 | `OUT_TURN_RIGHT` | Clignotants droite (AV + AR) | **cyclique 1,33 Hz** |
 | R5 | 5 | `OUT_TAIL_PARK` | Feux de position arrière | continu |
 | R6 | 6 | `OUT_TAIL_STOP` | Feux stop arrière | intermittent |
-| R7 | 7 | `OUT_HORN` | Klaxon | intermittent |
+| R7 | 7 | `OUT_AUX` | **Libre** — le klaxon est autonome | — |
 | R8 | **0** | `OUT_MOTOR_CUT` | Ligne frein du contrôleur | intermittent |
 
 > L'ordre des bits n'est pas séquentiel : le relais 8 occupe le **bit 0**, les
@@ -146,9 +146,6 @@ ni module MOSFET, ni relais de klaxon, ni optocoupleur de coupure moteur.
 - **La coupure moteur devient un contact sec.** Plus besoin d'optocoupleur :
   un relais est galvaniquement isolé par construction. C'est plus simple *et*
   plus sûr que la solution initiale.
-- **Le klaxon n'a plus besoin de son relais externe.** Une voie de 10 A suffit
-  pour 5 à 8 A. Prévoir tout de même le fusible F8 : un klaxon à compresseur
-  peut avoir une pointe d'appel supérieure au calibre du contact.
 - **Les phares se branchent en direct.** Plus de modules MOSFET.
 
 ### Ce qu'ils changent, en moins bien
@@ -335,8 +332,8 @@ l'afficheur, et le déplacement de l'écoute UART de D10 vers A4.
 
 | Ressource | Utilisé | Libre |
 |---|---|---|
-| Entrées optocouplées | 8 / 8 (7 / 8 si S2 n'est pas monté) | 0 (ou 1) |
-| Relais | 8 / 8 | 0 |
+| Entrées optocouplées | **7 / 8** (6 / 8 si S2 n'est pas monté) | **1** — IN3 |
+| Relais | **7 / 8** | **1** — R7 |
 | Boutons carte | 1 / 4 (page d'afficheur) | 3, mais sous la coque |
 | Afficheur | vitesse, charge, défauts, odomètre — **maintenance seule** | — |
 | Broches Nano hors carte | A4, A5 (écoute Bafang) | A6, A7 |
@@ -344,6 +341,13 @@ l'afficheur, et le déplacement de l'écoute UART de D10 vers A4.
 | UART matériel | console de mise au point (inverseur sur `PRO`) | — |
 | RS485 | inutilisé, déconnecté par l'inverseur | disponible |
 
-Les relais et les entrées sont saturés. Les marges restantes sont **trois
-boutons** et **deux broches analogiques**. Toute fonction supplémentaire
-nécessitant une sortie de puissance impose une seconde carte.
+Le klaxon étant autonome — batterie et interrupteur propres, aucun lien avec la
+carte — la voie **IN3 / R7** est intégralement libre. C'est la seule marge du
+montage côté puissance, et elle vaut la peine d'être affectée délibérément
+plutôt que consommée par la première idée venue : voir Q14 dans
+`09-questions-ouvertes.md`.
+
+Le reste des marges tient en **trois boutons** (inaccessibles, sous la coque)
+et **deux broches analogiques**. Au-delà de cette unique voie libre, toute
+fonction supplémentaire nécessitant une sortie de puissance impose une seconde
+carte.

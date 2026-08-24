@@ -2,7 +2,8 @@
 
 Ce qui reste à trancher pour figer la conception. Classé par urgence.
 
-**Douze questions ont été posées, onze sont tranchées.** Le détail de chaque
+**Quatorze questions ont été posées, treize sont tranchées** — la dernière,
+Q14, appelle un choix plutôt qu'une information. Le détail de chaque
 réponse et ses conséquences sont dans les documents concernés ; ce fichier
 n'en garde que la conclusion et ce qui reste à faire.
 
@@ -89,11 +90,11 @@ Deux conséquences, dont une qui demande une action :
    JK à 3,50 V/cellule (56,0 V pack)** — gratuit, sans perte de capacité
    utile, bénéfique pour le pack. Et prendre un modèle 72 ou 80 V au prochain
    achat : un buck non isolé qui claque met le 48 V sur les feux.
-3. **10 A suffisent, mais sans marge pour le klaxon.** Depuis la mesure des
-   phares (Q9), l'éclairage complet ne prend que 5,0 A. Prises allume-cigare
-   fusiblées à **5 A** — deux prises à 10 A feraient le double du
-   convertisseur. Condensateur tampon de 10 000 µF **si le klaxon dépasse
-   ~4 A** (`04-electricite.md` §2.3).
+3. **10 A suffisent largement.** L'éclairage complet ne prend que 5,0 A depuis
+   la mesure des phares (Q9), et le klaxon — seule charge à forte pointe — est
+   autonome (Q14). Il ne reste qu'un arbitrage : prises allume-cigare
+   fusiblées à **5 A**, une prise à 10 A ferait déborder le convertisseur
+   (`04-electricite.md` §2.3).
 
 ### ~~Q7 — Commandes d'éclairage et de détresse~~ — **trois interrupteurs dédiés**
 
@@ -132,11 +133,47 @@ Conséquences, toutes favorables :
 - **L'éclairage complet ne consomme que 5,0 A**, soit la moitié du
   convertisseur. Le budget passe de tendu à confortable.
 - **Aucun relais externe** : R2 voit 2,5 A pour un calibre de 10 A.
-- **Le condensateur tampon devient optionnel** : il ne s'impose que si le
-  klaxon dépasse ~4 A. Avec un klaxon électromagnétique, le total plafonne à
-  9 A et tout passe. Reste 3 € bien dépensés pour supprimer la question.
+- **Le condensateur tampon devient inutile** : il n'existait que pour absorber
+  l'appel du klaxon, lequel s'est révélé autonome (Q14).
 - Fusible F6 ramené de 7,5 A à **5 A**, section d'éclairage confirmée en
   1,5 mm².
+
+### ~~Q14 — Le klaxon~~ — **autonome, IN3 et R7 sont libres**
+
+Le klaxon a sa propre batterie et son propre interrupteur : aucun lien avec la
+carte. `HORN_ENABLE` passe à 0 — le module est conservé mais n'est plus
+compilé — et le fusible F8 comme le condensateur tampon disparaissent.
+
+Cela libère **la seule marge du montage** : l'entrée `IN3` (D4) et le relais
+`R7`. Elle mérite d'être affectée délibérément plutôt que consommée par la
+première idée venue. Trois usages, par ordre de valeur décroissante à mon
+sens :
+
+**A — Voyant de défaut au poste de conduite** *(recommandé)*
+`R7` allume une LED rouge dès qu'un défaut est actif, `IN3` reçoit un bouton
+d'acquittement pour effacer les défauts latchés (reset chien de garde, cycle
+lent) sans couper l'alimentation. C'est la réponse directe au trou ouvert par
+Q12 : aujourd'hui, **rien** ne signale un défaut en roulant, puisque
+l'afficheur est sous la coque. Un relais qui commute rarement, aucune usure,
+deux composants à moins d'un euro.
+
+**B — Feu antibrouillard arrière**
+`R7` alimente un feu rouge intense, `IN3` son interrupteur. Un vélomobile est
+bas et difficile à voir sous la pluie ; l'utilité est réelle. **Réserve** :
+un feu antibrouillard arrière sur un cycle n'a pas de statut clair au code de
+la route français, et un rouge intense fixe peut être confondu avec un feu
+stop — ce qui est précisément ce qu'on ne veut pas.
+
+**C — Buzzer d'alerte**
+`R7` pilote un buzzer piézo 12 V, ce qui donnerait un vrai rappel d'oubli des
+clignotants au lieu du rythme syncopé actuel. **Mais** le rythme syncopé
+fonctionne déjà et ne coûte rien, et chaque bip est une manœuvre de relais.
+Peu de gain pour de l'usure.
+
+**Laisser la voie libre est aussi une réponse défendable** : c'est la seule
+réserve du montage, et rien n'oblige à la dépenser maintenant.
+
+**Action** : choisir, ou décider de ne rien choisir.
 
 ### ~~Q11 — Le RS485 est-il câblé sur D0/D1 ?~~ — **oui, et l'inverseur le règle**
 
@@ -199,6 +236,7 @@ ci-dessus devient gênante à l'usage.
 |---|---|---|
 | ~~Micro-rupteur sur le levier avant~~ | — | **Sans objet** : la diode D1 obtient le même résultat sans toucher au levier |
 | Convertisseur 48/12 V donné pour 72 V | ~15 € | Aucun, au prochain achat |
+| **Voyant de défaut sur R7 + acquittement sur IN3** | **~1 €** | Aucun — voir Q14, option A |
 | Lecture du MPPT en VE.Direct | Faible | Plus d'UART libre (`04-electricite.md` §7) |
 | ~~Écran de bord dédié~~ | — | Sans objet : la carte a son afficheur… mais il est sous la coque |
 | Journalisation sur carte SD | Élevé | Le SPI est inutilisable : D11/D12 sont des entrées, D13 la ligne de données du registre |

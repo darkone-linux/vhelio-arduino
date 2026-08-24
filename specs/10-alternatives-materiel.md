@@ -22,7 +22,7 @@ la même gravité.
 |---|---|---|
 | **Aucune modulation** | Faible | Un feu arrière à deux circuits au lieu d'un. C'est le câblage automobile standard depuis 1960, pas une régression |
 | **R3/R4 s'usent** | Faible… avec une réserve | ≈ 20 h de clignotement continu pour 10⁵ manœuvres, soit plusieurs dizaines de milliers de km. **Mais les relais sont soudés** : les remplacer demande un fer, pas un tournevis |
-| **Tout est saturé** | **Réelle** | 8 entrées sur 8, 8 relais sur 8, un seul UART. Aucune fonction nouvelle n'est possible sans seconde carte |
+| **Tout est saturé** | **Réelle, mais atténuée** | 7 entrées sur 8 et 7 relais sur 8 depuis que le klaxon s'est révélé autonome. Il reste **une** voie libre, et un seul UART. Au-delà, seconde carte obligatoire |
 
 Le premier grief est cosmétique. Le deuxième est un problème de maintenance
 dans dix ans. **Seul le troisième est structurel** — et il ne devient gênant
@@ -149,8 +149,9 @@ résoudre des problèmes qu'on n'a pas encore rencontrés.
    téléphone règlent la question mieux que n'importe quel afficheur ajouté.
 2. **« Je veux lire la production solaire du MPPT. »** Impossible aujourd'hui :
    il n'y a plus d'UART libre. Trois UART matériels sur ESP32.
-3. **« Je veux ajouter une fonction et il n'y a plus ni entrée ni relais. »**
-   Le mur est net et sans contournement : 8 sur 8, des deux côtés.
+3. **« Je veux ajouter deux fonctions et il n'y a plus qu'une voie libre. »**
+   Le klaxon autonome a rendu IN3 et R7 ; la suivante se heurte au mur, qui
+   est net et sans contournement.
 
 En attendant, deux composants à moins de 5 € valent mieux qu'un changement de
 carte :
@@ -159,5 +160,6 @@ carte :
   (`hardware/cablage.md` §4) — elle rétablit une coupure d'assistance
   indépendante du firmware, et c'est la seule modification du projet qui touche
   à la sécurité ;
-- **le condensateur tampon de 10 000 µF** (`04-electricite.md` §2.3), si le
-  klaxon dépasse 4 A.
+- **une LED rouge sur le relais R7**, libéré par le klaxon autonome : c'est
+  aujourd'hui le seul moyen d'apprendre en roulant qu'un défaut est actif
+  (`09-questions-ouvertes.md` Q14).

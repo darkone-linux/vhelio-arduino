@@ -42,8 +42,8 @@ tout ce qui suit.
 > isolé qui claque en court-circuit met le 48 V sur le réseau 12 V, donc sur
 > les feux, le comodo et la carte.
 
-> **120 W ne couvrent pas la somme de toutes les charges**, mais l'éclairage
-> complet n'en consomme que la moitié. Les arbitrages restants sont en §2.3.
+> **120 W suffisent largement.** L'éclairage complet en consomme la moitié, et
+> le klaxon — seule charge à forte pointe — est autonome. Voir §2.3.
 
 ### 2.2. Bilan des charges
 
@@ -64,34 +64,28 @@ afficheur éteint, **48 mA afficheur allumé**, environ 30 mA par relais collé,
 | Feux stop (2 × 3 W) | 6 W | 0,5 A | intermittent |
 | Clignotants (2 × 3 W par côté) | 6 W | 0,5 A | intermittent |
 | Arduino + DN22D08, 6 relais collés | ~2,5 W | 0,21 A | continu |
-| **Sous-total « nuit + freinage + clignotant »** | | **≈ 5,0 A** | **la moitié du convertisseur** |
-| Klaxon électromagnétique | 40–50 W | 3,3–4,2 A | crête, < 5 s |
-| Klaxon à compresseur | 60–90 W | 5–7,5 A | crête, < 5 s |
+| **Total « nuit + freinage + clignotant »** | | **≈ 5,0 A** | **la moitié du convertisseur** |
 | Prise allume-cigare n°1 | 60 W *(fusible 5 A)* | 5 A | selon usage |
 | Prise allume-cigare n°2 | 60 W *(fusible 5 A)* | 5 A | selon usage |
 
-### 2.3. Ce que la mesure des phares change
+### 2.3. Un seul arbitrage subsiste
 
-Le budget passe de tendu à confortable. **L'éclairage complet ne consomme que
-la moitié du convertisseur.** Les arbitrages se réduisent à deux, et le second
-n'est plus qu'une précaution :
+Deux bonnes nouvelles se cumulent : les phares consomment 2,5 A au lieu des
+10 A redoutés, et **le klaxon est autonome** — sa propre batterie, son propre
+interrupteur, aucun lien avec le réseau 12 V du véhicule. Or c'était la seule
+charge capable de faire déborder le convertisseur.
 
-1. **Fusibler les prises allume-cigare à 5 A**, pas 10 A. Éclairage de nuit
-   (5,0 A) + une prise à 5 A = 10,1 A, soit déjà le convertisseur. Deux prises
-   à 10 A en feraient le double. 5 A (60 W) suffisent largement pour de la
-   recharge de téléphone ou une petite pompe.
-2. **Condensateur tampon de 10 000 µF / 25 V** sur le bus 12 V, au plus près du
-   boîtier fusibles. Le calcul décide :
+**L'éclairage complet, freinage et clignotant compris, consomme 5,0 A pour
+10 A disponibles.** Il n'y a plus de pointe transitoire à absorber :
 
-   | Klaxon | Total avec éclairage de nuit | Verdict |
-   |---|---|---|
-   | Électromagnétique, ~4 A | 9,0 A | Passe sans tampon |
-   | À compresseur, ~7,5 A | 12,5 A | **Dépasse** : sans tampon, le convertisseur entre en limitation et les phares clignent |
-
-   **Mesurer le klaxon à la pince avant de conclure.** Le condensateur coûte
-   3 € et supprime la question ; le monter d'office reste le choix
-   raisonnable, mais ce n'est plus une obligation comme lorsqu'on croyait les
-   phares à 60 W.
+- Le **condensateur tampon de 10 000 µF devient inutile.** Il n'existait que
+  pour fournir l'appel du klaxon ; il disparaît de la nomenclature.
+- Le **fusible F8** disparaît lui aussi.
+- Reste un seul arbitrage : **fusibler les prises allume-cigare à 5 A**.
+  Éclairage de nuit (5,0 A) + une prise à 10 A ferait 15 A, soit une fois et
+  demie le convertisseur. À 5 A, une prise passe confortablement (10,1 A au
+  pire, et les phares ne sont pas allumés en plein jour quand on recharge un
+  téléphone).
 
 Le relais R2 voit 2,5 A pour un calibre de 10 A : **aucun étage de puissance
 externe n'est nécessaire**, et l'idée d'un relais automobile intercalé est
@@ -121,7 +115,6 @@ rien de particulier à faire pour l'écoute UART (§5, cas 1).
 | F6 | Phares (éclairage fort) — 2,5 A mesurés | 12 V | 5 A | lame |
 | F6b | Veilleuse avant | 12 V | 2 A | lame |
 | F7 | Éclairage arrière + clignotants | 12 V | 5 A | lame |
-| F8 | Klaxon | 12 V | 10 A | lame |
 | F9 | Prise allume-cigare n°1 | 12 V | **5 A** | lame — voir §2.3 |
 | F10 | Prise allume-cigare n°2 | 12 V | **5 A** | lame — voir §2.3 |
 | F11 | Arduino + carte DN22D08 + comodo — 288 mA max | 12 V | 2 A | lame |
@@ -141,7 +134,6 @@ Dimensionnement thermique et chute de tension < 3 %, cuivre souple.
 | MPPT ↔ pack | 15 A | 2 m | **4 mm²** |
 | Convertisseur → boîtier fusibles 12 V | 10 A | 1,5 m | **4 mm²** |
 | Départ éclairage 12 V | 3 A | 6 m | **1,5 mm²** |
-| Départ klaxon | 8 A | 4 m | **2,5 mm²** |
 | Départ allume-cigare | 5 A | 3 m | **1,5 mm²** |
 | Signaux comodo / freins vers DN22D08 | < 0,05 A | 4 m | **0,75 mm²** |
 
@@ -157,14 +149,10 @@ relais externe, aucun optocoupleur n'est nécessaire :
 | Clignotants (2 × 3 W par côté) | 0,5 A | direct sur R3 / R4 |
 | Feux de position arrière | 0,5 A | direct sur R5 |
 | Feux stop arrière | 0,5 A | direct sur R6 |
-| Klaxon 12 V | 5–8 A | direct sur R7, **avec réserve ci-dessous** |
 | Ligne frein du contrôleur | < 0,05 A | direct sur R8, contact sec isolé |
 
-**Réserve sur le klaxon.** Le calibre 10 A d'un relais de ce type est donné en
-charge résistive. Un klaxon à compresseur présente une pointe d'appel qui peut
-dépasser ce calibre et coller les contacts. Deux options : rester sur un
-klaxon électromagnétique classique (appel modéré), ou conserver le relais
-externe K1 comme étage intermédiaire, R7 ne pilotant alors que sa bobine.
+**Le klaxon ne figure plus dans ce tableau** : il est autonome, avec sa propre
+batterie et son propre interrupteur. R7 est libre.
 
 **Réserve sur les charges inductives.** Si une charge inductive est un jour
 ajoutée, prévoir une diode de roue libre : les contacts de relais n'aiment pas

@@ -13,7 +13,7 @@ namespace diag {
 
 enum Fault : uint8_t {
   FLT_TURN_CONFLICT = 1 << 0,  /* gauche et droite demandés en même temps   */
-  FLT_HORN_STUCK    = 1 << 1,  /* klaxon maintenu au-delà de la limite      */
+  FLT_HORN_STUCK    = 1 << 1,  /* voie auxiliaire bloquée (klaxon si activé) */
   FLT_BAFANG_LINK   = 1 << 2,  /* pas de trame valide depuis 2 s            */
   FLT_BRAKE_STUCK   = 1 << 3,  /* freinage continu > 2 min                  */
   FLT_LOOP_SLOW     = 1 << 4,  /* temps de cycle > LOOP_SLOW_US             */
@@ -25,7 +25,7 @@ enum Fault : uint8_t {
 void begin(uint8_t mcusr);
 
 /* Balayage visuel des sorties d'éclairage et de signalisation.
- * Le klaxon et la coupure moteur en sont volontairement exclus. */
+ * La voie auxiliaire (R7) et la coupure moteur (R8) en sont exclues. */
 void selfTest();
 
 void update(uint32_t now);

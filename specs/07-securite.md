@@ -14,13 +14,12 @@ Pour chaque panne plausible : ce qui se passe, et pourquoi c'est acceptable.
 | **Ligne frein Bafang raccordée à une borne d'entrée SANS diode** | +12 V injecté dans une entrée 5 V du contrôleur | — | **Destruction probable du contrôleur.** C'est exactement ce que D1 empêche à l'avant ; à l'arrière, le connecteur jaune reste intact et S2 est un contact sec séparé (`03` §5) |
 | **D1 en court-circuit** | ~1,4 mA de +12 V remontent vers la ligne frein au repos | — | Assistance possiblement inhibée en permanence. Gênant, pas dangereux ; le vélo reste utilisable sans assistance |
 | **Contacteur de frein collé** | Stop allumé en permanence, assistance coupée | Non (côté sûr) | `FLT_BRAKE_STUCK` après 120 s, journal série |
-| **Bouton klaxon collé** | Klaxon continu | Non | `LOCKED` après 10 s, `FLT_HORN_STUCK` |
+| **Bouton klaxon collé** | *(sans objet — klaxon autonome, non relié à la carte)* | Non | `LOCKED` après 10 s si `HORN_ENABLE 1` |
 | **Comodo : gauche et droite simultanés** | Deux directions contradictoires | Signalisation | Retombée sur `OFF` + `FLT_TURN_CONFLICT` |
 | **Bus Bafang muet** | Vitesse invalide | Non (P2) | Rappel clignotant bascule sur le critère temps seul |
 | **Bus Bafang bruité (trames fausses)** | Trames rejetées par la somme de contrôle | Non | Compteur `framesRejected` dans le journal |
-| **Convertisseur 48/12 en panne** | Perte totale du 12 V | Éclairage, klaxon | Les deux freins coupent toujours l'assistance : les chemins passifs ne dépendent pas du 12 V. Le moteur reste alimenté en 48 V → circulation possible jusqu'à l'arrêt, mais **de nuit, c'est un arrêt immédiat** |
+| **Convertisseur 48/12 en panne** | Perte totale du 12 V | Éclairage seul — le klaxon est autonome | Les deux freins coupent toujours l'assistance : les chemins passifs ne dépendent pas du 12 V. Le moteur reste alimenté en 48 V → circulation possible jusqu'à l'arrêt, mais **de nuit, c'est un arrêt immédiat** |
 | **Convertisseur 48/12 claqué en court-circuit** | Le 48 V arrive sur le réseau 12 V : feux, comodo, carte | Toutes | Convertisseur non isolé donné pour 60 V, pack à 58,4 V : **marge de 2,7 %**. Abaisser la charge à 3,50 V/cellule (`04` §2.1). Fusible F5 |
-| **Coup de klaxon en éclairage de nuit** | Éclairage complet mesuré à 5,0 A ; un klaxon à compresseur (7,5 A) ferait 12,5 A sur un convertisseur de 10 A → limitation → **les phares clignent** | Éclairage, brièvement | Klaxon électromagnétique (≈ 4 A, total 9 A : passe), ou condensateur tampon 10 000 µF (`04` §2.3) |
 | **Contact de relais collé (soudé)** | Charge allumée en permanence, ou assistance coupée en permanence pour R8 | Non (côté sûr pour les feux) | Non détectable par le firmware : le registre ne relit rien. Détecté au contrôle avant départ (T3.1) |
 | **Bobine de relais coupée** | Charge morte, sans aucun symptôme | **Oui pour le feu stop (R6)** | Contrôle avant départ obligatoire, observateur derrière |
 | **Broche OE (A1) coupée ou flottante** | Relais indéterminés au démarrage | Potentiellement toutes | Le firmware écrit HIGH avant de passer la broche en sortie ; la carte porte normalement un tirage. À vérifier au pinscan |
@@ -93,7 +92,7 @@ Défini comme l'état des sorties à la mise sous tension et après reset :
 | `OUT_PARK_FRONT` / `OUT_MAIN` | inactif | Rétabli en < 10 ms dès le premier balayage des entrées |
 | `OUT_TAIL_PARK` / `OUT_TAIL_STOP` | inactif | idem |
 | `OUT_TURN_*` | inactif | idem |
-| `OUT_HORN` | inactif | Un klaxon qui sonne au reset serait dangereux |
+| `OUT_AUX` (R7) | inactif | Voie libre, jamais commandée tant que `HORN_ENABLE` vaut 0 |
 | `OUT_MOTOR_CUT` | **relâché** | Voir §2 |
 
 L'état sûr est obtenu **matériellement** avant même que le firmware ne
@@ -162,7 +161,7 @@ Points à vérifier au regard du code de la route français pour un cycle :
 | Feu stop non clignotant | Respecté : `BRAKE_FLASH_ENABLE` à **0** par défaut |
 | Cadence des clignotants 60–120 c/min | Respecté : 80 c/min (1,33 Hz), **y compris pendant le rappel d'oubli** — celui-ci modifie le rapport cyclique (375 → 200 ms allumé), jamais la période. C'est précisément pourquoi il a été conçu ainsi plutôt qu'en accélérant la cadence |
 | Feux de détresse en phase | Respecté |
-| Klaxon | Un avertisseur sonore de type automobile sur un cycle relève d'une vérification locale — le VHélio peut être homologué en tant que cycle ou cyclomoteur selon la version |
+| Klaxon | Autonome, hors du périmètre de ce calculateur. Rappel tout de même : un avertisseur de type automobile sur un cycle relève d'une vérification locale — le VHélio peut être homologué en cycle ou en cyclomoteur selon la version |
 
 > Les feux de position et le feu stop sont sur des relais, donc en tout-ou-rien
 > franc : aucune modulation, aucun scintillement, aucune question de

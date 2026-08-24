@@ -7,7 +7,7 @@
  *   - l'afficheur est multiplexé et doit être rafraîchi en permanence ;
  *   - les entrées optocouplées sont actives à l'état bas.
  *
- * Un module métier écrit setOutput(OUT_HORN, true) et ne sait rien de tout ça.
+ * Un module métier écrit setOutput(OUT_TAIL_STOP, true) et ne sait rien de tout ça.
  */
 #pragma once
 

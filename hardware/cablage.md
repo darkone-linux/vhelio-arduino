@@ -17,10 +17,9 @@ flowchart TB
     FB -->|F11 2A| DN[Carte DN22D08<br/>+ Arduino Nano]
     FB -->|F6 5A| AV[Phares + veilleuse avant]
     FB -->|F7 5A| AR[Feux arrière + clignotants]
-    FB -->|F8 10A| KL[Klaxon]
     FB -->|F9,F10 5A| AC[Prises allume-cigare]
-    CT[Condensateur 10 000 µF] --- FB
   end
+  KLX[Klaxon autonome<br/>batterie + inter propres] -.-> |aucun lien| DN
   COM[Comodo + inter veilleuse + inter détresse] --> DN
   FRA[Frein avant<br/>contact sec unipolaire] --> DN
   FRA ==>|via diode D1<br/>failsafe| CTRL
@@ -28,7 +27,6 @@ flowchart TB
   CTAR[Contacteur Bafang d'origine] ==>|inchangé<br/>failsafe| CTRL
   DN --> AV
   DN --> AR
-  DN --> KL
   DN -->|R8, contact sec| CTRL
   CTRL -.->|TX sniffé + GND| DN
 ```
@@ -48,7 +46,7 @@ unipolaire.
 |---|---|---|---|---|
 | Clignotant gauche | vert | Comodo | IN1 | D2 |
 | Clignotant droit | vert/blanc | Comodo | IN2 | D3 |
-| Klaxon | rose | Comodo | IN3 | D4 |
+| *(libre)* | — | — | **IN3** | D4 |
 | Frein avant | brun | Contacteur AV (contact sec unipolaire) | IN4 | D5 |
 | Frein arrière | brun/blanc | Micro-rupteur S2 sur levier AR | IN5 | D6 |
 | Veilleuse | jaune | Interrupteur dédié S3 | IN6 | A0 |
@@ -73,7 +71,7 @@ direct, sans aucun étage intermédiaire.
 | R4 | Clignotant avant droit **+** arrière droit | 0,5 A |
 | R5 | Feux de position arrière (les deux en parallèle) | 0,5 A |
 | R6 | Feux stop arrière (les deux en parallèle) | 0,5 A |
-| R7 | Klaxon | 5–8 A |
+| R7 | **Libre** | — |
 | R8 | Ligne frein du contrôleur — **contact sec** | < 50 mA |
 
 > Mesure à la pince : **12 W par phare**, et non les 60 W annoncés. R2 voit
@@ -256,7 +254,8 @@ Contrôleur ── GND ────────────────> GND de 
 4. Faisceau commandes (entrées), commun à la masse.
 5. Éclairage, un circuit à la fois, directement sur les relais. Mesurer le
    courant des phares : il décide de la présence ou non d'un relais externe.
-6. Condensateur tampon 10 000 µF au boîtier fusibles, **puis** klaxon.
+6. *(Le klaxon est autonome : rien à câbler. Ni fusible F8, ni condensateur
+   tampon — c'était la seule charge qui justifiait ce dernier.)*
 7. Contacteurs de frein — **d'abord** vérifier que le connecteur Bafang
    d'origine coupe bien, Arduino débranché (T2.4), **ensuite** seulement S2 et
    les entrées de lecture, **enfin** la dérivation en Y de R8.
@@ -273,6 +272,7 @@ maintenance. Les témoins de conduite, s'ils sont souhaités, sont **purement
 | Clignotants | LED verte + résistance 1 kΩ / 1 W, en parallèle sur chaque circuit R3 et R4 (une LED par côté, ou une seule sur les deux via deux diodes de découplage) | Le rappel d'oubli reste **audible** au changement de rythme du claquement |
 | Veilleuse / phares | LED + résistance en parallèle sur R1 ou R2 | Facultatif |
 | Détresse | Un interrupteur à bascule lumineux 12 V pour S1 fait office de témoin | Le plus simple |
+| **Défaut** | LED rouge + résistance sur **R7**, la voie laissée libre par le klaxon | Voir Q14 : c'est le meilleur usage proposé pour ce relais |
 
 Un interrupteur à bascule **lumineux** pour S1 et S3 règle la question sans
 aucun câblage supplémentaire : la position du contacteur est le témoin.

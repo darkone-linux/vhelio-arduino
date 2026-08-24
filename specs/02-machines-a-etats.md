@@ -171,20 +171,23 @@ position. À vérifier au test T3.3.
 
 ---
 
-## 2.4 Klaxon
+## 2.4 Voie auxiliaire — klaxon *(désactivé)*
 
-| État | OUT6 | Transition |
+Le klaxon du véhicule est **autonome** : sa propre batterie, son propre
+interrupteur, aucun lien avec la carte. `HORN_ENABLE` vaut 0, l'automate
+ci-dessous n'est pas compilé, et l'entrée IN3 comme le relais R7 sont libres.
+
+L'automate est conservé pour le cas où l'on raccorderait un klaxon à la voie
+auxiliaire :
+
+| État | R7 | Transition |
 |---|---|---|
 | `IDLE` | 0 | bouton appuyé → `SOUND` |
 | `SOUND` | 1 | bouton relâché → `IDLE` ; T > 10 s → `LOCKED` |
 | `LOCKED` | 0 | bouton relâché → `IDLE` |
 
-`LOCKED` protège le klaxon et le convertisseur si le bouton reste collé ou si un
-fil se met à la masse. Le drapeau `FLT_HORN_STUCK` est levé.
-
-Cette protection compte plus qu'il n'y paraît : le convertisseur ne fait que
-10 A, et un klaxon bloqué en consommerait 5 à 7,5 A en permanence, au détriment
-de l'éclairage (`04-electricite.md` §2.3).
+`LOCKED` protège la charge si le bouton reste collé ou si un fil se met à la
+masse. Le drapeau `FLT_HORN_STUCK` est levé.
 
 ```mermaid
 stateDiagram-v2
@@ -216,7 +219,7 @@ Un mot de 8 bits, publié dans le journal série et signalé par la LED D13.
 | Bit | Nom | Cause |
 |---|---|---|
 | 0 | `FLT_TURN_CONFLICT` | clignotants gauche et droite simultanés |
-| 1 | `FLT_HORN_STUCK` | klaxon maintenu > 10 s |
+| 1 | `FLT_HORN_STUCK` | voie auxiliaire bloquée > 10 s — jamais levé tant que `HORN_ENABLE` vaut 0 |
 | 2 | `FLT_BAFANG_LINK` | pas de trame valide depuis 2 s |
 | 3 | `FLT_BRAKE_STUCK` | freinage maintenu > 120 s (contacteur collé) |
 | 4 | `FLT_LOOP_SLOW` | temps de cycle > 10 ms observé |

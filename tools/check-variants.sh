@@ -50,6 +50,7 @@ run_case "freins inverses (interface transistor)" \
   IN_INVERT_BRAKE_FRONT 1 IN_INVERT_BRAKE_REAR 1
 run_case "rappel clignotant muet + page vitesse" \
   BLINK_REMINDER_ON_MS 0 DISPLAY_DEFAULT_PAGE 0
+run_case "klaxon raccorde a la carte (voie auxiliaire)" HORN_ENABLE 1
 
 [ "$FAILED" = 0 ] && echo "== Toutes les variantes compilent ==" || echo "== ECHECS =="
 exit "$FAILED"

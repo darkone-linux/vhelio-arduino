@@ -1,7 +1,8 @@
 # Nomenclature
 
 Ce qui s'ajoute aux composants déjà listés dans le projet (moteur, batterie,
-BMS, MPPT, comodo, feux, klaxon, convertisseur, boîtier fusibles).
+BMS, MPPT, comodo, feux, convertisseur, boîtier fusibles). Le klaxon est
+autonome et sort du périmètre.
 
 ## Calculateur
 
@@ -28,7 +29,9 @@ BMS, MPPT, comodo, feux, klaxon, convertisseur, boîtier fusibles).
 | Rep. | Désignation | Qté | Remarque |
 |---|---|---|---|
 | — | Convertisseur 48 → 12 V non isolé, 10 A | 1 | **Déjà en possession.** Entrée 36–48 V, 60 V max — voir la réserve ci-dessous |
-| C1 | Condensateur électrolytique **10 000 µF / 25 V** | 0 ou 1 | Au plus près du boîtier fusibles. Nécessaire **seulement si le klaxon dépasse ~4 A** : l'éclairage complet ne consomme que 5,0 A (phares mesurés à 12 W pièce), il reste donc 5 A pour le klaxon. Un klaxon à compresseur (7,5 A) dépasserait et ferait cligner les phares. 3 € pour supprimer la question |
+*(Le condensateur tampon de 10 000 µF est **sans objet** : il n'existait que
+pour absorber l'appel du klaxon, lequel est autonome. L'éclairage complet
+consomme 5,0 A pour 10 A disponibles, sans aucune pointe transitoire.)*
 
 > **Marge de tension d'entrée insuffisante.** Le pack 16S monte à 58,4 V à
 > 3,65 V/cellule, le convertisseur est donné pour 60 V : **2,7 % de marge**.
@@ -44,11 +47,12 @@ contacts secs 10 A : les charges se branchent directement dessus. Cela
 supprime de la nomenclature initiale trois modules MOSFET, un relais de klaxon
 et un optocoupleur.
 
-Une seule réserve, optionnelle :
+Plus aucune réserve depuis que les phares ont été mesurés (12 W pièce) et que
+le klaxon s'est révélé autonome :
 
 | Rep. | Désignation | Qté | Quand |
 |---|---|---|---|
-| K1 | Relais automobile 12 V / 20 A + support | 0 ou 1 | **Uniquement** si le klaxon est à compresseur : sa pointe d'appel peut dépasser le calibre 10 A du contact et le souder. R7 ne pilote alors que la bobine de K1. |
+| K1 | Relais automobile 12 V / 20 A + support | 0 | **Sans objet** : le klaxon est autonome et n'est pas relié à la carte. |
 *(Le relais automobile envisagé pour les phares est sans objet : ils ont été
 mesurés à **12 W chacun**, soit 2,5 A pour la paire sur un contact de 10 A.)*
 
@@ -85,6 +89,7 @@ et une intervention sur le faisceau moteur, contre un rupteur à 2 €.
 | S3 | Interrupteur à bascule **lumineux** 12 V, veilleuse | 1 | Premier niveau d'éclairage, déjà en possession |
 | **D1** | **Diode 1N4148** | **1** | **Indispensable.** Montée dans le boîtier entre la borne `IN4` et le fil vers la dérivation en Y, **cathode côté IN4**. Elle permet au contacteur de frein avant, pourtant unipolaire, de servir à la fois l'entrée de la carte et la ligne frein du contrôleur : la coupure d'assistance au frein avant cesse ainsi de dépendre du firmware (`hardware/cablage.md` §4). **Ne pas remplacer par une Schottky** : son courant de fuite inverse ferait remonter le potentiel de la ligne frein |
 | — | LED verte 12 V + résistance 1 kΩ / 1 W | 0 à 2 | Témoins de clignotant, en parallèle sur R3 et R4. Purement électriques, aucun relais ni broche consommés |
+| — | LED rouge 12 V + résistance 1 kΩ / 1 W | 0 ou 1 | **Voyant de défaut** sur R7, la voie libérée par le klaxon. Proposition Q14 : c'est aujourd'hui le seul moyen de savoir en roulant qu'un défaut est actif, l'afficheur étant sous la coque |
 
 > **Pas de buzzer.** Les clignotants sont portés par les relais R3 et R4, dont
 > le claquement à 1,33 Hz est exactement le bruit d'un relais de clignotant
@@ -114,7 +119,6 @@ Détail des calibres dans `specs/04-electricite.md` §3.
 | 6 mm² | Pack ↔ contrôleur moteur | 3 m |
 | 4 mm² | Convertisseur → boîtier fusibles 12 V | 2 m |
 | 4 mm² | MPPT ↔ pack | 2 m |
-| 2,5 mm² | Klaxon | 4 m |
 | 1,5 mm² | Convertisseur 48 V, départs éclairage, allume-cigare | 20 m |
 | 0,75 mm² | Signaux comodo, freins, capteurs | 20 m |
 

@@ -1,5 +1,10 @@
 /*
  * horn.h — Klaxon, avec verrou anti-blocage.
+ *
+ * DÉSACTIVÉ par défaut (`HORN_ENABLE 0`) : le klaxon du véhicule est autonome,
+ * avec sa propre batterie et son propre interrupteur. Le module est conservé
+ * intact pour le cas où l'on déciderait de le raccorder à la voie auxiliaire
+ * IN3 / R7 ; désactivé, il ne coûte rien.
  */
 #pragma once
 

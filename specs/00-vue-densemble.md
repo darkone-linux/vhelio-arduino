@@ -14,12 +14,15 @@ commandes) et ouvre la porte à la télémétrie et au diagnostic.
 
 - Éclairage : veilleuse avant, phares, feux rouges arrière (position + stop)
 - Signalisation : clignotants gauche / droite, feux de détresse
-- Klaxon 12 V
 - Détection de freinage (avant + arrière) → feu stop + pause assistance
 - Télémétrie moteur en **écoute passive** sur la liaison UART afficheur ↔ contrôleur Bafang
 - Diagnostic : autotest au démarrage, journal série, chien de garde
 
 ### Hors périmètre
+
+- **Le klaxon.** Il est autonome : batterie et interrupteur propres, aucun lien
+  avec la carte. L'entrée `IN3` et le relais `R7` qui lui étaient réservés sont
+  donc libres — les seules ressources disponibles du montage.
 
 - Toute commande du moteur autre que la ligne « frein » du contrôleur.
   L'assistance, les niveaux PAS et le bridage restent gérés par l'afficheur Bafang.
@@ -49,12 +52,12 @@ contacteur de frein sur la ligne frein du contrôleur Bafang. La sortie
 
 **P2 — La télémétrie est un confort, pas une fonction de sécurité.**
 La perte totale du bus Bafang (fil coupé, afficheur débranché, décodage erroné)
-n'a aucun effet sur les feux, les clignotants, le stop ou le klaxon. Le module
+n'a aucun effet sur les feux, les clignotants ni le stop. Le module
 peut être désactivé à la compilation (`BAFANG_ENABLE 0`) sans rien casser d'autre.
 
 **P3 — État sûr par défaut.**
-Au reset, toutes les sorties sont inactives (feux éteints, klaxon coupé,
-coupure moteur relâchée). La coupure moteur relâchée au boot est le bon choix
+Au reset, toutes les sorties sont inactives (feux éteints, coupure moteur
+relâchée). La coupure moteur relâchée au boot est le bon choix
 *parce que* P1 garantit la coupure matérielle : un firmware planté ne doit pas
 immobiliser le véhicule.
 
@@ -72,7 +75,8 @@ sous 10 ms pour que la réaction au freinage soit imperceptible.
 | **Convertisseur 48 → 12 V** | Alimente tout le réseau accessoire | Alimente la carte DN22D08 |
 | **Contrôleur Bafang 750 W** | Maître de la traction | Ligne frein (entrée), ligne UART TX (sortie, sniffée) |
 | **Afficheur Bafang UART** | IHM conducteur, réglage assistance | Aucune (l'Arduino n'écrit jamais sur le bus) |
-| **Comodo** | Clignotants, klaxon, éclairage fort | 4 entrées, contacts secs vers la masse |
+| **Comodo** | Clignotants, éclairage fort | 3 entrées, contacts secs vers la masse |
+| **Klaxon 12 V** | Avertisseur sonore, **autonome** | Aucune — batterie et interrupteur propres |
 | **Inters dédiés S1, S3** | Détresse, veilleuse | 2 entrées, contacts secs vers la masse |
 | **Contacteur frein avant** | Feu stop (unipolaire) | 1 entrée ; **ne coupe pas** la ligne frein |
 | **Contacteur frein arrière Bafang** | Coupure d'assistance native | Aucune — connecteur laissé **intact** |
@@ -93,7 +97,7 @@ flowchart LR
   CTRL -.->|TX sniffé| NANO
   CONV -->|12 V| FUSE[Boîtier fusibles]
   FUSE --> NANO[Arduino Nano<br/>+ DN22D08]
-  FUSE --> LOADS[Phares · Feux AR · Clignotants<br/>Klaxon · Allume-cigare]
+  FUSE --> LOADS[Phares · Feux AR · Clignotants<br/>Allume-cigare]
   COMODO[Comodo] --> NANO
   BAV[Contacteur frein AVANT<br/>unipolaire] --> NANO
   BAV ==>|via diode D1<br/>failsafe| CTRL
@@ -113,7 +117,7 @@ carte n'atteigne la ligne 5 V du contrôleur (`hardware/cablage.md` §4).
 
 | Terme | Définition |
 |---|---|
-| **Comodo** | Bloc de commandes au guidon (clignotants, klaxon, éclairage) |
+| **Comodo** | Bloc de commandes au guidon (clignotants, éclairage fort) |
 | **Ligne frein** | Entrée du contrôleur Bafang qui coupe l'assistance quand elle est fermée à la masse |
 | **PAS** | Pedal Assist System — niveau d'assistance sélectionné à l'afficheur |
 | **Veilleuse** | Premier niveau d'éclairage : feu de position, avant comme arrière |

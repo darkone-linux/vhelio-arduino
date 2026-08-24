@@ -28,8 +28,8 @@ Tout écart se corrige dans `pins.h` et `board_io.cpp` avant de continuer.
 
 Mise sous tension.
 **Critère** : les six relais d'éclairage et de signalisation collent l'un après
-l'autre, 200 ms chacun — c'est audible autant que visible. Le klaxon (R7) et la
-coupure moteur (R8) **ne** sont **pas** activés.
+l'autre, 200 ms chacun — c'est audible autant que visible. La voie auxiliaire
+(R7) et la coupure moteur (R8) **ne** sont **pas** activées.
 L'afficheur reste multiplexé pendant toute la séquence : s'il s'éteint,
 `board::refresh()` n'est pas appelé dans la boucle d'attente.
 
@@ -78,16 +78,18 @@ relais inclus.
 > qu'ils ne se rebouclent pas : le feu stop doit pouvoir s'allumer feux
 > éteints, et les feux de position rester allumés hors freinage.
 
-### T1.6 — Klaxon
+### T1.6 — Voie auxiliaire IN3 / R7 libre
+
+Le klaxon est autonome et n'est pas relié à la carte. Ce test vérifie
+simplement que la voie reste inerte.
 
 | Action | Attendu |
 |---|---|
-| Appui bref | R7 collé pendant l'appui |
-| Appui maintenu 15 s | R7 retombe à 10 s, `FLT_HORN_STUCK` |
-| Relâcher puis rappuyer | R7 réactif |
+| Laisser tourner 30 min, toutes fonctions sollicitées | **R7 ne colle jamais** — contrôler à l'oreille et au contrôleur de continuité |
+| Solliciter la borne IN3 | Le 3ᵉ chiffre de `IN1..IN8` passe à `0` au journal, **aucune sortie ne bouge** |
 
-Après le test, contrôler que R7 n'est pas resté collé mécaniquement : c'est le
-relais qui voit le courant le plus élevé du montage.
+Si R7 colle, c'est que `HORN_ENABLE` a été laissé à 1, ou qu'un module écrit
+sur `OUT_AUX` — ce qu'aucun ne doit faire.
 
 ### T1.7 — Chien de garde
 
@@ -142,15 +144,12 @@ Véhicule sur béquille, roue motrice libre, **personne devant la roue**.
 
 Mêmes critères. Ajouter :
 
-- l'échauffement du relais R7 (klaxon) après dix coups consécutifs ;
 - **le contrôle du courant total** : phares + veilleuse + arrière allumés,
   mesurer à la pince sur l'entrée du boîtier fusibles. Attendu **≈ 5 A**
   (phares mesurés à 12 W pièce). Au-delà de 6 A, reprendre
-  `04-electricite.md` §2.2 ;
-- **la mesure du klaxon à la pince**. Sous 4 A, le condensateur tampon est
-  superflu ; au-delà, il est nécessaire ;
-- **le test du klaxon sous charge d'éclairage** : de nuit, tout allumé,
-  klaxonner. Les phares ne doivent **pas** cligner (F-4.5).
+  `04-electricite.md` §2.2.
+
+Le klaxon étant autonome, il ne figure plus dans ces essais.
 
 ### T2.4 — Coupure moteur : ce qui coupe, et ce qui ne coupe pas
 
@@ -194,7 +193,7 @@ Avec `BAFANG_LEARN_MODE 1`, suivre la procédure de calibration de
 - [ ] Veilleuse avant, phares, **et feu rouge arrière dans les deux cas**
 - [ ] Clignotant gauche, clignotant droit, détresse
 - [ ] Feu stop au frein avant **et** au frein arrière (observateur derrière)
-- [ ] Klaxon
+- [ ] Klaxon *(autonome — vérifier sa propre batterie)*
 - [ ] Aucun défaut : à l'ouverture de la coque, l'afficheur montre `F000`
       (c'est la page par défaut) et le deux-points bat à 1 Hz, pas ~4 Hz
 - [ ] Autotest au démarrage : les six relais claquent l'un après l'autre.

@@ -92,8 +92,16 @@
 #define BLINK_REMINDER_ON_MS      200
 
 /* ======================================================================
- * Klaxon
+ * Voie auxiliaire IN3 / R7 — klaxon (désactivé)
  * ====================================================================== */
+
+/* Le klaxon du véhicule est AUTONOME : batterie et interrupteur propres, il
+ * n'est pas relié à la carte. Le module est conservé, désactivé, pour le cas
+ * où l'on déciderait de le raccorder — il ne coûte alors rien en flash.
+ *
+ * Tant que HORN_ENABLE vaut 0, l'entrée IN3 et le relais R7 sont LIBRES.
+ * Ce sont les seules ressources disponibles du montage. */
+#define HORN_ENABLE               0
 
 #define HORN_MAX_ON_MS            10000UL   /* anti-blocage                  */
 
@@ -175,6 +183,10 @@
 
 #if BAFANG_LEARN_MODE && !DEBUG_SERIAL
 #error "BAFANG_LEARN_MODE exige DEBUG_SERIAL 1 pour publier les trames"
+#endif
+
+#if HORN_ENABLE && !DEBOUNCE_HORN_MS
+#error "HORN_ENABLE exige un DEBOUNCE_HORN_MS non nul"
 #endif
 
 #if BLINK_ON_MS >= BLINK_PERIOD_MS

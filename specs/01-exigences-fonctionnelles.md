@@ -43,15 +43,20 @@ vérification. Les priorités : **M** = obligatoire (Must), **S** = souhaitable
 | F-3.6 | S | Un retour sonore accompagne chaque transition du clignotant. **Assuré sans aucun composant** : les clignotants sont portés par des relais, dont le claquement à 1,33 Hz est exactement le bruit d'un relais de clignotant d'origine. | Écoute. |
 | F-3.7 | S | Rappel d'oubli : au-delà de 45 s **ou** 300 m de clignotement continu, la phase allumée est raccourcie de 375 à 200 ms (`BLINK_REMINDER_ON_MS`). La **période est inchangée**, donc la cadence reste réglementaire, mais le rythme du claquement des relais devient syncopé et audible. C'est le seul canal vers le conducteur, le boîtier étant sous la coque (Q12). Le clignotant n'est **pas** annulé automatiquement : le comodo est un inverseur maintenu, une annulation logicielle créerait une incohérence entre la position du levier et l'état réel. | Laisser le clignotant 50 s, écouter le changement de rythme. |
 
-## F-4 — Klaxon
+## F-4 — Voie auxiliaire (klaxon)
+
+> **Le klaxon du véhicule est autonome** : batterie et interrupteur propres,
+> aucun lien avec la carte. `HORN_ENABLE` vaut **0**, l'entrée `IN3` et le
+> relais `R7` sont libres, et les exigences ci-dessous ne s'appliquent que si
+> l'on décide un jour de raccorder un klaxon à la carte.
 
 | Id | Prio | Exigence | Vérification |
 |---|---|---|---|
-| F-4.1 | M | Le klaxon sonne tant que le bouton du comodo est enfoncé. | Appui / relâche. |
-| F-4.2 | M | Le klaxon est branché **directement** sur R7 : le contact sec supporte 10 A. Un relais externe n'est requis que pour un klaxon à compresseur, dont la pointe d'appel peut coller le contact. | Contrôle de la nomenclature + échauffement après 10 coups. |
-| F-4.5 | M | Un coup de klaxon ne doit pas faire varier l'éclairage. L'éclairage complet consommant 5,0 A sur un convertisseur de 10 A, un klaxon de plus de ~4 A impose un condensateur tampon de 10 000 µF. | Mesurer le klaxon à la pince. De nuit, phares allumés, klaxonner : aucune variation visible. |
-| F-4.3 | S | Anti-blocage : au-delà de 10 s continues, le klaxon est coupé jusqu'au relâchement du bouton. | Maintenir l'appui 15 s. |
-| F-4.4 | S | Anti-rebond 20 ms sur le bouton. | Injection de rebonds. |
+| F-4.1 | C | *(si `HORN_ENABLE 1`)* Le klaxon sonne tant que le bouton est enfoncé. | Appui / relâche. |
+| F-4.2 | C | *(si `HORN_ENABLE 1`)* Le klaxon se branche directement sur R7 : le contact sec supporte 10 A. Un relais externe n'est requis que pour un klaxon à compresseur, dont la pointe d'appel peut coller le contact. | Contrôle de la nomenclature. |
+| F-4.3 | C | *(si `HORN_ENABLE 1`)* Anti-blocage : au-delà de 10 s continues, le klaxon est coupé jusqu'au relâchement du bouton. | Maintenir l'appui 15 s. |
+| F-4.4 | C | *(si `HORN_ENABLE 1`)* Anti-rebond 20 ms sur le bouton. | Injection de rebonds. |
+| F-4.6 | M | Désactivé, le module ne doit consommer **aucune** ressource : ni flash, ni RAM, ni sortie. R7 reste relâché en permanence. | Comparaison des empreintes `HORN_ENABLE` 0 / 1, et continuité sur R7 après 30 min. |
 
 ## F-5 — Télémétrie Bafang (écoute passive)
 
@@ -70,7 +75,7 @@ vérification. Les priorités : **M** = obligatoire (Must), **S** = souhaitable
 |---|---|---|---|
 | F-6.1 | M | Un chien de garde matériel (WDT 1 s) redémarre l'Arduino en cas de blocage. | Boucle infinie injectée en test. |
 | F-6.2 | M | Le WDT est explicitement désarmé au tout début de `setup()` (`MCUSR = 0; wdt_disable();`) pour éviter le redémarrage en boucle avec les anciens bootloaders. | Revue de code. |
-| F-6.3 | S | Un autotest au démarrage active chaque sortie 200 ms dans l'ordre, hors klaxon et coupure moteur. | Observation visuelle et **auditive** — c'est le seul contrôle de bon fonctionnement des relais audible depuis le poste de conduite. |
+| F-6.3 | S | Un autotest au démarrage active chaque sortie 200 ms dans l'ordre, hors voie auxiliaire (R7) et coupure moteur (R8). | Observation visuelle et **auditive** — c'est le seul contrôle de bon fonctionnement des relais audible depuis le poste de conduite. |
 | F-6.4 | S | Le **deux-points de l'afficheur** bat à 1 Hz en fonctionnement nominal, à ~4 Hz si un défaut est actif. La LED D13 du Nano n'est pas utilisable : elle porte la ligne de données du registre à décalage. | Observation, coque ouverte. |
 | F-6.5 | S | Un journal série (115 200 bauds) publie l'état consolidé toutes les secondes, désactivable à la compilation. L'inverseur de la carte doit être sur **`PRO`**, faute de quoi le RS485 occupe D0/D1. | Terminal série. |
 | F-6.6 | M | Le temps de cycle maximal observé est journalisé ; il doit rester < 10 ms. | Champ `loopMax` du journal. |
@@ -79,8 +84,8 @@ vérification. Les priorités : **M** = obligatoire (Must), **S** = souhaitable
 
 | Id | Prio | Exigence |
 |---|---|---|
-| NF-1 | M | Empreinte flash < 24 ko et RAM statique < 1,4 ko (marge sur les 30,7 ko / 2 ko utilisables du ATmega328P). **Mesuré : 8 918 o de flash (29 %) et 705 o de RAM (34 %).** |
+| NF-1 | M | Empreinte flash < 24 ko et RAM statique < 1,4 ko (marge sur les 30,7 ko / 2 ko utilisables du ATmega328P). **Mesuré : 8 734 o de flash (28 %) et 700 o de RAM (34 %).** |
 | NF-2 | M | Aucun `String`, aucune allocation dynamique. |
 | NF-3 | M | Tout le brochage est concentré dans `src/pins.h` et les tableaux en tête de `src/board_io.cpp` ; tout le réglage dans `src/config.h`. C'est ce qui a permis d'absorber le changement complet d'architecture de la carte sans toucher un seul module métier. |
 | NF-4 | S | Chaque fonction est un module indépendant, testable en isolant ses entrées. |
-| NF-5 | M | Le firmware compile sans avertissement avec `--warnings all`, dans **toutes** les combinaisons d'options de `config.h` (`tools/check-variants.sh` — 12 variantes). |
+| NF-5 | M | Le firmware compile sans avertissement avec `--warnings all`, dans **toutes** les combinaisons d'options de `config.h` (`tools/check-variants.sh` — 13 variantes). |

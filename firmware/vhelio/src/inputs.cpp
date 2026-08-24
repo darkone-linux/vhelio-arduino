@@ -13,7 +13,7 @@ InputState g_state;
 const uint16_t DEBOUNCE_MS[IN_COUNT] = {
   DEBOUNCE_COMODO_MS,  /* IN_TURN_LEFT   */
   DEBOUNCE_COMODO_MS,  /* IN_TURN_RIGHT  */
-  DEBOUNCE_HORN_MS,    /* IN_HORN        */
+  DEBOUNCE_HORN_MS,    /* IN_AUX         */
   DEBOUNCE_BRAKE_MS,   /* IN_BRAKE_FRONT */
   DEBOUNCE_BRAKE_MS,   /* IN_BRAKE_REAR  */
   DEBOUNCE_COMODO_MS,  /* IN_PARK        */

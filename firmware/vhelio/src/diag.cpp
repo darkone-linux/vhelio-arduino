@@ -79,7 +79,9 @@ void diag::update(uint32_t now) {
   uint8_t f = latched;
 
   if (turnsignals::conflict()) f |= FLT_TURN_CONFLICT;
+#if HORN_ENABLE
   if (horn::stuck()) f |= FLT_HORN_STUCK;
+#endif
   if (brakes::stuck()) f |= FLT_BRAKE_STUCK;
 #if BAFANG_ENABLE
   if (!bafang::linkUp()) f |= FLT_BAFANG_LINK;
@@ -123,7 +125,9 @@ void diag::update(uint32_t now) {
     default:                  Serial.print('-'); break;
   }
   if (turnsignals::reminderActive()) Serial.print('!');
+#if HORN_ENABLE
   Serial.print(F(" HN=")); Serial.print(horn::sounding());
+#endif
   Serial.print(F(" CUT=")); Serial.print(brakes::motorCut());
 
   Serial.print(F(" spd=")); printFixed1(telemetry::speedKmh10());
