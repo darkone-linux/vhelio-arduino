@@ -54,13 +54,13 @@ dans le `.ino`.
 | `display` | les 4 digits de l'afficheur | `telemetry`, `bafang`, `diag` |
 | `bafang` | le port logiciel, le décodeur | — |
 | `telemetry` | vitesse consolidée, odomètre | `bafang`, `wheelspeed` |
-| `diag` | deux-points de l'afficheur, **voyant `OUT_FAULT`**, journal série, drapeaux de défaut | tous |
+| `diag` | battement de cœur (point décimal de gauche), **voyant `OUT_FAULT`**, journal série, drapeaux de défaut | tous |
 
 **Une sortie, un propriétaire.** Aucune sortie n'est écrite par deux modules.
 Les deux relais des feux arrière appartiennent à `lights` : `brakes` lui
 *demande* le stop, il ne le pilote pas. L'afficheur est coupé en deux
 propriétaires disjoints : `display` possède les digits, `diag` possède le
-deux-points (battement de cœur et indicateur de défaut).
+point décimal du digit de gauche (battement de cœur et indicateur de défaut ; l'afficheur n'a pas de deux-points).
 
 ## 4. Arborescence
 

@@ -208,7 +208,7 @@ Avec `BAFANG_LEARN_MODE 1`, suivre la procédure de calibration de
       aura aucune alerte de tout le trajet
 - [ ] Le voyant rouge est éteint au départ
 - [ ] Aucun défaut : à l'ouverture de la coque, l'afficheur montre `F000`
-      (c'est la page par défaut) et le deux-points bat à 1 Hz, pas ~4 Hz
+      (c'est la page par défaut) et le point décimal de gauche bat à 1 Hz, pas ~4 Hz
 - [ ] Autotest au démarrage : les six relais claquent l'un après l'autre.
       C'est le seul contrôle des relais audible coque fermée
 
