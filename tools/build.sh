@@ -21,8 +21,20 @@ FQBN="arduino:avr:nano:cpu=atmega328"
 # chaque changement.
 SKETCH="${VHELIO_SKETCH:-$ROOT/firmware/vhelio}"
 
+# VHELIO_SIM=1 : firmware de banc (entrees pilotables au clavier). Le drapeau
+# vient de la ligne de commande, pas de config.h, qui reste a 0 dans le depot.
+# Repertoire de compilation separe : sinon arduino-cli reutilise des objets
+# compiles avec l'autre jeu de drapeaux.
+PROPS=()
+SUFFIX=""
+if [ "${VHELIO_SIM:-0}" = "1" ]; then
+  PROPS=(--build-property "compiler.cpp.extra_flags=-DSIM_INPUTS=1")
+  SUFFIX="-sim"
+fi
+
 "$CLI" compile \
   --fqbn "$FQBN" \
   --warnings all \
-  --build-path "$ROOT/.build/$(basename "$SKETCH")" \
+  ${PROPS[@]+"${PROPS[@]}"} \
+  --build-path "$ROOT/.build/$(basename "$SKETCH")$SUFFIX" \
   "$SKETCH"

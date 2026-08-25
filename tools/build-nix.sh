@@ -9,6 +9,10 @@
 #
 # VHELIO_SKETCH=tools/pinscan ./tools/build-nix.sh   compile le croquis de
 # verification de brochage au lieu du firmware.
+#
+# VHELIO_SIM=1 ./tools/build-nix.sh   compile le firmware de BANC : les huit
+# entrees sont pilotables au clavier depuis la console (specs/08 campagne 1).
+# Le binaire va dans .build/vhelio-sim, jamais melange a celui de route.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"

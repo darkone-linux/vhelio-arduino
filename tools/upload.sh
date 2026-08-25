@@ -23,11 +23,18 @@ CLI="$ARDUINO_DIR/bin/arduino-cli"
 
 SKETCH="${VHELIO_SKETCH:-$ROOT/firmware/vhelio}"
 NAME="$(basename "$SKETCH")"
-HEX="$ROOT/.build/$NAME/$NAME.ino.hex"
+
+# VHELIO_SIM=1 televerse le firmware de banc (entrees pilotables au clavier),
+# compile a part par build-nix.sh. Meme variable qu'a la compilation : les deux
+# commandes doivent la porter, sinon on televerse l'autre binaire.
+SUFFIX=""
+[ "${VHELIO_SIM:-0}" = "1" ] && SUFFIX="-sim"
+
+HEX="$ROOT/.build/$NAME$SUFFIX/$NAME.ino.hex"
 
 if [ ! -f "$HEX" ]; then
   echo "Rien a televerser : $HEX est absent."
-  echo "Compiler d'abord :  VHELIO_SKETCH=$SKETCH ./tools/build-nix.sh"
+  echo "Compiler d'abord :  VHELIO_SKETCH=$SKETCH ${SUFFIX:+VHELIO_SIM=1 }./tools/build-nix.sh"
   exit 1
 fi
 
@@ -85,7 +92,10 @@ else
   echo "Aucun avrdude utilisable."; exit 1
 fi
 
-echo "== $NAME -> $PORT ($SPEED bauds) =="
+echo "== $NAME$SUFFIX -> $PORT ($SPEED bauds) =="
+if [ -n "$SUFFIX" ]; then
+  echo "== FIRMWARE DE BANC : entrees pilotables au clavier, NE PAS ROULER AVEC =="
+fi
 if ! "${AVRDUDE[@]}" -p atmega328p -c arduino -P "$PORT" -b "$SPEED" \
                      -D -U "flash:w:$HEX:i"; then
   echo

@@ -55,6 +55,7 @@ dans le `.ino`.
 | `bafang` | le port logiciel, le décodeur | — |
 | `telemetry` | vitesse consolidée, odomètre | `bafang`, `wheelspeed` |
 | `diag` | battement de cœur (point décimal de gauche), **voyant `OUT_FAULT`**, journal série, drapeaux de défaut | tous |
+| `simconsole` | l'injection des entrées au clavier — **banc d'essai seul**, ne compile rien si `SIM_INPUTS 0` | la console série |
 
 **Une sortie, un propriétaire.** Aucune sortie n'est écrite par deux modules.
 Les deux relais des feux arrière appartiennent à `lights` : `brakes` lui
@@ -82,7 +83,8 @@ firmware/vhelio/
     ├── bafang.h/.cpp   écoute passive + décodage
     ├── wheelspeed.h/.cpp capteur de roue par scrutation (option)
     ├── telemetry.h/.cpp vitesse consolidée, odomètre
-    └── diag.h/.cpp     LED, journal, défauts, autotest
+    ├── diag.h/.cpp     LED, journal, défauts, autotest
+    └── simconsole.h/.cpp entrées simulées au clavier — banc d'essai seul
 ```
 
 Le sous-dossier `src/` est compilé récursivement par l'IDE Arduino (≥ 1.6.6) et

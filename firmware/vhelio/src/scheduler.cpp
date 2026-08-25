@@ -34,6 +34,7 @@
 #include "inputs.h"
 #include "lights.h"
 #include "pins.h"
+#include "simconsole.h"
 #include "telemetry.h"
 #include "turnsignals.h"
 #include "wheelspeed.h"
@@ -55,6 +56,7 @@ void setup() {
 #endif
 
   diag::begin(mcusr);
+  simconsole::begin();      /* banc d'essai ; ne compile rien si SIM_INPUTS=0 */
   inputs::begin();
   brakes::begin();
   turnsignals::begin();
@@ -77,6 +79,7 @@ void loop() {
   const uint32_t now = millis();
 
   /* Acquisition ------------------------------------------------------- */
+  simconsole::poll();       /* avant inputs : les touches valent des bornes */
   bafang::poll(now);
   wheelspeed::update(now);
   inputs::update(now);

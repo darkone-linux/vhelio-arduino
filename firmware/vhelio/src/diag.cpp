@@ -8,6 +8,7 @@
 #include "horn.h"
 #include "inputs.h"
 #include "lights.h"
+#include "simconsole.h"
 #include "telemetry.h"
 #include "turnsignals.h"
 
@@ -163,6 +164,16 @@ void diag::update(uint32_t now) {
   const InputState& in = inputs::state();
   Serial.print(F("[VH] in="));
   for (uint8_t i = 0; i < IN_COUNT; ++i) Serial.print(in.level[i] ? '1' : '0');
+
+#if SIM_INPUTS
+  /* Quelles bornes ne sont PAS lues sur leur optocoupleur. Cette colonne est
+   * la seule chose qui distingue une ligne de journal de banc d'une ligne de
+   * journal de roulage : elle doit rester sous les yeux. */
+  Serial.print(F(" sim="));
+  for (uint8_t i = 0; i < IN_COUNT; ++i) {
+    Serial.print(simconsole::active(i) ? '1' : '0');
+  }
+#endif
 
   Serial.print(F(" VL=")); Serial.print(lights::parkOn());
   Serial.print(F(" PH=")); Serial.print(lights::mainOn());

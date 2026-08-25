@@ -21,7 +21,20 @@ FQBN="arduino:avr:nano:cpu=atmega328"
 
 # VHELIO_SKETCH permet de compiler tools/pinscan au lieu du firmware.
 SKETCH="${VHELIO_SKETCH:-$ROOT/firmware/vhelio}"
-OUTDIR="$ROOT/.build/$(basename "$SKETCH")"
+
+# VHELIO_SIM=1 : firmware de banc, entrees pilotables depuis la console.
+# Le drapeau vient de la ligne de commande et NON de config.h, qui reste ainsi
+# a 0 dans le depot : on ne peut pas oublier de l'y remettre. Le binaire va
+# dans un repertoire separe, sinon arduino-cli reutiliserait des objets
+# compiles avec l'autre jeu de drapeaux.
+SIM_FLAG=""
+SUFFIX=""
+if [ "${VHELIO_SIM:-0}" = "1" ]; then
+  SIM_FLAG=" -DSIM_INPUTS=1"
+  SUFFIX="-sim"
+fi
+
+OUTDIR="$ROOT/.build/$(basename "$SKETCH")$SUFFIX"
 
 # --- Ferme de liens ---------------------------------------------------------
 # arduino-cli exige un repertoire unique pour compiler.path, alors que nix
@@ -50,7 +63,7 @@ chmod +x "$TC_BIN/avr-gcc-ar"
 {
   echo "compiler.path=$TC_BIN/"
   echo "compiler.ar.cmd=avr-gcc-ar"
-  echo "compiler.cpp.extra_flags=-fno-use-cxa-atexit"
+  echo "compiler.cpp.extra_flags=-fno-use-cxa-atexit$SIM_FLAG"
 } > "$PLATFORM_DIR/platform.local.txt"
 
 # --- ctags ------------------------------------------------------------------

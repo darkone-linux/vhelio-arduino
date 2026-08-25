@@ -10,7 +10,10 @@ BUILD="$ROOT/tools/build-nix.sh"
 [ -x "$BUILD" ] || BUILD="$ROOT/tools/build.sh"
 
 cp "$CFG" "$CFG.bak"
-trap 'mv -f "$CFG.bak" "$CFG"' EXIT
+# Rendre config.h ET effacer le binaire : .build/vhelio contiendrait sinon la
+# DERNIERE variante compilee, que upload.sh televerserait sans rien signaler.
+# Depuis que le balayage couvre SIM_INPUTS, ce serait un firmware de banc.
+trap 'mv -f "$CFG.bak" "$CFG"; rm -rf "$ROOT/.build/vhelio"' EXIT
 
 set_opt() { sed -i -E "s/^(#define[[:space:]]+$1[[:space:]]+)[^ ]+.*$/\\1$2/" "$CFG"; }
 
@@ -53,6 +56,7 @@ run_case "rappel clignotant muet + page vitesse" \
 run_case "klaxon raccorde a la carte (voie IN3/R7)" \
   HORN_ENABLE 1 FAULT_LAMP_ENABLE 0
 run_case "sans voyant de defaut" FAULT_LAMP_ENABLE 0
+run_case "banc d'essai : entrees simulees a la console" SIM_INPUTS 1
 
 [ "$FAILED" = 0 ] && echo "== Toutes les variantes compilent ==" || echo "== ECHECS =="
 exit "$FAILED"

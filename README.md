@@ -90,6 +90,20 @@ VHELIO_SKETCH=$PWD/tools/pinscan ./tools/build-nix.sh
 VHELIO_SKETCH=$PWD/tools/pinscan ./tools/upload.sh /dev/ttyACM0 old
 ```
 
+Firmware de **banc**, avec les huit entrées pilotables au clavier depuis la
+console — de quoi dérouler la campagne 1 du plan de tests avant que le faisceau
+soit serti (`specs/08-plan-de-tests.md`) :
+
+```bash
+VHELIO_SIM=1 ./tools/build-nix.sh
+VHELIO_SIM=1 ./tools/upload.sh /dev/ttyACM0 old
+```
+
+`config.h` reste à `SIM_INPUTS 0` dans le dépôt : le drapeau vient de la ligne
+de commande, et le binaire va dans `.build/vhelio-sim`, jamais mêlé à celui de
+route. **Ce firmware ne doit pas rouler** — un caractère parasite sur la ligne
+série y ferme un contact de frein.
+
 Balayage de toutes les combinaisons d'options de `config.h` :
 
 ```bash
@@ -106,9 +120,14 @@ installer au niveau système.
 ### Empreinte mesurée
 
 Configuration par défaut, avr-gcc 15.3, `-Os -flto` :
-**8 890 octets de flash (28 %)** et **715 octets de RAM (34 %)** sur les
-30 720 / 2 048 disponibles. Compile sans avertissement dans les quatorze
-combinaisons d'options couvertes par `tools/check-variants.sh`.
+**8 886 octets de flash (28 %)** et **715 octets de RAM (34 %)** sur les
+30 720 / 2 048 disponibles. Compile sans avertissement dans les quinze
+combinaisons d'options couvertes par `tools/check-variants.sh`. Le firmware de
+banc coûte 910 octets de flash et 2 de RAM de plus ; à `SIM_INPUTS 0`, il ne
+coûte **rien du tout**, l'empreinte étant identique à l'octet près.
+
+Temps de cycle mesuré à vide : **265 µs**, pointe à 6,7 ms sur la seconde où le
+journal série est émis. Le seuil de défaut est à 10 ms.
 
 ## Régler le firmware
 
@@ -141,9 +160,13 @@ Le test T2.4 vérifie explicitement que **le moteur se coupe, Arduino
 débranché, aux deux freins**. Tant qu'il ne passe pas, ne pas rouler sur route
 ouverte.
 
-Vérifiez le brochage de votre carte avec `tools/pinscan` avant la première mise
-sous tension. Le brochage documenté ici vient de la bibliothèque de référence
-de la famille de cartes IO22/DN22, pas du datasheet de votre exemplaire précis.
+Le brochage documenté ici est **mesuré** sur une DN22D08, borne par borne et
+bit par bit — plus rien n'y est supposé. Il ne vaut pas pour autant pour une
+autre carte de la famille : celui de l'IO22D08, dont il était déduit au départ,
+s'est révélé faux sur les boutons, sur deux entrées, sur les quatre lignes de la
+chaîne et sur tout l'afficheur. Si votre exemplaire diffère, `tools/pinfind` et
+`tools/pinchain` le **découvrent** là où `tools/pinscan` ne sait que vérifier
+une hypothèse.
 
 > **Une hypothèse a déjà été prise en défaut sur ce projet.** La première
 > version supposait des sorties à transistor pilotées par des broches dédiées ;

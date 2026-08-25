@@ -2,6 +2,7 @@
 #include "board_io.h"
 #include "config.h"
 #include "debounce.h"
+#include "simconsole.h"
 
 namespace {
 
@@ -31,11 +32,22 @@ inline bool applyInversion(uint8_t idx, bool raw) {
   return raw;
 }
 
+/* Seul point du firmware où une entrée est lue. La simulation de banc s'y
+ * substitue borne par borne, EN AMONT de l'anti-rebond et de l'inversion :
+ * une entrée simulée traverse donc exactement le même chemin qu'un contact
+ * réel. Compilée à zéro quand SIM_INPUTS vaut 0. */
+inline bool readInput(uint8_t idx) {
+#if SIM_INPUTS
+  if (simconsole::active(idx)) return simconsole::level(idx);
+#endif
+  return board::readInputRaw(idx);
+}
+
 }  // namespace
 
 void inputs::begin() {
   for (uint8_t i = 0; i < IN_COUNT; ++i) {
-    const bool initial = applyInversion(i, board::readInputRaw(i));
+    const bool initial = applyInversion(i, readInput(i));
     g_db[i].begin(DEBOUNCE_MS[i], initial);
     g_state.level[i] = initial;
     g_state.rose[i] = false;
@@ -57,7 +69,7 @@ void inputs::update(uint32_t now) {
       continue;
     }
 #endif
-    g_db[i].update(applyInversion(i, board::readInputRaw(i)), now);
+    g_db[i].update(applyInversion(i, readInput(i)), now);
     g_state.level[i] = g_db[i].level();
     g_state.rose[i] = g_db[i].rose();
     g_state.fell[i] = g_db[i].fell();

@@ -8,13 +8,90 @@ tout validé dans la précédente.**
 ## Campagne 1 — Établi, sans le véhicule
 
 Matériel : Nano + DN22D08, alimentation de labo 12 V limitée à 1 A, huit LED +
-résistances en guise de charges, huit interrupteurs vers +12 V, un multimètre.
+résistances en guise de charges, **un fil volant vers la masse** (les entrées
+sont NPN : un contact vers GND, jamais vers le +12 V), un multimètre.
 
-### T1.1 — Brochage (bloquant)
+> **Le 12 V est obligatoire.** Sans lui, aucun relais ne colle — les bobines
+> sont en 12 V — et aucune entrée ne bouge, la LED de chaque optocoupleur étant
+> alimentée depuis le +12 V de la carte. L'afficheur, lui, s'allume sur l'USB
+> seul : c'est le discriminant (`03-affectation-es.md` §6).
 
-Suivre `03-affectation-es.md` §6 avec `tools/pinscan`.
+### Comment solliciter les entrées avant que le faisceau existe
 
-**Critères**, tous obligatoires :
+Deux méthodes, et elles cohabitent dans **la même compilation** :
+
+| | Fil volant vers GND | Console série (`SIM_INPUTS`) |
+|---|---|---|
+| Ce que ça exerce | Le chemin complet : borne, optocoupleur, broche, firmware | Le firmware seul, à partir de l'anti-rebond |
+| Combinaisons | Difficiles — trois mains pour détresse + frein + veilleuse | Immédiates, l'état est mémorisé |
+| Chronométrages | Peu commodes | Précis et reproductibles |
+| Ce que ça ne prouve pas | — | **Rien du câblage** |
+
+Le firmware de banc se compile à part, et le fichier versionné reste à `0` :
+
+```bash
+VHELIO_SIM=1 ./tools/build-nix.sh
+VHELIO_SIM=1 ./tools/upload.sh /dev/ttyACM0 old
+./tools/monitor.sh
+```
+
+Une touche prend la borne et **ferme** le contact ; la même touche le rouvre.
+Une entrée que la console n'a pas réquisitionnée continue d'être lue sur son
+optocoupleur — c'est ce qui permet de mener les deux méthodes de front.
+
+| Touche | Entrée | | Touche | Entrée |
+|---|---|---|---|---|
+| `1` ou `g` | IN1 clignotant gauche | | `5` ou `r` | IN5 frein arrière |
+| `2` ou `d` | IN2 clignotant droit | | `6` ou `v` | IN6 veilleuse |
+| `3` ou `q` | IN3 acquittement | | `7` ou `p` | IN7 phares |
+| `4` ou `a` | IN4 frein avant | | `8` ou `w` | IN8 détresse |
+
+`0` relâche les huit bornes en les gardant sous simulation, `x` les rend toutes
+au matériel, `?` rappelle l'aide.
+
+> **Ce firmware ne doit jamais rouler.** Un caractère parasite sur la ligne
+> série fermerait un contact de frein ou allumerait une détresse. Trois choses
+> le rappellent : un `#warning` à la compilation, une bannière au démarrage, et
+> la colonne `sim=` que porte **chaque** ligne du journal. Le binaire de route
+> est dans `.build/vhelio`, celui de banc dans `.build/vhelio-sim` : ils ne se
+> mélangent pas.
+>
+> **Chaque test doit finir par une passe au fil volant.** La simulation ne
+> prouve rien du câblage — c'est précisément pour cela qu'elle est utile : un
+> écart entre les deux méthodes désigne le matériel, jamais la logique.
+
+### Ce que la simulation a déjà établi — 25/08/2026, carte sur USB
+
+Premier passage du firmware de banc, **sans le 12 V** : les relais ne collent
+donc pas et rien n'a été jugé à l'oreille. Seules les décisions du firmware,
+lues au journal, sont validées ici.
+
+| Sollicitation | Observé | Couvre |
+|---|---|---|
+| `v` veilleuse | `VL=1 AR=1` | T1.3 ligne 1 |
+| `p` phares, veilleuse déjà fermée | `PH=1 VL=1 AR=1` | T1.3 ligne 2 — `MAIN_KEEPS_PARK`, et **F-1.7** |
+| `a` frein avant | `ST=1 CUT=1` | T1.5 ligne 1 |
+| `g` puis `d` | `TRN=-`, `flt=0x05 LAMP` | T1.4 ligne 3 **et** T1.6 ligne 2 : conflit, les deux clignotants éteints, voyant allumé |
+| `d` relâché | `TRN=L`, `flt=0x04`, plus de `LAMP` | Le conflit disparaît de lui-même |
+| `w` détresse | `TRN=H` | T1.4 ligne 4 |
+| `g` maintenu | `TRN=L!` **au 45ᵉ tour de journal** | T1.4 ligne 5 : `BLINK_REMINDER_MS` respecté à la seconde près |
+| Aucune source Bafang | `flt=0x04` en permanence, **jamais** `LAMP` | T1.6 ligne 5 — le principe P2, le critère le plus important de ce test |
+| Boucle à vide | `loop=265 µs`, pointe **6,7 ms** sur la ligne de journal | T1.8, marge confortable sous les 10 ms |
+
+**Ce que cela ne prouve pas** : aucun optocoupleur, aucune bobine, aucun
+contact n'a été traversé. Tout le tableau reste à rejouer au fil volant, carte
+alimentée en 12 V — c'est là que se jouent les chronométrages de cadence, le
+maintien de 300 ms sur R8 et le délai des 50 ms du feu stop.
+
+### T1.1 — Brochage (bloquant) — **fait**
+
+Le brochage supposé était faux ; il a fallu le découvrir au lieu de le
+vérifier. Quatre campagnes de mesure, détaillées en `03-affectation-es.md`
+§6 bis (entrées, boutons), §6 ter (afficheur) et §6 quater (glyphes et
+multiplexage). Résultat consigné dans `pins.h` et `board_io.cpp` : **plus rien
+n'y est supposé**.
+
+**Critères**, tous obligatoires — à rejouer si la carte est remplacée :
 - un digit s'allume sur l'afficheur → la chaîne de registres répond ;
 - les relais collent **un par un**, dans l'ordre annoncé sur la console →
   `RELAY_BIT[]` est correct ;
@@ -116,7 +193,13 @@ recalculer quoi que ce soit. **Retirer l'injection ensuite.**
 
 ### T1.8 — Temps de cycle
 
-Lire `loopMax` au journal après 5 min.
+Lire `loopMax` au journal après 5 min. **Avec le binaire de route**, pas celui
+de banc : afficher l'aide (`?`) tient la boucle ~19 ms — quatre lignes à écouler
+dans un tampon série de 64 octets — ce qui gonfle `loopMax` et mémorise un
+`FLT_LOOP_SLOW` sans rapport avec le firmware embarqué. L'acquittement (touche
+`3`) l'efface. Mesuré à vide : **~265 µs par tour, pointe à 6,7 ms** sur la
+ligne de journal elle-même, qui est de loin le plus long traitement du cycle.
+
 **Critère** : < 10 ms (F-6.6). Attention, avec `BAFANG_ENABLE 1` et une source
 UART branchée, des pics à ~9 ms sont normaux (`SoftwareSerial`).
 
@@ -232,17 +315,21 @@ Avec `BAFANG_LEARN_MODE 1`, suivre la procédure de calibration de
 
 ## Journal de recette
 
+Une case n'est **OK** que si le test a été mené carte alimentée en 12 V, feux
+ou LED témoins branchés. « Simulé » veut dire que la logique est vérifiée et
+que le matériel ne l'est pas.
+
 | Test | Date | Résultat | Observations |
 |---|---|---|---|
-| T1.1 | | | |
+| T1.1 | 25/08/2026 | **OK** | Brochage entièrement mesuré, pas confirmé : `pinfind`, `pinchain`, `pindisp`, `dispcheck`. Voir `03` §6 bis à §6 quater |
 | T1.2 | | | |
-| T1.3 | | | |
-| T1.4 | | | |
-| T1.5 | | | |
-| T1.6 | | | |
+| T1.3 | 25/08/2026 | simulé | Lignes 1 et 2 OK au journal, dont F-1.7. Relais non entendus, 12 V absent |
+| T1.4 | 25/08/2026 | simulé | Conflit, détresse et rappel à 45 s OK. **Cadence non chronométrée** |
+| T1.5 | 25/08/2026 | simulé | Frein avant → `ST=1 CUT=1`. Maintien de 300 ms et délai de 50 ms non mesurés |
+| T1.6 | 25/08/2026 | simulé | Voyant sur conflit, **pas** sur perte du bus Bafang (P2). Acquittement non rejoué |
 | T1.7 | | | |
 | T1.7 bis | | | |
-| T1.8 | | | |
+| T1.8 | 25/08/2026 | simulé | 265 µs par tour, pointe 6,7 ms. À reprendre 5 min avec le binaire de route |
 | T2.1 | | | |
 | T2.2 | | | |
 | T2.3 | | | |

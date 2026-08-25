@@ -190,6 +190,31 @@
 #define BRAKE_NEVER_MM            2000000UL /* 2 km sans freinage => défaut   */
 
 /* ======================================================================
+ * Banc d'essai — simulation des entrées depuis la console
+ * ====================================================================== */
+
+/* 1 = les huit entrées peuvent être forcées au clavier, borne par borne, pour
+ * dérouler la campagne 1 du plan de tests avant que le faisceau soit serti.
+ * Une entrée que la console n'a pas réquisitionnée reste lue sur son
+ * optocoupleur : les deux méthodes d'injection — clavier et fil volant vers la
+ * masse — cohabitent dans la même compilation et se recoupent.
+ *
+ * DOIT VALOIR 0 SUR LE VÉHICULE. Ce n'est pas qu'une précaution de principe :
+ * un caractère parasite sur la ligne série suffirait à fermer un contact de
+ * frein ou à allumer une détresse. Trois garde-fous rendent l'oubli difficile
+ * — un #warning à la compilation, une bannière au démarrage, et la colonne
+ * `sim=` que le journal porte à chaque ligne. Voir src/simconsole.h.
+ *
+ * On ne le met PAS à 1 ici. Le banc se compile avec
+ *     VHELIO_SIM=1 ./tools/build-nix.sh
+ * qui définit -DSIM_INPUTS=1 et compile dans .build/vhelio-sim, séparé du
+ * binaire de route. Le fichier versionné reste ainsi toujours à 0 : on ne peut
+ * pas oublier de le remettre, puisqu'on ne l'a pas touché. */
+#ifndef SIM_INPUTS
+#define SIM_INPUTS                0
+#endif
+
+/* ======================================================================
  * Cohérence des options
  * ====================================================================== */
 
@@ -227,4 +252,12 @@
 
 #if BRAKE_FLASH_ENABLE
 #warning "Flash d'attaque actif : usure mecanique acceleree du relais de stop"
+#endif
+
+#if SIM_INPUTS && !DEBUG_SERIAL
+#error "SIM_INPUTS exige DEBUG_SERIAL 1 : les commandes arrivent par la console"
+#endif
+
+#if SIM_INPUTS
+#warning "SIM_INPUTS actif : entrees pilotables au clavier. NE PAS ROULER AVEC."
 #endif
