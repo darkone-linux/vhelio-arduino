@@ -11,7 +11,7 @@
 # verification de brochage au lieu du firmware.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
 exec nix shell \
   nixpkgs#pkgsCross.avr.buildPackages.gcc \

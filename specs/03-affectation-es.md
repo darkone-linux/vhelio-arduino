@@ -269,12 +269,26 @@ initiale à optocoupleur.
 
 À faire **avant** de brancher autre chose que l'USB.
 
-1. Téléverser le croquis de contrôle :
+1. Téléverser le croquis de contrôle. **`VHELIO_SKETCH` est nécessaire aux
+   deux commandes** : chaque croquis a son propre répertoire de compilation,
+   et `upload.sh` ne compile pas — il téléverse ce que la compilation a
+   produit.
    ```bash
    VHELIO_SKETCH=$PWD/tools/pinscan ./tools/build-nix.sh
-   ./tools/upload.sh /dev/ttyUSB0
+   VHELIO_SKETCH=$PWD/tools/pinscan ./tools/upload.sh
    ```
-2. Ouvrir la console à 115 200 bauds.
+   Le port est détecté seul (`/dev/ttyACM0` pour un Nano officiel,
+   `/dev/ttyUSB0` pour un clone à CH340) ; le passer en argument pour forcer.
+
+   > **Prérequis NixOS.** Le port série appartient à `root:dialout` et
+   > l'utilisateur n'est pas dans ce groupe par défaut. `upload.sh` le vérifie
+   > avant de lancer avrdude et donne la ligne de configuration à ajouter. La
+   > session doit être **rouverte** après le `nixos-rebuild switch`.
+
+2. Ouvrir la console à 115 200 bauds :
+   ```bash
+   ./.arduino/bin/arduino-cli monitor -p /dev/ttyACM0 -c baudrate=115200
+   ```
 3. **Chaîne de registres.** Un digit doit s'allumer sur l'afficheur et les
    relais doivent coller **un par un**, 1,5 s chacun, dans l'ordre annoncé.
    - Si rien ne bouge : les broches data / horloge / verrou sont fausses.

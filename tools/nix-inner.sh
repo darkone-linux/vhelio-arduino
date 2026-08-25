@@ -3,12 +3,16 @@
 # Ne pas lancer directement.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ARDUINO_DIR="$ROOT/.arduino"
 CLI="$ARDUINO_DIR/bin/arduino-cli"
 PLATFORM_DIR="$ARDUINO_DIR/data/packages/arduino/hardware/avr/1.8.8"
 CTAGS_STUB="$ARDUINO_DIR/data/packages/builtin/tools/ctags/5.8-arduino11/ctags"
-TC_BIN="$ROOT/.build/toolchain/bin"
+# La ferme de liens NE DOIT PAS etre sous .build/ : arduino-cli considere
+# --build-path comme son repertoire a lui et le VIDE des qu'il change de
+# croquis. La chaine de compilation disparaissait donc au premier build
+# suivant, avec un "no such file or directory: .../avr-g++" a la cle.
+TC_BIN="$ARDUINO_DIR/toolchain/bin"
 
 [ -x "$CLI" ] || { echo "Lancer d'abord ./tools/setup.sh"; exit 1; }
 

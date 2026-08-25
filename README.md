@@ -58,15 +58,22 @@ actionneur de sécurité redondant.
 ./tools/setup.sh          # installe arduino-cli + coeur AVR dans ./.arduino
 ./tools/build-nix.sh      # compile (NixOS)
 ./tools/build.sh          # compile (distribution classique)
-./tools/upload.sh /dev/ttyUSB0
+./tools/upload.sh         # televerse (port detecte seul)
 ```
 
-Ajouter `old` en argument pour un Nano à ancien bootloader.
+Ajouter `old` en second argument pour un Nano à ancien bootloader ; le port se
+force en premier argument (`./tools/upload.sh /dev/ttyACM0 old`).
 
-Croquis de vérification du brochage :
+`upload.sh` **ne compile pas** : il téléverse le résultat de la compilation
+précédente. Sous NixOS, l'utilisateur doit appartenir au groupe `dialout` — le
+script le vérifie et donne la marche à suivre.
+
+Croquis de vérification du brochage (`VHELIO_SKETCH` vaut pour les deux
+commandes, chaque croquis ayant son propre répertoire sous `.build/`) :
 
 ```bash
 VHELIO_SKETCH=$PWD/tools/pinscan ./tools/build-nix.sh
+VHELIO_SKETCH=$PWD/tools/pinscan ./tools/upload.sh
 ```
 
 Balayage de toutes les combinaisons d'options de `config.h` :

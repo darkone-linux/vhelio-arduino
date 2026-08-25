@@ -3,7 +3,7 @@
 # rien n'est installe au niveau systeme).
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ARDUINO_DIR="$ROOT/.arduino"
 BIN_DIR="$ARDUINO_DIR/bin"
 

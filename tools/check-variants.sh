@@ -4,7 +4,7 @@
 # pas prise : sans ce balayage, une variante peut rester cassee des mois.
 set -uo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 CFG="$ROOT/firmware/vhelio/src/config.h"
 BUILD="$ROOT/tools/build-nix.sh"
 [ -x "$BUILD" ] || BUILD="$ROOT/tools/build.sh"
