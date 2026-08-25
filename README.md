@@ -59,6 +59,7 @@ actionneur de sécurité redondant.
 ./tools/build-nix.sh      # compile (NixOS)
 ./tools/build.sh          # compile (distribution classique)
 ./tools/upload.sh         # televerse (port detecte seul)
+./tools/monitor.sh        # console serie a 115200 bauds
 ```
 
 **Le Nano de ce projet porte un ancien bootloader : le mot-clé `old`
@@ -70,7 +71,10 @@ actionneur de sécurité redondant.
 ```
 
 Seul `upload.sh` en a besoin : `atmega328` et `atmega328old` produisent le même
-binaire et ne diffèrent que par le débit. Le nom du port ne renseigne pas sur la
+binaire et ne diffèrent que par le débit. **Ce 57 600 est celui du bootloader,
+pas celui des croquis** — la console, elle, reste à 115 200
+(`Serial.begin`). `monitor.sh` remplace `arduino-cli monitor`, inutilisable sur
+NixOS (outil `serial-monitor` prébuilt, même défaut de lien dynamique). Le nom du port ne renseigne pas sur la
 carte — celle-ci sort en `/dev/ttyACM0` (pont USB-CDC générique) là où un Nano
 officiel à FT232RL sort en `/dev/ttyUSB0`.
 

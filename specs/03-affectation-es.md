@@ -314,8 +314,20 @@ initiale à optocoupleur.
 
 2. Ouvrir la console à 115 200 bauds :
    ```bash
-   ./.arduino/bin/arduino-cli monitor -p /dev/ttyACM0 -c baudrate=115200
+   ./tools/monitor.sh
    ```
+
+   > **115 200 est le débit des croquis** (`Serial.begin`). Le 57 600 de
+   > l'étape 1 est celui de l'ancien bootloader et ne vaut **que pendant le
+   > téléversement**. Les confondre donne une console illisible, pas une
+   > console muette — c'est ce qui rend la confusion tenace.
+   >
+   > **Ne pas utiliser `arduino-cli monitor` sur NixOS.** Il réclame l'outil
+   > prébuilt `builtin:serial-monitor`, lié dynamiquement contre un `/lib`
+   > inexistant, et échoue sur `No monitor available for the port protocol
+   > serial` après l'avoir téléchargé. Lancé sans les variables
+   > `ARDUINO_DIRECTORIES_*`, il peuple en prime `~/.arduino15` au lieu du
+   > `./.arduino` du dépôt. `monitor.sh` n'utilise que `stty` et `cat`.
 3. **Chaîne de registres.** Un digit doit s'allumer sur l'afficheur et les
    relais doivent coller **un par un**, 1,5 s chacun, dans l'ordre annoncé.
    - Si rien ne bouge : les broches data / horloge / verrou sont fausses.

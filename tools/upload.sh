@@ -94,4 +94,4 @@ if ! "${AVRDUDE[@]}" -p atmega328p -c arduino -P "$PORT" -b "$SPEED" \
   exit 1
 fi
 
-echo "== Televerse. Console : $CLI monitor -p $PORT -c baudrate=115200 =="
+echo "== Televerse. Console : $ROOT/tools/monitor.sh $PORT =="
