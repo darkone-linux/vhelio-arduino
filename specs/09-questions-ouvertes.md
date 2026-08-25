@@ -2,33 +2,14 @@
 
 Ce qui reste à trancher pour figer la conception. Classé par urgence.
 
-**Quatorze questions ont été posées, douze sont tranchées.** Les deux
-restantes attendent du matériel ou une manipulation, pas une décision. Le détail de chaque
+**Quatorze questions ont été posées, treize sont tranchées.** La seule
+restante attend une roue, pas une décision. Le détail de chaque
 réponse et ses conséquences sont dans les documents concernés ; ce fichier
 n'en garde que la conclusion et ce qui reste à faire.
 
 ---
 
 ## Encore ouvert
-
-### Q1 — Confirmer le brochage au pinscan *(bloquant avant tout câblage)*
-
-Le brochage retenu vient de la bibliothèque de référence de la famille
-IO22/DN22, pas du datasheet de cet exemplaire précis. Trois points restent
-à confirmer, et le troisième conditionne le sertissage du faisceau :
-
-1. **L'ordre des relais.** `RELAY_BIT[]` place R8 sur le bit 0 — bizarrerie
-   documentée mais non vérifiée ici.
-2. **L'ordre des boutons.** La sérigraphie `K1..K4` serait imprimée à
-   l'envers : le poussoir marqué `K4` serait celui relié à D7.
-3. **La polarité des entrées.** ~~À déterminer~~ — **confirmée NPN par la
-   fiche du constructeur** : « 8x opto-isolated inputs (low level trigger, NPN
-   type) ». On active une borne en la fermant sur la **masse**, et tous les
-   communs du faisceau vont donc à la masse. Il ne reste qu'à le vérifier au
-   passage.
-
-**Action** : dérouler `03-affectation-es.md` §6 avec `tools/pinscan`. Une
-demi-heure, avant de sertir quoi que ce soit.
 
 ### Q10 — Circonférence de roue
 
@@ -39,6 +20,57 @@ fonction de sécurité**. À corriger quand la roue sera montée.
 ---
 
 ## Tranché
+
+### ~~Q1 — Confirmer le brochage au pinscan~~ — **entièrement mesuré**
+
+La question demandait de *confirmer* trois points. Les trois sont tranchés,
+mais aucun ne l'a été par confirmation : le brochage supposé était faux, et il
+a fallu le **découvrir** au lieu de le vérifier. `tools/pinscan` ne sait que
+vérifier une hypothèse ; il ne peut rien dire quand c'est l'hypothèse qui est
+fausse. D'où trois outils de plus — `pinfind`, `pinchain`, `pindisp` — et un
+quatrième, `dispcheck`, pour valider l'assemblage des mesures.
+
+Les trois points posés :
+
+1. **L'ordre des relais.** **Correspondance directe**, bit 0 → CH1 … bit 7 →
+   CH8. Le décalage de l'IO22D08, où le relais 8 occupait le bit 0, **n'existe
+   pas sur la DN22D08**. `RELAY_BIT[]` est devenu l'identité — on le garde
+   quand même, il coûte huit octets et garde le firmware indifférent à la
+   question.
+2. **L'ordre des boutons.** **Il n'y a rien à inverser** : K1 est bien le
+   poussoir de gauche. Ce sont les **numéros de broche** qui décroissent de
+   gauche à droite — 12, 10, 8, puis A0 (= 14) — et c'est cette décroissance
+   qui a fait parler d'une sérigraphie « inversée » sur les cartes voisines.
+3. **La polarité des entrées.** **NPN confirmée à la masse**, conformément à la
+   fiche du constructeur. Tous les communs du faisceau vont à GND. Le
+   sertissage n'est plus bloqué.
+
+Ce que la question ne demandait pas, et que la mesure a livré :
+
+| | Supposé (bibliothèque IO22D08) | **Mesuré (DN22D08)** |
+|---|---|---|
+| Boutons K1..K4 | D7, D8, D9, D10 | **D12, D10, D8, A0** |
+| IN6 / IN7 | A0 / D12 | **D7 / D9** |
+| Chaîne données / horloge / verrou | D13 / A3 / A2 | **A5 / A4 / A3** |
+| Validation OE | A1 | **A2**, active à l'état bas |
+| Afficheur | 1 octet segments + 1 octet sélection | **segments répartis sur les deux octets**, sélection **active à l'état bas** |
+| Deux-points | supposé présent | **inexistant** — rien que des points décimaux |
+
+Deux conséquences se paient, aucune n'est bloquante :
+
+- **L'écoute Bafang déménage sur A1.** A4 lui était réservée ; la chaîne a pris
+  A4 et A5, l'OE a pris A2. A1 est la dernière broche libre à interruption sur
+  changement d'état — A6 et A7 sont analogiques seules. D13 hérite du TX
+  logiciel, non câblé, ce qui laisse la **LED du Nano allumée en fixe**.
+- **Le battement de cœur passe sur le point décimal du digit de gauche**, à
+  défaut de deux-points. Aucun format numérique ne réclame ce point-là.
+
+Détail complet en `03-affectation-es.md` §2, §6 bis, §6 ter et §6 quater.
+
+> **Ce que cet épisode valide.** Le brochage était concentré dans `pins.h` et
+> deux tableaux de `board_io.cpp`, et la couche `board_io` existait déjà comme
+> abstraction. Quatre campagnes de mesure ont réfuté le brochage supposé sur
+> presque tous les points **sans qu'un seul module métier soit touché**.
 
 ### ~~Q2 — Nature des sorties~~ — **relais**
 
@@ -232,7 +264,7 @@ ci-dessus devient gênante à l'usage.
 | Convertisseur 48/12 V donné pour 72 V | ~15 € | Aucun, au prochain achat |
 | Lecture du MPPT en VE.Direct | Faible | Plus d'UART libre (`04-electricite.md` §7) |
 | ~~Écran de bord dédié~~ | — | Sans objet : la carte a son afficheur… mais il est sous la coque |
-| Journalisation sur carte SD | Élevé | Le SPI est inutilisable : D11/D12 sont des entrées, D13 la ligne de données du registre |
+| Journalisation sur carte SD | Élevé | Le SPI est inutilisable : D11 porte IN8, D12 le bouton K1, D13 le TX Bafang |
 | Détection de rupture de lampe | Élevé | Nécessite une mesure de courant par voie |
 | Arrêt d'urgence par la broche OE | Faible | Déjà câblé et implémenté ; il ne reste qu'à définir sa condition de déclenchement |
 | Forçage du niveau d'assistance | Élevé | Impose l'interposition UART, écartée (`05` §8) |

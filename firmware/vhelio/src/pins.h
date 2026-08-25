@@ -16,7 +16,8 @@
  * ne couvre que l'IO22D08 : la DN22D08 en diffère sur les boutons et sur deux
  * des huit entrées. Le brochage ci-dessous est celui de la DN22D08 réelle.
  *
- * Reste inconnu : la chaîne à décalage. Voir le bloc en fin de fichier.
+ * Plus rien n'est supposé ici : entrées, boutons, chaîne à décalage, OE et
+ * afficheur ont tous été mesurés (specs/03 §6 bis à §6 quater).
  */
 #pragma once
 
@@ -89,7 +90,7 @@ enum BtnIdx : uint8_t {
   BTN_COUNT    = 4
 };
 
-/* ---- Chaîne de registres à décalage — NON CONFIRMÉ -----------------------
+/* ---- Chaîne de registres à décalage — MESURÉ -----------------------------
  * MESURÉ avec tools/pinchain (specs/03 §6 bis, phase B), triplet 120 sur 120.
  * La signature ne laisse pas de place au doute : en promenant un seul bit à
  * travers la chaîne, on obtient un relais à la fois sur les huit premières
@@ -123,9 +124,8 @@ enum BtnIdx : uint8_t {
 #define SR_LATCH_BIT    PC3
 
 /* ---- Broches restées libres ---------------------------------------------
- * A4 et A5 sont les seules broches libres capables d'interruption sur
- * changement d'état, donc les seules utilisables en RX logiciel.
- * A6/A7 sont libres mais analogiques seules.
+ * A6/A7 sont libres mais analogiques seules : sans PCINT, donc inutilisables
+ * en RX logiciel.
  * D0/D1 : console série. La carte embarque bien un RS485 sur D0/D1, mais un
  * inverseur à glissière « 485_ON / PRO » l'en déconnecte. Position **PRO**
  * en permanence : la console et le téléversement USB fonctionnent alors

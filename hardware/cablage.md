@@ -49,14 +49,18 @@ unipolaire.
 | Acquittement défaut | gris | Bouton poussoir NO au tableau de bord | IN3 | D4 |
 | Frein avant | brun | Contacteur AV (contact sec unipolaire) | IN4 | D5 |
 | Frein arrière | brun/blanc | Micro-rupteur S2 sur levier AR | IN5 | D6 |
-| Veilleuse | jaune | Interrupteur dédié S3 | IN6 | A0 |
-| Éclairage fort | bleu | Comodo | IN7 | D12 |
+| Veilleuse | jaune | Interrupteur dédié S3 | IN6 | D7 |
+| Éclairage fort | bleu | Comodo | IN7 | D9 |
 | Détresse | orange | Interrupteur dédié S1 | IN8 | D11 |
 | **Masse commune** | noir | Masse châssis | Commun de tous les contacts |
 
-> Le pinscan reste à dérouler (`specs/03` §6, étape 4), mais il ne s'agit plus
-> que d'une confirmation de trente secondes : la polarité est donnée par le
-> constructeur.
+> **Colonne « broche Nano » corrigée après mesure.** IN6 était donnée sur A0 et
+> IN7 sur D12, d'après la bibliothèque de l'IO22D08 ; la DN22D08 les porte sur
+> **D7** et **D9** (`specs/03` §6 bis). Cela ne change rien au sertissage — on
+> câble sur les **borniers** IN1..IN8 — mais tout au dépannage au multimètre.
+>
+> La polarité NPN est **mesurée**, pas seulement annoncée : chaque borne reliée
+> à la masse fait bien passer son chiffre à `0`. Les communs vont à GND.
 
 ## 3. Faisceau « puissance » — depuis les relais
 

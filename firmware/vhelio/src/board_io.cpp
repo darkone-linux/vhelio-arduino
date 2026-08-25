@@ -18,9 +18,7 @@ const bool IN_ACTIVE_LOW[IN_COUNT] = {
 };
 
 /* Position du bit de chaque relais dans l'octet du registre.
- * L'ordre n'est pas séquentiel : le relais 8 occupe le bit 0, les relais
- * 1 à 7 les bits 1 à 7. C'est le câblage de la carte, pas une erreur. */
-/* Mesuré : bit 0 -> CH1, bit 1 -> CH2, ... bit 7 -> CH8. La correspondance
+ * Mesuré : bit 0 -> CH1, bit 1 -> CH2, ... bit 7 -> CH8. La correspondance
  * est DIRECTE. Le décalage de l'IO22D08, où le relais 8 occupait le bit 0,
  * n'existe pas sur la DN22D08. Le tableau est conservé quand même : il coûte
  * huit octets de flash et garde le reste du firmware indifférent à la
