@@ -189,7 +189,9 @@ dit lequel), et la vitesse, la charge et l'odomètre, sur les pages suivantes.
 
 **Le numéro du point s'affiche sur le digit de droite**, et l'afficheur
 s'éteint complètement deux secondes à chaque changement : c'est ce noir qui
-marque le passage au point suivant.
+marque le passage au point suivant. Les deux lignes à `0` sont des
+entre-étapes : elles se déroulent bien à leur place dans la séquence, mais ne
+portent pas de numéro.
 
 | # | Ce qui doit se produire | Ce que ça prouve |
 |---|---|---|
@@ -199,17 +201,16 @@ marque le passage au point suivant.
 | 4 | **3 claquements** simultanés, tout retombe | Aucune sortie ne reste collée |
 | 5 | **30 cycles en 22,5 s ± 1 s** au chronomètre, afficheur `CLG5` | La cadence réglementaire, 80 cycles/min dans la plage 60–120. **Seul contrôle qui ne peut se faire qu'à l'oreille** |
 | 6 | **Silence total** pendant 5 s, plus 1 claquement de R7, afficheur `Err6` | Gauche et droite demandés ensemble éteignent les deux et allument le voyant |
+| `0` | Détresse : R3 et R4 claquent **en phase** — le claquement est double —, afficheur `CL2 0` | Les deux clignotants sont commandés ensemble et non en alternance : c'est ce qui distingue la détresse d'un clignotant simple, à l'oreille comme à l'œil |
 | 7 | Le relâchement du frein en **deux temps** : R6 aussitôt, R8 environ 300 ms plus tard | `BRAKE_HOLD_MS` : l'assistance ne se réengage pas par à-coups sur un levier modulé |
+| `0` | Acquittement : le conflit colle R7 **et l'y laisse**, l'appui sur K3 le fait retomber (afficheur `AC`), puis **un second conflit le rallume** | L'acquittement porte sur l'événement, pas sur le défaut : il éteint le voyant sans jamais aveugler le suivant |
 | 8 | Le rythme devient **syncopé** — bref allumé, long éteint — **sans que la cadence change**, et l'afficheur passe de `CLG8` à `CLO8` | Le rappel d'oubli des clignotants, seul canal vers le conducteur une fois la coque fermée |
 
-Entre le point 6 et le point 7, la détresse fait claquer R3 et R4 **en phase** :
-le claquement est double, et c'est ce qui la distingue à l'oreille d'un
-clignotant simple.
-
-**Le digit de droite revient à `0` entre les points**, et c'est voulu : la
-détresse (9 s) puis tout le cycle d'acquittement (24 s) ne sont pas des points
-numérotés. Sur les 181 s de la séquence, une trentaine se passent donc à `0`.
-Voir `0` ailleurs qu'à ces deux endroits est en revanche une anomalie.
+**Le digit de droite revient à `0` pendant ces deux entre-étapes**, et c'est
+voulu : la détresse (9 s) puis tout le cycle d'acquittement (24 s) ne sont pas
+des points numérotés. Sur les 181 s de la séquence, une trentaine se passent
+donc à `0`. Voir `0` ailleurs qu'à ces deux endroits est en revanche une
+anomalie.
 
 > **Le test d'afficheur se produit deux fois si l'on vient de téléverser.**
 > `upload.sh` redémarre la carte en fin de téléversement, puis `seq-banc.sh`
