@@ -400,6 +400,54 @@ elle, fonctionne parfaitement sans.
 7. Reporter les écarts dans `firmware/vhelio/src/pins.h` et
    `firmware/vhelio/src/board_io.cpp`.
 
+## 6 bis. Quand le pinscan ne montre rien — découvrir le brochage
+
+Symptôme : Nano bien enfiché, carte alimentée, 5 V présent au support, et
+pourtant **ni bouton, ni afficheur, ni relais**. Les poussoirs et l'afficheur
+n'ont rien en commun sauf la liaison au Nano ; qu'ils soient morts tous les
+deux, alors que la liaison est bonne, ne laisse qu'une explication : **le
+brochage supposé est faux**.
+
+C'est le §7 qui se répète un cran plus bas. Le brochage de `pins.h` vient de
+`af3556/IO22_IO_Board`, bibliothèque qui déclare ne couvrir que l'**IO22D08**
+et l'IO22C04. La **DN22D08** est un produit voisin mais distinct — rail DIN,
+RS485, 12/24 V — et rien ne garantit qu'elle partage le brochage de l'IO22D08.
+
+`tools/pinscan` ne sait que **vérifier** un brochage supposé ; il ne peut donc
+rien dire quand c'est l'hypothèse elle-même qui est fausse.
+`tools/pinfind` le **découvre**.
+
+### Phase A — les entrées et les boutons
+
+```bash
+VHELIO_SKETCH=$PWD/tools/pinfind ./tools/build-nix.sh
+VHELIO_SKETCH=$PWD/tools/pinfind ./tools/upload.sh /dev/ttyACM0 old
+./tools/monitor.sh
+```
+
+Toutes les broches utilisables passent en `INPUT_PULLUP` et **aucune n'est
+pilotée en sortie** : aucun conflit possible avec ce que la carte impose, quel
+que soit son brochage réel. Ce croquis ne peut rien abîmer.
+
+1. Appuyer sur les poussoirs, un par un → donne `BTN_PIN[]`. Ne demande pas le
+   12 V, les poussoirs sont câblés directement au Nano.
+2. Carte alimentée, relier chaque borne d'entrée à la masse → donne `IN_PIN[]`,
+   et confirme la polarité NPN au passage.
+
+> `D13` lit `0` en permanence et ce **n'est pas** un signal de la carte : la
+> LED intégrée du Nano charge le tirage interne, qui ne fait que ~30 kΩ. Vrai
+> sur n'importe quel Arduino, carte ou pas.
+
+Les broches qui ne bougent **jamais** sont les candidates de la chaîne de
+registres. C'est ce que la phase A produit de plus utile : elle réduit
+l'espace de recherche de la phase B à quatre ou cinq broches.
+
+### Phase B — la chaîne de registres
+
+À écrire quand la phase A aura livré la liste des broches restantes : le jeu
+de candidats en dépend, et l'écrire avant reviendrait à refaire l'erreur qui
+nous a menés ici — coder une hypothèse plutôt que la mesurer.
+
 ## 7. Comment l'hypothèse initiale a été invalidée
 
 Elle venait d'un mapping très répandu sur les cartes rail DIN pour Nano
