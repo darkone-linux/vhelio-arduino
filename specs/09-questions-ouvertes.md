@@ -219,8 +219,11 @@ glissière `485_ON` / `PRO`** l'en déconnecte.
 L'afficheur 4 digits devient un **outil de maintenance**, pas un tableau de
 bord. Trois conséquences, toutes traitées :
 
-1. `DISPLAY_DEFAULT_PAGE` passe à **2 (défauts)** : c'est ce qu'on veut voir en
-   ouvrant la coque.
+1. `DISPLAY_DEFAULT_PAGE` passe à **0 (événements)** : c'est ce qu'on veut voir
+   en ouvrant la coque. La page dit en clair ce qui vient de se produire —
+   `Fr`, `Ph`, `Err` — plutôt qu'un code hexadécimal qui suppose d'avoir la
+   documentation sous les yeux. Le code reste sur la page défauts, au bouton
+   K1 : « Err » dit qu'il y a un défaut, elle seule dit lequel.
 2. **Le seul canal vers le conducteur en marche est le claquement des relais.**
    Le rappel d'oubli des clignotants l'exploite : il raccourcit la phase
    allumée de 375 à 200 ms **sans toucher à la période**. La cadence reste à

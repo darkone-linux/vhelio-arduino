@@ -16,11 +16,20 @@
 
 namespace board {
 
-/* Glyphes disponibles sur l'afficheur 4 digits. */
+/* Glyphes disponibles sur l'afficheur 4 digits.
+ *
+ * Les lettres sont celles que sept segments savent rendre sans ambiguïté. Deux
+ * substitutions d'usage : `U` tient lieu de V (impossible à dessiner), et le
+ * `l` minuscule est proscrit — une barre verticale seule ne se distingue pas
+ * d'un `1`, d'où `L` majuscule pour la gauche.
+ *
+ * GL_TEST allume TOUT, point compris : c'est le test de l'afficheur au
+ * démarrage, seul moyen de découvrir un segment mort. */
 enum Glyph : uint8_t {
   GL_0 = 0, GL_1, GL_2, GL_3, GL_4, GL_5, GL_6, GL_7, GL_8, GL_9,
   GL_BLANK = 10, GL_O = 11, GL_n = 12, GL_F = 13, GL_E = 14, GL_r = 15,
-  GL_UNDER = 16
+  GL_UNDER = 16, GL_DASH = 17, GL_P = 18, GL_h = 19, GL_U = 20,
+  GL_C = 21, GL_L = 22, GL_TEST = 23
 };
 
 void begin();

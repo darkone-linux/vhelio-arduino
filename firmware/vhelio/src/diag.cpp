@@ -81,6 +81,17 @@ void diag::selfTest() {
     OUT_FAULT
 #endif
   };
+
+  /* Tous les segments et tous les points, pendant que les relais claquent.
+   * Un segment mort ne se découvre que là : en usage normal, il ne
+   * manquerait qu'un morceau de caractère, ce qui se lit comme un autre
+   * caractère plutôt que comme une panne. */
+  const uint32_t tLamp = millis();
+  const uint8_t all[4] = {
+    board::GL_TEST, board::GL_TEST, board::GL_TEST, board::GL_TEST
+  };
+  board::showGlyphs(all);
+
   for (uint8_t i = 0; i < sizeof(seq); ++i) {
     board::setOutput(seq[i], true);
     const uint32_t t0 = millis();
@@ -89,6 +100,14 @@ void diag::selfTest() {
     }
     board::setOutput(seq[i], false);
   }
+
+  /* Les relais ont pris 7 x 200 ms ; on ne prolonge que le reliquat. */
+  while (millis() - tLamp < SELFTEST_LAMP_MS) board::refresh();
+
+  const uint8_t none[4] = {
+    board::GL_BLANK, board::GL_BLANK, board::GL_BLANK, board::GL_BLANK
+  };
+  board::showGlyphs(none);
   board::refresh();
 #endif
 }
@@ -154,8 +173,12 @@ void diag::update(uint32_t now) {
   if (now - g_beatToggled >= period) {
     g_beatToggled = now;
     g_beatOn = !g_beatOn;
-    board::setHeartbeat(g_beatOn);
   }
+  /* Éteint aussi pendant le noir qui sépare deux points de contrôle : c'est
+   * le seul marqueur dont dispose l'opérateur, il doit être franc.
+   * setHeartbeat() ne fait rien quand l'état ne change pas, appeler à chaque
+   * tour ne coûte donc rien. */
+  board::setHeartbeat(g_beatOn && !display::blanking());
 
 #if DEBUG_SERIAL && !BAFANG_LEARN_MODE
   if (now - g_lastLog < DEBUG_PERIOD_MS) return;

@@ -4,12 +4,14 @@
 
 #include <avr/pgmspace.h>
 
+#include "display.h"
 #include "pins.h"
 
 namespace {
 
 uint8_t g_mask = 0;    /* 1 = entrée réquisitionnée par la console  */
 uint8_t g_level = 0;   /* niveau imposé aux entrées réquisitionnées */
+bool g_pointPending = false;  /* '#' reçu, on attend le chiffre           */
 
 /* Touches mnémoniques, dans l'ordre IN1..IN8. Les chiffres 1..8 font la même
  * chose : sur un clavier AZERTY ils exigent la touche majuscule ou le pavé
@@ -41,12 +43,29 @@ void help() {
   Serial.println(F("[SIM] 1 g clign.G   2 d clign.D   3 q acquit   4 a frein AV"));
   Serial.println(F("[SIM] 5 r frein AR  6 v veilleuse 7 p phares   8 w detresse"));
   Serial.println(F("[SIM] 0 = tout relache, sous simulation | x = rendre au materiel"));
+  Serial.println(F("[SIM] #0 a #8 = numero du point de controle, affiche a droite"));
   Serial.println(F("[SIM] une touche prend la borne et la ferme ; la meme la rouvre"));
   report();
 }
 
 void handle(char c) {
   if (c >= 'A' && c <= 'Z') c += 32;
+
+  /* '#' puis un chiffre : numero du point de controle. Deux caracteres, parce
+   * que les chiffres seuls sont deja pris par les huit entrees. */
+  if (g_pointPending) {
+    g_pointPending = false;
+    if (c >= '0' && c <= '8') {
+      display::setPoint((uint8_t)(c - '0'));
+      Serial.print(F("[SIM] point="));
+      Serial.println(c);
+    }
+    return;
+  }
+  if (c == '#') {
+    g_pointPending = true;
+    return;
+  }
 
   if (c == '0') {
     /* Repos franc : les huit bornes sont tenues ouvertes par la console, donc
@@ -88,6 +107,7 @@ void handle(char c) {
 void simconsole::begin() {
   g_mask = 0;
   g_level = 0;
+  g_pointPending = false;
   Serial.println(F("\n[SIM] *** MODE SIMULATION — SIM_INPUTS=1 ***"));
   Serial.println(F("[SIM] Les entrees peuvent etre pilotees depuis cette console."));
   Serial.println(F("[SIM] NE JAMAIS ROULER AVEC CE FIRMWARE.  '?' pour l'aide."));

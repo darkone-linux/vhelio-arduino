@@ -47,11 +47,13 @@ optocoupleur — c'est ce qui permet de mener les deux méthodes de front.
 | `4` ou `a` | IN4 frein avant | | `8` ou `w` | IN8 détresse |
 
 `0` relâche les huit bornes en les gardant sous simulation, `x` les rend toutes
-au matériel, `?` rappelle l'aide.
+au matériel, `?` rappelle l'aide. `#0` à `#8` affiche un **numéro de point de
+contrôle** sur le digit de droite, en éteignant l'écran deux secondes pour
+marquer le changement.
 
-`tools/seq-banc.sh` enchaîne T1.2 à T1.6 tout seul — 2 min 40 — en **annonçant
-horodaté ce qui doit s'entendre**, et journalise la console dans
-`.build/seq-banc.log` :
+`tools/seq-banc.sh` enchaîne T1.2 à T1.6 tout seul — trois minutes — en
+**annonçant horodaté ce qui doit s'entendre** et en numérotant les points sur
+l'afficheur. Il journalise la console dans `.build/seq-banc.log` :
 
 ```bash
 ./tools/seq-banc.sh /dev/ttyACM0            # tout
@@ -118,9 +120,18 @@ Tout écart se corrige dans `pins.h` et `board_io.cpp` avant de continuer.
 ### T1.2 — Autotest
 
 Mise sous tension.
-**Critère** : les six relais d'éclairage et de signalisation collent l'un après
-l'autre, 200 ms chacun, **puis le voyant de défaut (R7)** — c'est audible
+
+**Critère 1** : les six relais d'éclairage et de signalisation collent l'un
+après l'autre, 200 ms chacun, **puis le voyant de défaut (R7)** — c'est audible
 autant que visible. Seule la coupure moteur (R8) **n'est pas** activée.
+
+**Critère 2** : **tous les segments et tous les points décimaux sont allumés**
+pendant les deux premières secondes, les quatre digits compris. C'est le seul
+moment où un segment mort se voit : en usage normal il ne manquerait qu'un
+morceau de caractère, ce qui se lit comme un *autre* caractère plutôt que comme
+une panne. Le test se superpose aux 1,4 s de l'autotest des relais, la carte ne
+met donc que 600 ms de plus à démarrer.
+
 L'afficheur reste multiplexé pendant toute la séquence : s'il s'éteint,
 `board::refresh()` n'est pas appelé dans la boucle d'attente.
 
@@ -304,8 +315,10 @@ Avec `BAFANG_LEARN_MODE 1`, suivre la procédure de calibration de
       S'il ne s'est pas allumé, la LED ou son câblage sont morts et il n'y
       aura aucune alerte de tout le trajet
 - [ ] Le voyant rouge est éteint au départ
-- [ ] Aucun défaut : à l'ouverture de la coque, l'afficheur montre `F000`
-      (c'est la page par défaut) et le point décimal de gauche bat à 1 Hz, pas ~4 Hz
+- [ ] Aucun défaut : à l'ouverture de la coque, l'afficheur montre `---0`
+      (c'est la page par défaut) et le point décimal de gauche bat à 1 Hz, pas
+      ~4 Hz. Trois tirets, pas `Err` : au bouton K1, la page défauts doit
+      montrer `F000`
 - [ ] Autotest au démarrage : les six relais claquent l'un après l'autre.
       C'est le seul contrôle des relais audible coque fermée
 

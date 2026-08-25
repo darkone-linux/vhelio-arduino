@@ -51,7 +51,7 @@ dans le `.ino`.
 | `turnsignals` | `OUT_TURN_LEFT`, `OUT_TURN_RIGHT` | `inputs`, `telemetry` |
 | `lights` | `OUT_PARK_FRONT`, `OUT_MAIN`, `OUT_TAIL_PARK`, `OUT_TAIL_STOP` | `inputs`, `brakes` |
 | `horn` | — **désactivé** (`HORN_ENABLE 0`), la voie IN3/R7 appartient à `diag` | `inputs` |
-| `display` | les 4 digits de l'afficheur | `telemetry`, `bafang`, `diag` |
+| `display` | les 4 digits de l'afficheur | `telemetry`, `bafang`, `diag`, `lights`, `brakes`, `turnsignals` |
 | `bafang` | le port logiciel, le décodeur | — |
 | `telemetry` | vitesse consolidée, odomètre | `bafang`, `wheelspeed` |
 | `diag` | battement de cœur (point décimal de gauche), **voyant `OUT_FAULT`**, journal série, drapeaux de défaut | tous |
@@ -193,7 +193,7 @@ incompatibles.
 | `BRAKE_WIRING_VARIANT` | 2 | 1 = entrée frein unique ; 2 = avant/arrière séparés |
 | `IN_INVERT_BRAKE_FRONT` / `_REAR` | 0 | Inverse la lecture (interface transistor, `cablage.md` §5) |
 | `DISPLAY_ENABLE` | 1 | Compile ou non le pilotage des digits |
-| `DISPLAY_DEFAULT_PAGE` | 2 | Page affichée au démarrage (2 = défauts : l'afficheur est un outil de maintenance, pas un tableau de bord) |
+| `DISPLAY_DEFAULT_PAGE` | 0 | Page affichée au démarrage (0 = événements, en clair ; l'afficheur est un outil de maintenance, pas un tableau de bord) |
 | `BAFANG_ENABLE` | 1 | Compile ou non l'écoute UART |
 | `BAFANG_LEARN_MODE` | 0 | Dump hexadécimal des trames |
 | `BAFANG_SPEED_FORMULA` | 1 | 0 = km/h ×10 direct ; 1 = période de roue |

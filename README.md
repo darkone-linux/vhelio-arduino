@@ -120,10 +120,10 @@ installer au niveau système.
 ### Empreinte mesurée
 
 Configuration par défaut, avr-gcc 15.3, `-Os -flto` :
-**8 886 octets de flash (28 %)** et **715 octets de RAM (34 %)** sur les
+**9 710 octets de flash (31 %)** et **770 octets de RAM (37 %)** sur les
 30 720 / 2 048 disponibles. Compile sans avertissement dans les quinze
 combinaisons d'options couvertes par `tools/check-variants.sh`. Le firmware de
-banc coûte 910 octets de flash et 2 de RAM de plus ; à `SIM_INPUTS 0`, il ne
+banc coûte 1 078 octets de flash et 3 de RAM de plus ; à `SIM_INPUTS 0`, il ne
 coûte **rien du tout**, l'empreinte étant identique à l'octet près.
 
 Temps de cycle mesuré à vide : **265 µs**, pointe à 6,7 ms sur la seconde où le
@@ -131,12 +131,12 @@ journal série est émis. Le seuil de défaut est à 10 ms.
 
 ## Autotest et contrôle au banc
 
-`tools/seq-banc.sh` déroule la campagne 1 en 2 min 40, envoie les commandes et
-annonce, horodaté, ce qui doit se produire. **Il ne vérifie rien de lui-même,
-et ne le peut pas** : la chaîne de registres à décalage ne se relit pas, si
-bien que le seul témoin de l'état d'un relais est son claquement. Le journal
-série dit ce que le *firmware* a décidé ; le claquement dit ce que la *carte* a
-fait. Le test, c'est les deux ensemble.
+`tools/seq-banc.sh` déroule la campagne 1 en trois minutes, envoie les
+commandes et annonce, horodaté, ce qui doit se produire. **Il ne vérifie rien
+de lui-même, et ne le peut pas** : la chaîne de registres à décalage ne se
+relit pas, si bien que le seul témoin de l'état d'un relais est son claquement.
+Le journal série dit ce que le *firmware* a décidé ; le claquement dit ce que
+la *carte* a fait. Le test, c'est les deux ensemble.
 
 ```bash
 VHELIO_SIM=1 ./tools/build-nix.sh
@@ -150,22 +150,56 @@ en 12 V — et aucune entrée ne réagit, la LED de chaque optocoupleur étant
 alimentée depuis le +12 V de la carte. L'afficheur, lui, s'allume sur l'USB
 seul : c'est le discriminant.
 
+### Lire l'afficheur
+
+Les trois digits de gauche disent **ce qui vient de se passer**, celui de
+droite le **numéro du point de contrôle** en cours — `0` en exploitation
+normale. Un code hexadécimal suppose d'avoir cette page sous les yeux ; `Fr` et
+`Err` se lisent sans rien.
+
+| Afficheur | Événement | Durée |
+|---|---|---|
+| `Fr` | Freinage | 1 s — **prioritaire sur tout le reste** |
+| `Err` | Défaut ou conflit de clignotants | tant qu'il dure, 1 s au minimum |
+| `Ph` | Phares allumés | 1 s |
+| `UE` | Veilleuse allumée | 1 s (`U` tient lieu de `V`, indessinable sur 7 segments) |
+| `CLL` / `CLr` | Clignotant gauche / droit | tant qu'il clignote |
+| `CL2` | Détresse — les deux clignotants | tant qu'elle dure |
+| `---` | Rien à signaler | — |
+
+Le point décimal de gauche est le battement de cœur : **1 Hz** en
+fonctionnement nominal, **~4 Hz** si un défaut est actif.
+
+Deux choses ne s'affichent pas là : le **numéro** du défaut, qui reste sur la
+page défauts (`F0xx`, au bouton K1 — « Err » dit qu'il y en a un, elle seule
+dit lequel), et la vitesse, la charge et l'odomètre, sur les pages suivantes.
+
+> **`Err` suit le même masque que le voyant rouge** (`FAULT_LAMP_MASK`), et pas
+> l'ensemble des défauts. Sans cela, un véhicule dont la télémétrie Bafang
+> n'est pas branchée afficherait `Err` en permanence, et le mot cesserait de
+> vouloir dire quoi que ce soit.
+
 ### Les huit points à contrôler à l'oreille
 
-| # | Instant | Ce qui doit se produire | Ce que ça prouve |
-|---|---|---|---|
-| 1 | `t+0` | **7 claquements** de 200 ms d'affilée — R1 à R6 puis R7 — et **R8 muet** | L'autotest passe, et la coupure moteur en est bien exclue. **R8 qui claque ici est grave** |
-| 2 | `t+4` puis `t+8` | Veilleuse : **2 claquements** (R1 avant, R5 arrière). Phares : **1 seul** (R2) | Le feu rouge arrière suit l'éclairage avant — exigence F-1.7 |
-| 3 | `t+12` | **Rien ne bouge, pas un claquement** | `MAIN_KEEPS_PARK` : relâcher la veilleuse phares allumés n'éteint pas la veilleuse |
-| 4 | `t+16` | **3 claquements** simultanés, tout retombe | Aucune sortie ne reste collée |
-| 5 | `t+22` → `t+47` | **30 cycles en 22,5 s ± 1 s** au chronomètre | La cadence réglementaire, 80 cycles/min dans la plage 60–120. **Seul contrôle qui ne peut se faire qu'à l'oreille** |
-| 6 | `t+47` | **Silence total** pendant 5 s, plus 1 claquement de R7 | Gauche et droite demandés ensemble éteignent les deux et allument le voyant |
-| 7 | `t+73` | Le relâchement du frein en **deux temps** : R6 aussitôt, R8 environ 300 ms plus tard | `BRAKE_HOLD_MS` : l'assistance ne se réengage pas par à-coups sur un levier modulé |
-| 8 | `t+154` | Le rythme devient **syncopé** — bref allumé, long éteint — **sans que la cadence change** | Le rappel d'oubli des clignotants, seul canal vers le conducteur une fois la coque fermée |
+**Le numéro du point s'affiche sur le digit de droite**, et l'afficheur
+s'éteint complètement deux secondes à chaque changement : c'est ce noir qui
+marque le passage au point suivant.
+
+| # | Ce qui doit se produire | Ce que ça prouve |
+|---|---|---|
+| 1 | Au démarrage : **tous les segments et tous les points allumés 2 s**, et pendant ce temps **7 claquements** de 200 ms — R1 à R6 puis R7 — avec **R8 muet** | Aucun segment mort, l'autotest passe, et la coupure moteur en est bien exclue. **R8 qui claque ici est grave** |
+| 2 | Veilleuse : **2 claquements** (R1 avant, R5 arrière), afficheur `UE 2`. Puis phares : **1 seul** (R2), afficheur `Ph 2` | Le feu rouge arrière suit l'éclairage avant — exigence F-1.7 |
+| 3 | **Rien ne bouge, pas un claquement** | `MAIN_KEEPS_PARK` : relâcher la veilleuse phares allumés n'éteint pas la veilleuse |
+| 4 | **3 claquements** simultanés, tout retombe | Aucune sortie ne reste collée |
+| 5 | **30 cycles en 22,5 s ± 1 s** au chronomètre, afficheur `CLL5` | La cadence réglementaire, 80 cycles/min dans la plage 60–120. **Seul contrôle qui ne peut se faire qu'à l'oreille** |
+| 6 | **Silence total** pendant 5 s, plus 1 claquement de R7, afficheur `Err6` | Gauche et droite demandés ensemble éteignent les deux et allument le voyant |
+| 7 | Le relâchement du frein en **deux temps** : R6 aussitôt, R8 environ 300 ms plus tard | `BRAKE_HOLD_MS` : l'assistance ne se réengage pas par à-coups sur un levier modulé |
+| 8 | Le rythme devient **syncopé** — bref allumé, long éteint — **sans que la cadence change** | Le rappel d'oubli des clignotants, seul canal vers le conducteur une fois la coque fermée |
 
 Entre le point 6 et le point 7, la détresse fait claquer R3 et R4 **en phase** :
 le claquement est double, et c'est ce qui la distingue à l'oreille d'un
-clignotant simple.
+clignotant simple. L'afficheur montre alors `CL2` — et le digit de droite
+revient à `0`, puisqu'on est entre deux points numérotés.
 
 ### Ce que le journal établit tout seul
 

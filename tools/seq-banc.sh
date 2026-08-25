@@ -14,6 +14,13 @@
 # et le seul temoin des relais est leur claquement. C'est donc un metronome
 # pour l'operateur, pas un test automatique.
 #
+# Le NUMERO DU POINT est envoye a la carte, qui l'affiche sur le digit de
+# droite. L'ecran s'eteint 2 s a chaque changement : c'est ce noir qui marque
+# le passage d'un point au suivant. D'ou l'ordre systematique
+#   numero -> attendre la fin du noir -> declencher l'evenement
+# sans quoi l'evenement, qui ne dure qu'une seconde, se produirait pendant le
+# noir et ne serait jamais lu.
+#
 # La console est journalisee dans .build/seq-banc.log : elle dit ce que le
 # FIRMWARE a decide, le claquement dit ce que la CARTE a fait. Les deux
 # ensemble font le test ; le journal seul ne prouve rien du materiel.
@@ -31,12 +38,23 @@ mkdir -p "$ROOT/.build"
 exec 3<>"$PORT"
 stty -F "$PORT" 115200 raw -echo
 
-DUR=210
+DUR=260
 ( timeout "$DUR" cat <&3 ) > "$LOG" &
 CATPID=$!
 T0=$SECONDS
 
 say() { printf '  t+%03ds  %s\n' "$((SECONDS - T0))" "$1"; }
+
+# point <numero> <intitule> — annonce a la carte, puis laisse passer le noir.
+point() {
+  printf '#%s' "$1" >&3
+  if [ "$1" = 0 ]; then
+    say "---- hors point numerote, l'afficheur revient a 0 ----"
+  else
+    say "==== POINT $1 : $2 ===="
+  fi
+  sleep 2.3
+}
 
 # step <secondes> <touche|-> <ce qui doit s'entendre>
 step() {
@@ -53,40 +71,46 @@ step() {
 echo "== Sequence de banc, $PORT, phase '$PHASE' — journal : $LOG =="
 echo
 
-step 4 - "AUTOTEST : 7 claquements de 200 ms (R1..R6 puis R7). R8 MUET."
+step 4 - "DEMARRAGE : tous les segments allumes 2 s, et pendant ce temps"
+say "        7 claquements de 200 ms (R1..R6 puis R7). R8 MUET."
+point 1 "l'autotest que vous venez d'entendre"
+step 2 - "afficheur : ---1"
 
 if [ "$PHASE" = all ] || [ "$PHASE" = eclairage ]; then
-  echo "-- T1.3 eclairage --"
-  step 4 v "veilleuse   -> R1 et R5 collent (2 claquements)"
-  step 4 p "phares      -> R2 colle. R1 et R5 RESTENT collés"
-  step 4 v "veilleuse relachee -> RIEN NE BOUGE (MAIN_KEEPS_PARK)"
-  step 4 p "phares relaches    -> R1, R2, R5 retombent (3 claquements)"
+  point 2 "veilleuse puis phares"
+  step 4 v "veilleuse -> R1 et R5 collent (2 claquements). Afficheur : UE 2"
+  step 4 p "phares    -> R2 colle, R1 et R5 RESTENT. Afficheur : Ph 2"
+  point 3 "relacher la veilleuse, phares allumes"
+  step 4 v "RIEN NE BOUGE, pas un claquement (MAIN_KEEPS_PARK)"
+  point 4 "tout eteindre"
+  step 4 p "R1, R2, R5 retombent : 3 claquements"
   step 2 x "repos"
 fi
 
 if [ "$PHASE" = all ] || [ "$PHASE" = clignotants ]; then
-  echo "-- T1.4 clignotants --"
-  step 25 g "gauche -> R3 claque a 1,33 Hz. CHRONOMETRER 30 cycles = 22,5 s +/- 1 s"
-  step 5 d "gauche + droite -> SILENCE TOTAL (les deux relaches) et R7 colle"
-  step 5 d "droite relachee -> retour a gauche, R7 retombe"
-  step 3 x "repos"
-  step 6 w "detresse -> R3 et R4 EN PHASE : le claquement est double"
+  point 5 "cadence du clignotant"
+  step 25 g "R3 claque a 1,33 Hz. CHRONOMETRER 30 cycles = 22,5 s +/- 1 s. Afficheur : CLL5"
+  point 6 "conflit gauche + droite"
+  step 5 d "SILENCE TOTAL, les deux relaches, et R7 colle. Afficheur : Err6"
+  step 3 d "droite relachee -> retour a gauche, R7 retombe"
+  point 0 "detresse"
+  step 6 w "R3 et R4 EN PHASE : le claquement est double. Afficheur : CL2 0"
   step 3 x "repos"
 fi
 
 if [ "$PHASE" = all ] || [ "$PHASE" = freins ]; then
-  echo "-- T1.5 freinage --"
-  step 4 a "frein avant  -> R6 (stop) et R8 (coupure) collent"
-  step 4 a "relache      -> R6 retombe AUSSITOT, R8 300 ms plus tard : 2 temps"
+  point 7 "relachement du frein en deux temps"
+  step 4 a "frein avant -> R6 et R8 collent. Afficheur : Fr 7"
+  step 4 a "relache -> R6 AUSSITOT, R8 300 ms plus tard : deux temps distincts"
   step 4 r "frein arriere -> meme chose par IN5"
   step 4 r "relache"
   step 2 x "repos"
 fi
 
 if [ "$PHASE" = all ] || [ "$PHASE" = voyant ]; then
-  echo "-- T1.6 voyant de defaut et acquittement --"
+  point 0 "voyant de defaut et acquittement"
   step 3 g "gauche"
-  step 4 d "conflit -> R7 colle et RESTE colle (allumage fixe, pas de battement)"
+  step 4 d "conflit -> R7 colle et RESTE colle (allumage fixe)"
   step 2 3 "acquittement -> R7 retombe. Le defaut reste au journal"
   step 2 3 "bouton relache"
   step 4 d "conflit leve -> retour a gauche"
@@ -95,12 +119,12 @@ if [ "$PHASE" = all ] || [ "$PHASE" = voyant ]; then
 fi
 
 if [ "$PHASE" = all ] || [ "$PHASE" = rappel ]; then
-  echo "-- T1.4 rappel d'oubli --"
-  step 50 g "gauche maintenu -> a t+45 s le rythme devient SYNCOPE (200/550)"
+  point 8 "rappel d'oubli du clignotant"
+  step 50 g "gauche maintenu -> a +45 s le rythme devient SYNCOPE (200/550)"
   step 2 x "repos"
 fi
 
-say "fin"
+point 0 "fin"
 kill "$CATPID" 2>/dev/null
 wait "$CATPID" 2>/dev/null
 echo

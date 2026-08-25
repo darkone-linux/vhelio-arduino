@@ -140,12 +140,33 @@
 
 /* Le boîtier est monté sous la coque (Q12) : l'afficheur n'est PAS lisible en
  * roulant. C'est un outil de maintenance, pas un tableau de bord — d'où la
- * page « défauts » par défaut : c'est ce qu'on veut voir en ouvrant la coque.
- * Le diagnostic de conduite repose entièrement sur le journal série. */
+ * page « événements » par défaut : c'est ce qu'on veut voir en ouvrant la
+ * coque, et surtout c'est ce qui se lit SANS la documentation.
+ *
+ * Les trois digits de gauche disent ce qui se passe, celui de droite le
+ * numéro du point de contrôle en cours (0 en exploitation) :
+ *
+ *   Fr    freinage ......... 1 s, prioritaire sur tout le reste
+ *   Err   défaut ........... tant qu'il dure, 1 s au minimum
+ *   Ph    phares allumés ... 1 s
+ *   UE    veilleuse allumée. 1 s   (U tient lieu de V, indessinable)
+ *   CLL   clignotant gauche. tant qu'il clignote
+ *   CLr   clignotant droit .    "
+ *   CL2   détresse ......... tant qu'elle dure
+ *   ---   rien à signaler
+ *
+ * La page défauts garde le code hexadécimal : « Err » dit qu'il y a un
+ * défaut, elle seule dit LEQUEL. */
 #define DISPLAY_ENABLE            1
-#define DISPLAY_DEFAULT_PAGE      2    /* 0=vitesse 1=charge 2=défauts 3=odomètre */
+#define DISPLAY_DEFAULT_PAGE      0    /* 0=événements 1=vitesse 2=charge 3=défauts 4=odomètre */
 #define DISPLAY_BLINK_MS          500  /* point décimal = battement, 1 Hz        */
 #define DISPLAY_BLINK_FAULT_MS    120  /* battement rapide = défaut actif        */
+#define DISPLAY_EVENT_MS          1000 /* maintien d'un événement bref           */
+
+/* Noir complet entre deux points de contrôle. Sans cette coupure, deux points
+ * qui affichent le même message se confondent, et l'opérateur ne sait pas si
+ * la séquence a avancé. */
+#define DISPLAY_BLANK_MS          2000
 
 /* ======================================================================
  * Télémétrie
@@ -184,6 +205,16 @@
 
 #define SELFTEST_ENABLE           1
 #define SELFTEST_STEP_MS          200     /* audible : un relais par pas      */
+
+/* Tous les segments et tous les points allumés au démarrage : c'est le seul
+ * moyen de découvrir un segment mort, exactement comme les témoins d'un
+ * tableau de bord au contact.
+ *
+ * Il se superpose à l'autotest des relais, qui dure 7 x 200 ms : la carte ne
+ * met donc que 600 ms de plus à démarrer, au lieu de 2 s si les deux se
+ * suivaient. Ces 600 ms sont autant de temps, à chaque mise sous tension, où
+ * les feux restent éteints alors que le contact est mis. */
+#define SELFTEST_LAMP_MS          2000UL
 
 #define WATCHDOG_ENABLE           1
 #define LOOP_SLOW_US              10000UL /* seuil de défaut sur le cycle     */
@@ -246,8 +277,12 @@
 #error "BLINK_REMINDER_ON_MS doit etre inferieur a BLINK_PERIOD_MS"
 #endif
 
-#if DISPLAY_ENABLE && DISPLAY_DEFAULT_PAGE > 3
-#error "DISPLAY_DEFAULT_PAGE doit etre compris entre 0 et 3"
+#if DISPLAY_ENABLE && DISPLAY_DEFAULT_PAGE > 4
+#error "DISPLAY_DEFAULT_PAGE doit etre compris entre 0 et 4"
+#endif
+
+#if DISPLAY_ENABLE && DISPLAY_BLANK_MS <= DISPLAY_EVENT_MS
+#warning "DISPLAY_BLANK_MS <= DISPLAY_EVENT_MS : un evenement declenche pendant le noir ne sera jamais vu"
 #endif
 
 #if BRAKE_FLASH_ENABLE
