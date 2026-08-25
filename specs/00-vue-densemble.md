@@ -2,7 +2,7 @@
 
 ## 1. Contexte
 
-Le VHélio est un vélomobile solaire à assistance électrique. Le guide de montage
+Le Vhélio est un vélomobile solaire à assistance électrique. Le guide de montage
 officiel décrit un câblage « en dur » : chaque interrupteur alimente directement
 sa charge. Ce projet remplace ce câblage par un **calculateur central** qui
 centralise la logique (clignotants, feux stop, temporisations, cohérence des
@@ -42,12 +42,10 @@ La coupure moteur au freinage est assurée **matériellement** par le câblage d
 contacteur de frein sur la ligne frein du contrôleur Bafang. La sortie
 `OUT_MOTOR_CUT` de l'Arduino est *redondante*, pas indispensable.
 
-> **Le contacteur de frein avant est unipolaire**, donc incapable a priori de
-> servir à la fois l'entrée de la carte et la ligne frein du contrôleur. Une
-> **diode de découplage** (1N4148, montée dans le boîtier) lui permet de faire
-> les deux : les deux circuits demandent une mise à la masse, la diode empêche
-> simplement le +12 V de la carte de remonter vers la ligne 5 V du contrôleur.
-> P1 est donc respecté aux deux freins. Détail du montage en
+> Le contacteur de frein avant est **unipolaire**, donc incapable a priori de
+> servir à la fois l'entrée de la carte et la ligne frein. Une **diode 1N4148**
+> montée dans le boîtier lève la limite : les deux circuits demandent une mise
+> à la masse. P1 est donc respecté aux **deux** freins — montage en
 > `hardware/cablage.md` §4, analyse en `07-securite.md` §2.
 
 **P2 — La télémétrie est un confort, pas une fonction de sécurité.**
@@ -108,10 +106,8 @@ flowchart LR
 ```
 
 Les traits épais matérialisent le principe P1 : **aux deux freins**, un chemin
-de coupure ne passe pas par l'Arduino. À l'arrière c'est le contacteur Bafang
-d'origine ; à l'avant, le contacteur unipolaire y parvient grâce à une diode de
-découplage qui l'autorise à servir les deux circuits sans que le +12 V de la
-carte n'atteigne la ligne 5 V du contrôleur (`hardware/cablage.md` §4).
+de coupure ne passe pas par l'Arduino — le contacteur Bafang d'origine à
+l'arrière, la diode D1 à l'avant.
 
 ## 6. Glossaire
 

@@ -1,8 +1,8 @@
 # vhelio-arduino
 
-Électronique et électricité embarquées d'un **VHélio** (vélomobile solaire), en
+Électronique et électricité embarqués d'un **[Vhélio](https://vhelio.fr/)**, en
 alternative au montage décrit dans le
-[guide de montage officiel](https://documentation.vhelio.org/vheliotech/guide-de-montage/main/080_installation_electricite.html).
+[guide officiel](https://documentation.vhelio.org/vheliotech/guide-de-montage/main/080_installation_electricite.html).
 
 Le câblage « en dur » est remplacé par un calculateur central :
 
@@ -12,8 +12,7 @@ Le câblage « en dur » est remplacé par un calculateur central :
   registres à décalage
 
 Ce calculateur gère l'éclairage, la signalisation, la détection de freinage et
-la télémétrie moteur. Le klaxon en est exclu : il est autonome, avec sa propre
-batterie. Il **ne gère pas** la traction : le contrôleur
+la télémétrie moteur. Il **ne gère pas** la traction : le contrôleur
 Bafang reste maître du moteur, l'Arduino n'est qu'un observateur et un
 actionneur de sécurité redondant.
 
@@ -24,6 +23,7 @@ actionneur de sécurité redondant.
 | Chemin | Contenu |
 |---|---|
 | `specs/` | Spécification complète : fonctions, E/S, électricité, protocole, sécurité, tests |
+| `specs/archives/` | Ce qui a servi à décider et ne sert plus à lire le code — **ne fait pas autorité** |
 | `firmware/vhelio/` | Firmware — `vhelio.ino` (vide) + modules dans `src/` |
 | `tools/` | Compilation, téléversement, croquis de vérification de brochage |
 | `hardware/` | Nomenclature et plan de câblage |
@@ -33,21 +33,21 @@ actionneur de sécurité redondant.
 1. [`specs/00-vue-densemble.md`](specs/00-vue-densemble.md) — contexte, rôles, principes directeurs
 2. [`specs/03-affectation-es.md`](specs/03-affectation-es.md) — **la table d'E/S, à vérifier avant tout câblage**
 3. [`specs/04-electricite.md`](specs/04-electricite.md) — bus 48 V / 12 V, fusibles, sections de câbles
-4. [`specs/09-questions-ouvertes.md`](specs/09-questions-ouvertes.md) — ce qu'il reste à trancher
+4. [`specs/09-questions-ouvertes.md`](specs/09-questions-ouvertes.md) — ce qu'il reste à trancher et à mesurer
 
 | Fichier | Sujet |
 |---|---|
 | [`00-vue-densemble.md`](specs/00-vue-densemble.md) | Périmètre, rôles des équipements, architecture générale |
-| [`01-exigences-fonctionnelles.md`](specs/01-exigences-fonctionnelles.md) | 39 exigences `F-xx` et 5 contraintes `NF-x` avec critère de vérification |
+| [`01-exigences-fonctionnelles.md`](specs/01-exigences-fonctionnelles.md) | 42 exigences `F-x.y` et 5 contraintes `NF-x`, avec critère de vérification |
 | [`02-machines-a-etats.md`](specs/02-machines-a-etats.md) | Automates clignotants, freinage, feu arrière, voyant de défaut |
-| [`03-affectation-es.md`](specs/03-affectation-es.md) | Table d'E/S, variantes de câblage des freins, procédure de vérification |
+| [`03-affectation-es.md`](specs/03-affectation-es.md) | Brochage **mesuré**, table d'E/S, câblage des freins, procédure de vérification |
 | [`04-electricite.md`](specs/04-electricite.md) | Bilan de puissance, fusibles, sections, masses |
 | [`05-protocole-bafang.md`](specs/05-protocole-bafang.md) | Écoute passive UART, décodage, mode apprentissage |
 | [`06-architecture-logicielle.md`](specs/06-architecture-logicielle.md) | Modules, ordonnancement, budget mémoire |
 | [`07-securite.md`](specs/07-securite.md) | Analyse de défaillances, état sûr, conformité |
-| [`08-plan-de-tests.md`](specs/08-plan-de-tests.md) | 17 tests, de l'établi à la route |
-| [`09-questions-ouvertes.md`](specs/09-questions-ouvertes.md) | Quatorze questions, treize tranchées ; ce qu'il reste à vérifier |
-| [`10-alternatives-materiel.md`](specs/10-alternatives-materiel.md) | Faut-il changer de carte ? Analyse comparée et recommandation |
+| [`08-plan-de-tests.md`](specs/08-plan-de-tests.md) | 17 tests, de l'établi à la route, et le journal de recette |
+| [`09-questions-ouvertes.md`](specs/09-questions-ouvertes.md) | La seule question encore ouverte, et ce qui reste à mesurer avant de rouler |
+| [`archives/`](specs/archives/) | Découverte du brochage, treize questions tranchées, alternatives matérielles |
 
 ## Compilation
 
@@ -120,7 +120,7 @@ installer au niveau système.
 ### Empreinte mesurée
 
 Configuration par défaut, avr-gcc 15.3, `-Os -flto` :
-**9 692 octets de flash (31 %)** et **781 octets de RAM (38 %)** sur les
+**9 692 octets de flash (31 %)** et **783 octets de RAM (38 %)** sur les
 30 720 / 2 048 disponibles. Compile sans avertissement dans les quinze
 combinaisons d'options couvertes par `tools/check-variants.sh`. Le firmware de
 banc coûte 1 072 octets de flash et 3 de RAM de plus ; à `SIM_INPUTS 0`, il ne
@@ -277,4 +277,5 @@ une hypothèse.
 > ce sont en réalité des relais commandés par registre à décalage. Le coût de
 > la correction est resté faible parce que le brochage était concentré dans
 > deux fichiers et que l'incertitude était documentée comme telle. Le
-> post-mortem est en [`specs/03-affectation-es.md`](specs/03-affectation-es.md) §7.
+> post-mortem est en
+> [`specs/archives/decouverte-brochage.md`](specs/archives/decouverte-brochage.md).

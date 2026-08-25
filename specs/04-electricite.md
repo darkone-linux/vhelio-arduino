@@ -70,26 +70,19 @@ afficheur éteint, **48 mA afficheur allumé**, environ 30 mA par relais collé,
 
 ### 2.3. Un seul arbitrage subsiste
 
-Deux bonnes nouvelles se cumulent : les phares consomment 2,5 A au lieu des
-10 A redoutés, et **le klaxon est autonome** — sa propre batterie, son propre
-interrupteur, aucun lien avec le réseau 12 V du véhicule. Or c'était la seule
-charge capable de faire déborder le convertisseur.
-
 **L'éclairage complet, freinage et clignotant compris, consomme 5,0 A pour
-10 A disponibles.** Il n'y a plus de pointe transitoire à absorber :
+10 A disponibles.** Les phares mesurés à 2,5 A au lieu des 10 A redoutés, et le
+klaxon autonome — seule charge à forte pointe — ont supprimé toute pointe
+transitoire. Le condensateur tampon de 10 000 µF et le fusible F8, qui
+n'existaient que pour l'appel du klaxon, disparaissent de la nomenclature.
 
-- Le **condensateur tampon de 10 000 µF devient inutile.** Il n'existait que
-  pour fournir l'appel du klaxon ; il disparaît de la nomenclature.
-- Le **fusible F8** disparaît lui aussi.
-- Reste un seul arbitrage : **fusibler les prises allume-cigare à 5 A**.
-  Éclairage de nuit (5,0 A) + une prise à 10 A ferait 15 A, soit une fois et
-  demie le convertisseur. À 5 A, une prise passe confortablement (10,1 A au
-  pire, et les phares ne sont pas allumés en plein jour quand on recharge un
-  téléphone).
+Reste un seul arbitrage : **fusibler les prises allume-cigare à 5 A**.
+Éclairage de nuit (5,0 A) + une prise à 10 A ferait 15 A, une fois et demie le
+convertisseur. À 5 A, une prise passe confortablement — et les phares ne sont
+pas allumés en plein jour quand on recharge un téléphone.
 
 Le relais R2 voit 2,5 A pour un calibre de 10 A : **aucun étage de puissance
-externe n'est nécessaire**, et l'idée d'un relais automobile intercalé est
-abandonnée.
+externe n'est nécessaire**.
 
 Côté 48 V, la consommation réelle de nuit (60 W au secondaire) représente
 60 / 51,2 / 0,9 ≈ **1,3 A**, et la pointe théorique de 120 W ≈ **2,6 A**.
@@ -182,23 +175,13 @@ potentiel.
 
 ## 6. Le second BMS Daly 60 A
 
-**Tranché : rechange au garage, non câblé.** C'est le cas simple et sans
-risque ; le Daly remplace le JK en cas de panne. Le pack conserve ses 100 A et
-il n'y a aucun réglage de seuils à coordonner.
+**Rechange au garage, non câblé.** Le Daly remplace le JK en cas de panne ; le
+pack conserve ses 100 A et il n'y a aucun seuil à coordonner. Le câblage en
+série des deux BMS a été envisagé puis écarté — il plafonnerait le courant à
+60 A et imposerait des seuils décalés (`archives/questions-tranchees.md`, Q5).
 
-La section ci-dessous est conservée pour mémoire, au cas où l'option serait
-un jour reconsidérée.
-
-- **Second BMS câblé en série sur le même pack.** Techniquement possible (les
-  MOSFET des deux BMS sont en série sur le chemin de courant, chaque BMS ayant
-  son propre faisceau d'équilibrage), mais cela demande de la rigueur : les
-  faisceaux de mesure des deux BMS lisent les mêmes cellules, les seuils
-  doivent être décalés (le Daly plus permissif que le JK, pour qu'il n'agisse
-  qu'en secours), et le courant est plafonné par le plus petit des deux, soit
-  **60 A** — pas 100 A.
-
-Dans tous les cas, l'Arduino n'interagit avec **aucun** des deux BMS et ne
-voit rien du pack : c'est une limite explicite, rappelée en `07-securite.md` §5.
+Dans tous les cas, **l'Arduino n'interagit avec aucun des deux BMS** et ne voit
+rien du pack : limite explicite, rappelée en `07-securite.md` §5.
 
 ## 7. Évolution : lecture du MPPT Victron
 
@@ -210,6 +193,6 @@ Ce n'est **pas** possible dans le brochage actuel : il n'y a plus d'UART libre,
 et un second port logiciel à 19 200 bauds bloquerait les interruptions trop
 longtemps. Deux voies si le besoin se confirme :
 
-- désactiver l'écoute Bafang (`BAFANG_ENABLE 0`) et réaffecter A4 au VE.Direct ;
+- désactiver l'écoute Bafang (`BAFANG_ENABLE 0`) et réaffecter A1 au VE.Direct ;
 - passer sur un Arduino Mega 2560 (4 UART matériels), qui accepte la même carte
   d'E/S via un adaptateur de brochage.

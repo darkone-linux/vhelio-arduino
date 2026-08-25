@@ -8,7 +8,7 @@ Pour chaque panne plausible : ce qui se passe, et pourquoi c'est acceptable.
 |---|---|---|---|
 | **Arduino planté (boucle infinie)** | Sorties figées dans leur dernier état | Non | WDT 1 s → reset → état sûr en < 1,5 s. La coupure moteur reste assurée par le câblage direct |
 | **Arduino non alimenté** | Toutes sorties inactives : plus de feux, plus de clignotants | Éclairage oui ; **coupure moteur non** | Les deux freins coupent nativement (contacteur d'origine à l'arrière, diode D1 à l'avant). Panne très visible : plus aucun feu. Fusible F11 dédié |
-| **Reset intempestif en roulant** | Autotest 1,2 s pendant lequel les feux clignotent | Éclairage 1,2 s | L'autotest peut être désactivé (`SELFTEST_ENABLE 0`) une fois le véhicule validé |
+| **Reset intempestif en roulant** | Autotest 2 s pendant lequel les feux clignotent | Éclairage 2 s | L'autotest peut être désactivé (`SELFTEST_ENABLE 0`) une fois le véhicule validé |
 | **Fil de contacteur de frein coupé (contact sec direct)** | L'entrée reste inactive → pas de feu stop, et au frein avant, plus de coupure moteur du tout | **Oui, le feu stop** | Détectable par `FLT_BRAKE_NEVER` (aucun freinage vu depuis 2 km). Contrôle avant départ T3.1 |
 | **Fil de frein coupé (interface transistor optionnelle)** | L'entrée retombe → le firmware conclut « freinage » | Non | État sûr : stop allumé, coupure moteur active. Le défaut est visible immédiatement |
 | **Ligne frein Bafang raccordée à une borne d'entrée SANS diode** | +12 V injecté dans une entrée 5 V du contrôleur | — | **Destruction probable du contrôleur.** C'est exactement ce que D1 empêche à l'avant ; à l'arrière, le connecteur jaune reste intact et S2 est un contact sec séparé (`03` §5) |
@@ -23,7 +23,7 @@ Pour chaque panne plausible : ce qui se passe, et pourquoi c'est acceptable.
 | **Convertisseur 48/12 claqué en court-circuit** | Le 48 V arrive sur le réseau 12 V : feux, comodo, carte | Toutes | Convertisseur non isolé donné pour 60 V, pack à 58,4 V : **marge de 2,7 %**. Abaisser la charge à 3,50 V/cellule (`04` §2.1). Fusible F5 |
 | **Contact de relais collé (soudé)** | Charge allumée en permanence, ou assistance coupée en permanence pour R8 | Non (côté sûr pour les feux) | Non détectable par le firmware : le registre ne relit rien. Détecté au contrôle avant départ (T3.1) |
 | **Bobine de relais coupée** | Charge morte, sans aucun symptôme | **Oui pour le feu stop (R6)** | Contrôle avant départ obligatoire, observateur derrière |
-| **Broche OE (A2) coupée ou flottante** | Relais indéterminés au démarrage | Potentiellement toutes | Le firmware écrit HIGH avant de passer la broche en sortie ; la carte porte normalement un tirage. A2 mesurée comme la validation, active à l'état bas (`specs/03` §6 bis) |
+| **Broche OE (A2) coupée ou flottante** | Relais indéterminés au démarrage | Potentiellement toutes | Le firmware écrit HIGH avant de passer la broche en sortie ; la carte porte normalement un tirage. A2 mesurée comme la validation, active à l'état bas (`03` §4) |
 | **Chaîne de registres muette** (fil data/horloge/verrou) | Les relais gardent leur dernier état latché, indéfiniment | Toutes | Le chien de garde ne le voit pas : la boucle tourne normalement. **Angle mort assumé**, cf. §5 |
 
 ## 2. Les barrières de coupure d'assistance
@@ -109,7 +109,7 @@ matériel disponible pour un futur mode sécurité.
 Le premier balayage complet des entrées a lieu au premier tour de `loop()`,
 soit **moins de 10 ms** après la fin de `setup()`. L'éclairage est donc rétabli
 imperceptiblement — sauf si l'autotest est actif, auquel cas il faut compter
-1,2 s de plus.
+2 s de plus.
 
 ## 4. Chien de garde
 
@@ -120,7 +120,7 @@ imperceptiblement — sauf si l'autotest est actif, auquel cas il faut compter
 - Le drapeau `WDRF` de `MCUSR` est lu **avant** d'être effacé et publié dans
   `FLT_WDT_RESET`. Un reset par chien de garde en roulage est une anomalie qui
   doit être visible.
-- Armé à **1 s**, après l'autotest (qui dure 1,2 s et déclencherait le WDT).
+- Armé à **1 s**, après l'autotest (qui dure 2 s et déclencherait le WDT).
 - `wdt_reset()` est appelé **une seule fois**, en fin de `loop()`. Jamais dans
   une boucle interne : cela masquerait précisément le blocage qu'on cherche à
   détecter.
@@ -165,7 +165,7 @@ Points à vérifier au regard du code de la route français pour un cycle :
 | Feu stop non clignotant | Respecté : `BRAKE_FLASH_ENABLE` à **0** par défaut |
 | Cadence des clignotants 60–120 c/min | Respecté : 80 c/min (1,33 Hz), **y compris pendant le rappel d'oubli** — celui-ci modifie le rapport cyclique (375 → 200 ms allumé), jamais la période. C'est précisément pourquoi il a été conçu ainsi plutôt qu'en accélérant la cadence |
 | Feux de détresse en phase | Respecté |
-| Klaxon | Autonome, hors du périmètre de ce calculateur. Rappel tout de même : un avertisseur de type automobile sur un cycle relève d'une vérification locale — le VHélio peut être homologué en cycle ou en cyclomoteur selon la version |
+| Klaxon | Autonome, hors du périmètre de ce calculateur. Rappel tout de même : un avertisseur de type automobile sur un cycle relève d'une vérification locale — le Vhélio peut être homologué en cycle ou en cyclomoteur selon la version |
 
 > Les feux de position et le feu stop sont sur des relais, donc en tout-ou-rien
 > franc : aucune modulation, aucun scintillement, aucune question de

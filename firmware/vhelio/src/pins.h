@@ -11,13 +11,14 @@
  *   Un Nano en offre 20. Le registre à décalage n'est pas un choix, c'est une
  *   nécessité arithmétique.
  *
- * Source : MESURÉ sur la carte avec tools/pinfind (specs/03 §6 bis), et non
+ * Source : MESURÉ sur la carte avec tools/pinfind, et non
  * plus déduit. La bibliothèque af3556/IO22_IO_Board, qui servait de référence,
  * ne couvre que l'IO22D08 : la DN22D08 en diffère sur les boutons et sur deux
  * des huit entrées. Le brochage ci-dessous est celui de la DN22D08 réelle.
  *
  * Plus rien n'est supposé ici : entrées, boutons, chaîne à décalage, OE et
- * afficheur ont tous été mesurés (specs/03 §6 bis à §6 quater).
+ * afficheur ont tous été mesurés. Résultat en specs/03 §2, méthode en
+ * specs/archives/decouverte-brochage.md.
  */
 #pragma once
 
@@ -91,7 +92,7 @@ enum BtnIdx : uint8_t {
 };
 
 /* ---- Chaîne de registres à décalage — MESURÉ -----------------------------
- * MESURÉ avec tools/pinchain (specs/03 §6 bis, phase B), triplet 120 sur 120.
+ * MESURÉ avec tools/pinchain (phase B), triplet 120 sur 120.
  * La signature ne laisse pas de place au doute : en promenant un seul bit à
  * travers la chaîne, on obtient un relais à la fois sur les huit premières
  * positions, puis les segments de l'afficheur. Aucun triplet faux ne produit
