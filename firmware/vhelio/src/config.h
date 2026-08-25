@@ -166,7 +166,7 @@
 #define DISPLAY_DEFAULT_PAGE      0    /* 0=événements 1=vitesse 2=charge 3=défauts 4=odomètre */
 #define DISPLAY_BLINK_MS          500  /* point décimal = battement, 1 Hz        */
 #define DISPLAY_BLINK_FAULT_MS    120  /* battement rapide = défaut actif        */
-#define DISPLAY_EVENT_MS          1000 /* maintien d'un événement bref           */
+#define DISPLAY_EVENT_MS          1500 /* maintien d'un événement bref           */
 
 /* Noir complet entre deux points de contrôle. Sans cette coupure, deux points
  * qui affichent le même message se confondent, et l'opérateur ne sait pas si
