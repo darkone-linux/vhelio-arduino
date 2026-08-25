@@ -46,7 +46,7 @@ actionneur de sécurité redondant.
 | [`06-architecture-logicielle.md`](specs/06-architecture-logicielle.md) | Modules, ordonnancement, budget mémoire |
 | [`07-securite.md`](specs/07-securite.md) | Analyse de défaillances, état sûr, conformité |
 | [`08-plan-de-tests.md`](specs/08-plan-de-tests.md) | 17 tests, de l'établi à la route |
-| [`09-questions-ouvertes.md`](specs/09-questions-ouvertes.md) | Quatorze questions, douze tranchées ; ce qu'il reste à vérifier |
+| [`09-questions-ouvertes.md`](specs/09-questions-ouvertes.md) | Quatorze questions, treize tranchées ; ce qu'il reste à vérifier |
 | [`10-alternatives-materiel.md`](specs/10-alternatives-materiel.md) | Faut-il changer de carte ? Analyse comparée et recommandation |
 
 ## Compilation
@@ -128,6 +128,58 @@ coûte **rien du tout**, l'empreinte étant identique à l'octet près.
 
 Temps de cycle mesuré à vide : **265 µs**, pointe à 6,7 ms sur la seconde où le
 journal série est émis. Le seuil de défaut est à 10 ms.
+
+## Autotest et contrôle au banc
+
+`tools/seq-banc.sh` déroule la campagne 1 en 2 min 40, envoie les commandes et
+annonce, horodaté, ce qui doit se produire. **Il ne vérifie rien de lui-même,
+et ne le peut pas** : la chaîne de registres à décalage ne se relit pas, si
+bien que le seul témoin de l'état d'un relais est son claquement. Le journal
+série dit ce que le *firmware* a décidé ; le claquement dit ce que la *carte* a
+fait. Le test, c'est les deux ensemble.
+
+```bash
+VHELIO_SIM=1 ./tools/build-nix.sh
+VHELIO_SIM=1 ./tools/upload.sh /dev/ttyACM0 old
+./tools/seq-banc.sh /dev/ttyACM0            # tout
+./tools/seq-banc.sh /dev/ttyACM0 freins     # une phase seule
+```
+
+**Carte alimentée en 12 V.** Sans lui, aucun relais ne colle — les bobines sont
+en 12 V — et aucune entrée ne réagit, la LED de chaque optocoupleur étant
+alimentée depuis le +12 V de la carte. L'afficheur, lui, s'allume sur l'USB
+seul : c'est le discriminant.
+
+### Les huit points à contrôler à l'oreille
+
+| # | Instant | Ce qui doit se produire | Ce que ça prouve |
+|---|---|---|---|
+| 1 | `t+0` | **7 claquements** de 200 ms d'affilée — R1 à R6 puis R7 — et **R8 muet** | L'autotest passe, et la coupure moteur en est bien exclue. **R8 qui claque ici est grave** |
+| 2 | `t+4` puis `t+8` | Veilleuse : **2 claquements** (R1 avant, R5 arrière). Phares : **1 seul** (R2) | Le feu rouge arrière suit l'éclairage avant — exigence F-1.7 |
+| 3 | `t+12` | **Rien ne bouge, pas un claquement** | `MAIN_KEEPS_PARK` : relâcher la veilleuse phares allumés n'éteint pas la veilleuse |
+| 4 | `t+16` | **3 claquements** simultanés, tout retombe | Aucune sortie ne reste collée |
+| 5 | `t+22` → `t+47` | **30 cycles en 22,5 s ± 1 s** au chronomètre | La cadence réglementaire, 80 cycles/min dans la plage 60–120. **Seul contrôle qui ne peut se faire qu'à l'oreille** |
+| 6 | `t+47` | **Silence total** pendant 5 s, plus 1 claquement de R7 | Gauche et droite demandés ensemble éteignent les deux et allument le voyant |
+| 7 | `t+73` | Le relâchement du frein en **deux temps** : R6 aussitôt, R8 environ 300 ms plus tard | `BRAKE_HOLD_MS` : l'assistance ne se réengage pas par à-coups sur un levier modulé |
+| 8 | `t+154` | Le rythme devient **syncopé** — bref allumé, long éteint — **sans que la cadence change** | Le rappel d'oubli des clignotants, seul canal vers le conducteur une fois la coque fermée |
+
+Entre le point 6 et le point 7, la détresse fait claquer R3 et R4 **en phase** :
+le claquement est double, et c'est ce qui la distingue à l'oreille d'un
+clignotant simple.
+
+### Ce que le journal établit tout seul
+
+Sans rien écouter, `.build/seq-banc.log` doit contenir :
+
+| Attendu | Ligne |
+|---|---|
+| Veilleuse | `VL=1 AR=1` |
+| Phares, veilleuse relâchée | `VL=1 PH=1 AR=1` — `VL` **reste** à 1 |
+| Conflit de clignotants | `TRN=-` et `flt=0x05 LAMP` |
+| Acquittement | `flt=0x05 ack` — le défaut est **toujours** signalé, seul le voyant s'éteint |
+| Conflit refait après acquittement | `LAMP` **revient** : l'acquittement portait sur l'événement, pas sur la catégorie |
+| Bus Bafang absent | `flt=0x04` en permanence et **jamais** `LAMP` — principe P2 |
+| Sur toute la séquence | aucun `FLT_LOOP_SLOW`, aucun reset chien de garde |
 
 ## Régler le firmware
 
