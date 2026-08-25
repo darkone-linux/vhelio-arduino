@@ -90,38 +90,40 @@ enum BtnIdx : uint8_t {
 };
 
 /* ---- Chaîne de registres à décalage — NON CONFIRMÉ -----------------------
- * ATTENTION : contrairement aux entrées et aux boutons ci-dessus, ces quatre
- * broches n'ont PAS été mesurées. Elles viennent de l'IO22D08, dont on sait
- * maintenant que la DN22D08 diffère. tools/pinchain les balaie (specs/03
- * §6 bis, phase B) ; tant qu'il n'a pas parlé, ce bloc reste une hypothèse.
+ * MESURÉ avec tools/pinchain (specs/03 §6 bis, phase B), triplet 120 sur 120.
+ * La signature ne laisse pas de place au doute : en promenant un seul bit à
+ * travers la chaîne, on obtient un relais à la fois sur les huit premières
+ * positions, puis les segments de l'afficheur. Aucun triplet faux ne produit
+ * cela — ils font du bruit, pas de l'ordre.
  *
- * Ce qui est certain, en revanche, c'est le jeu de broches où elles se
- * trouvent : la phase A a attribué toutes les autres. Il ne reste que
- * D13, A1, A2, A3, A4 et A5 — six broches pour huit relais et un afficheur,
- * ce qui confirme au passage l'argument arithmétique de specs/03 §1.
- *
- * Conséquence à surveiller : A4 est prévue pour l'écoute UART Bafang. Si la
- * chaîne réclame A4 et A5 en plus de trois autres, il ne reste plus de broche
- * pour le Bafang, et la télémétrie tombe. C'est le seul enjeu de conception
- * encore ouvert dans ce fichier.
+ * La chaîne a donc pris A4 et A5, qui étaient promises à l'écoute Bafang.
  *
  * Trois 74HC595 en série : U3 et U4 pour l'afficheur, U5 pour les relais.
  * L'ordre d'émission par digit est imposé par le câblage :
  *     octet bas du digit  ->  octet haut du digit  ->  octet relais
  * Pilotage par accès direct aux ports : shiftOut() coûterait ~5 µs/bit, soit
  * 120 µs par digit, contre ~8 µs ici.                                      */
-#define PIN_SR_DATA     13   /* PB5 — aussi la LED intégrée du Nano        */
-#define PIN_SR_CLOCK    A3   /* PC3                                        */
-#define PIN_SR_LATCH    A2   /* PC2                                        */
-#define PIN_RELAY_OE    A1   /* PC1 — validation des relais, ACTIVE À L'ÉTAT BAS */
+#define PIN_SR_DATA     A5   /* PC5 — mesuré, tools/pinchain triplet 120   */
+#define PIN_SR_CLOCK    A4   /* PC4 — mesuré                               */
+#define PIN_SR_LATCH    A3   /* PC3 — mesuré                               */
 
-/* Masques d'accès direct aux ports, cohérents avec les broches ci-dessus. */
-#define SR_DATA_PORT    PORTB
-#define SR_DATA_BIT     PB5
+/* OE — À CONFIRMER. Le balayage a réussi avec D13, A1 et A2 maintenues à
+ * l'état BAS. Si l'une des trois est l'OE du registre relais, actif à l'état
+ * bas, elle était donc validée sans qu'on le sache ; si aucune ne l'est, OE
+ * est câblée à la masse sur la carte et les trois broches sont libres. Le
+ * pinscan tranche : il colle les huit relais puis met chacune des trois au
+ * niveau haut à son tour. A1 n'est ici qu'un choix provisoire.            */
+#define PIN_RELAY_OE    A1   /* PC1 — validation, ACTIVE À L'ÉTAT BAS      */
+
+/* Masques d'accès direct aux ports, cohérents avec les broches ci-dessus.
+ * Les trois lignes sont sur PORTC, ce qui n'était pas le cas du brochage
+ * supposé : une seule écriture de port suffirait à les piloter ensemble. */
+#define SR_DATA_PORT    PORTC
+#define SR_DATA_BIT     PC5
 #define SR_CLOCK_PORT   PORTC
-#define SR_CLOCK_BIT    PC3
+#define SR_CLOCK_BIT    PC4
 #define SR_LATCH_PORT   PORTC
-#define SR_LATCH_BIT    PC2
+#define SR_LATCH_BIT    PC3
 
 /* ---- Broches restées libres ---------------------------------------------
  * A4 et A5 sont les seules broches libres capables d'interruption sur
@@ -131,6 +133,14 @@ enum BtnIdx : uint8_t {
  * inverseur à glissière « 485_ON / PRO » l'en déconnecte. Position **PRO**
  * en permanence : la console et le téléversement USB fonctionnent alors
  * normalement. Voir specs/03 §2 bis.                                       */
-#define PIN_BAFANG_RX   A4   /* écoute passive du contrôleur Bafang        */
-#define PIN_BAFANG_TX   A5   /* réservé par SoftwareSerial, NON CÂBLÉ      */
+/* A4 et A5 sont parties à la chaîne. L'écoute Bafang déménage sur ce qui
+ * reste — et elle survit, ce qui n'était pas acquis : D13, A1 et A2 portent
+ * toutes les trois une interruption sur changement d'état (PCINT5, PCINT9,
+ * PCINT10), seule condition pour un RX logiciel. A6 et A7, elles, n'auraient
+ * pas pu : analogiques seules, sans PCINT.
+ *
+ * PROVISOIRE tant que l'OE n'est pas identifiée : si le pinscan désigne A2 ou
+ * A1, l'attribution ci-dessous se décale sur D13.                          */
+#define PIN_BAFANG_RX   A2   /* PC2 — écoute passive du contrôleur Bafang  */
+#define PIN_BAFANG_TX   13   /* PB5 — réservé par SoftwareSerial, NON CÂBLÉ */
 #define PIN_WHEEL       A6   /* capteur de roue (option) — lecture analogique */

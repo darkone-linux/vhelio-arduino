@@ -48,7 +48,10 @@ Nano.
 | D9, D11 | Entrées optocouplées IN7 et IN8 |
 | D8, D10, D12 | Boutons K3, K2, K1 |
 | A0 | Bouton K4 |
-| D13, A1, A2, A3, A4, A5 | Chaîne de registres et afficheur — **répartition non déterminée**, voir §6 bis phase B |
+| A5 | **Données** de la chaîne (PC5) |
+| A4 | **Horloge** de la chaîne (PC4) |
+| A3 | **Verrou** de la chaîne (PC3) |
+| D13, A1, A2 | Libres — dont l'**OE** du registre relais, si elle n'est pas câblée à la masse. À confirmer, §6 |
 | A6, A7 | Libres, analogiques seules |
 | D0, D1 | Console série — libres, voir §2 bis |
 
@@ -57,9 +60,15 @@ de gauche à droite, ce qui explique la réputation de sérigraphie « inversée
 sur les cartes de cette famille. Il n'y a rien à inverser, K1 est bien le
 poussoir de gauche.
 
-> **Enjeu ouvert : l'écoute Bafang.** A4 lui était réservée. Six broches
-> restent pour la chaîne et l'afficheur ; si elles y passent toutes, il n'y a
-> plus de broche pour le Bafang et la télémétrie tombe. La phase B tranchera.
+Les trois lignes de la chaîne sont sur **PORTC**, contrairement au brochage
+supposé qui les répartissait sur deux ports. Une seule écriture de port
+suffirait à les piloter ensemble.
+
+> **L'écoute Bafang déménage, mais elle survit.** A4 lui était réservée ; la
+> chaîne l'a prise, avec A5. Elle se replie sur `A2` — et c'était loin d'être
+> acquis : un RX logiciel exige une interruption sur changement d'état, que
+> D13, A1 et A2 possèdent (PCINT5, PCINT9, PCINT10) mais que A6 et A7 n'ont
+> pas. Si l'OE se révèle être A2, l'attribution se décale sur D13.
 
 ## 2 bis. Le RS485 et l'inverseur « 485_ON / PRO »
 
@@ -523,6 +532,26 @@ claque **est** son bit dans la chaîne. C'est l'étape suivante faite d'avance.
 
 Noter le **numéro du triplet**, le niveau des autres broches, et la position
 de chacun des huit relais. Puis reporter dans `pins.h` et `board_io.cpp`.
+
+#### Résultat mesuré
+
+**Triplet 120 sur 120** : `données = A5`, `horloge = A4`, `verrou = A3`, les
+trois autres broches à l'état **bas**.
+
+La signature ne laisse pas de place au doute. En motif `BIT A BIT` : un relais
+à la fois sur les huit premières positions, puis les segments de l'afficheur.
+Les triplets faux, eux, faisaient bien claquer les relais — mais tous ensemble,
+au rythme de l'horloge. Du bruit, pas de l'ordre. C'est exactement la
+distinction que le motif `BIT A BIT` avait été ajouté pour trancher.
+
+L'octet des relais est donc le **dernier** émis des trois.
+
+Restent deux inconnues, que `tools/pinscan` lève (§6) : la correspondance
+bit ↔ relais, et l'emplacement de l'OE parmi D13, A1 et A2.
+
+Le brochage de l'**afficheur** — sélection des digits, ordre des segments — est
+une phase distincte, pas encore écrite. Il n'est nécessaire à aucune fonction
+de conduite : l'afficheur est un organe de maintenance, sous la coque (Q12).
 
 > **Le faisceau ne doit pas être câblé.** En motif `TOUS`, huit circuits sont
 > fermés en même temps, ce qui n'est un régime prévu nulle part. À vide, les
