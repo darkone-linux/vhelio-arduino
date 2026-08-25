@@ -40,20 +40,26 @@ Nano.
 
 ## 2. Brochage
 
+**Mesuré** avec `tools/pinfind` (§6 bis), et non plus déduit de l'IO22D08.
+
 | Broche Nano | Rôle |
 |---|---|
-| D2, D3, D4, D5, D6 | Entrées optocouplées IN1 à IN5 |
-| D7, D8, D9, D10 | Boutons K1 à K4 (sur la carte) |
-| D11, D12 | Entrées optocouplées IN8 et **IN7** (ordre inversé) |
-| **D13** | **Données** de la chaîne de registres — *et LED intégrée du Nano* |
-| A0 | Entrée optocouplée IN6 |
-| A1 | **OE** du registre relais — validation, active à l'état bas |
-| A2 | **Verrou** (latch) de la chaîne |
-| A3 | **Horloge** de la chaîne |
-| A4 | Libre → écoute UART Bafang (RX logiciel) |
-| A5 | Libre → TX logiciel, **non câblé** |
+| D2, D3, D4, D5, D6, D7 | Entrées optocouplées IN1 à IN6 |
+| D9, D11 | Entrées optocouplées IN7 et IN8 |
+| D8, D10, D12 | Boutons K3, K2, K1 |
+| A0 | Bouton K4 |
+| D13, A1, A2, A3, A4, A5 | Chaîne de registres et afficheur — **répartition non déterminée**, voir §6 bis phase B |
 | A6, A7 | Libres, analogiques seules |
 | D0, D1 | Console série — libres, voir §2 bis |
+
+Les boutons occupent D8, D10, D12 puis A0 (= 14) : les numéros **décroissent**
+de gauche à droite, ce qui explique la réputation de sérigraphie « inversée »
+sur les cartes de cette famille. Il n'y a rien à inverser, K1 est bien le
+poussoir de gauche.
+
+> **Enjeu ouvert : l'écoute Bafang.** A4 lui était réservée. Six broches
+> restent pour la chaîne et l'afficheur ; si elles y passent toutes, il n'y a
+> plus de broche pour le Bafang et la télémétrie tombe. La phase B tranchera.
 
 ## 2 bis. Le RS485 et l'inverseur « 485_ON / PRO »
 
@@ -116,8 +122,8 @@ ce qui donne un état inactif franc même carte non alimentée.
 | IN3 | D4 | `IN_ACK` | Bouton d'acquittement des défauts | momentané | 20 ms |
 | IN4 | D5 | `IN_BRAKE_FRONT` | Contacteur frein avant (unipolaire, contact sec) | momentané | 15 ms |
 | IN5 | D6 | `IN_BRAKE_REAR` | Micro-rupteur S2 sur le levier arrière | momentané | 15 ms |
-| IN6 | A0 | `IN_PARK` | Interrupteur dédié « veilleuse » | maintenu | 30 ms |
-| IN7 | D12 | `IN_MAIN` | Comodo, éclairage fort | maintenu | 30 ms |
+| IN6 | D7 | `IN_PARK` | Interrupteur dédié « veilleuse » | maintenu | 30 ms |
+| IN7 | D9 | `IN_MAIN` | Comodo, éclairage fort | maintenu | 30 ms |
 | IN8 | D11 | `IN_HAZARD` | Interrupteur dédié détresse (S1) | maintenu | 30 ms |
 
 **Gain par rapport à l'ancienne hypothèse** : les huit entrées sont sur de
@@ -456,17 +462,56 @@ candidates naturelles des quatre lignes de la chaîne (données, horloge,
 verrou, OE). Hypothèse, pas conclusion : elle sert seulement à **ordonner** la
 recherche de la phase B, pas à la remplacer.
 
-**Entrées** — à mesurer, carte alimentée.
+**Entrées** — mesuré, carte alimentée. Elles réagissent **à la masse** :
+la polarité NPN annoncée par le constructeur est confirmée, tous les communs
+du faisceau vont donc à GND.
+
+| | Supposé d'après l'IO22D08 | **Mesuré sur la DN22D08** |
+|---|---|---|
+| IN1 … IN5 | D2, D3, D4, D5, D6 | identiques |
+| IN6 | A0 | **D7** |
+| IN7 | D12 | **D9** |
+| IN8 | D11 | identique |
+
+**Il reste donc six broches, et six seulement**, pour huit relais et un
+afficheur quatre digits : `D13, A1, A2, A3, A4, A5`. L'argument arithmétique
+du §1 s'en trouve confirmé par la mesure.
+
+L'hypothèse des « broches impaires » formée à partir des boutons est morte :
+D9 et D11 sont des entrées. C'est précisément pourquoi on mesure.
 
 ### Phase B — la chaîne de registres
 
-À écrire quand la phase A aura livré la liste complète des broches restantes.
-Sans le résultat des entrées, l'espace de recherche est de 14 broches, soit
-2 184 triplets ordonnés — une demi-heure de balayage. Les entrées identifiées,
-il en reste quatre ou cinq, soit vingt-quatre à soixante combinaisons.
+Aucun brochage de la DN22D08 n'est publié : la fiche du constructeur donne les
+caractéristiques mais pas le câblage, et précise ne fournir « ni code
+supplémentaire ni support technique ». Le balayage est donc la seule voie.
 
-L'écrire avant reviendrait à refaire l'erreur qui nous a menés ici : coder une
-hypothèse plutôt que la mesurer.
+```bash
+VHELIO_SKETCH=$PWD/tools/pinchain ./tools/build-nix.sh
+VHELIO_SKETCH=$PWD/tools/pinchain ./tools/upload.sh /dev/ttyACM0 old
+./tools/monitor.sh
+```
+
+Pour chaque triplet **ordonné** (données, horloge, verrou) pris parmi les six
+broches restantes, le croquis décale trois octets de `0xFF` puis verrouille.
+Si le triplet est bon, **les huit relais collent d'un coup** — impossible à
+manquer. Les trois broches restantes sont maintenues à un niveau fixe pour
+couvrir une validation OE parmi elles, d'où deux passes : une à l'état bas,
+une à l'état haut. 6×5×4 = 120 triplets, 240 essais, environ cinq minutes.
+
+Noter le **numéro de l'essai** qui claque, puis reporter dans `pins.h`.
+
+> **Le faisceau ne doit pas être câblé.** Huit circuits fermés simultanément
+> n'est un régime prévu nulle part. À vide, les huit bobines représentent
+> ≈ 300 mA sur le 12 V, que la carte encaisse sans difficulté.
+
+> Surveiller aussi l'afficheur : s'il s'allume **sans** que les relais bougent,
+> la chaîne est trouvée mais les relais ont leur propre validation, et c'est
+> alors le passage `autres=BAS` ou `autres=HAUT` qui la désigne.
+
+Piloter ces six broches en sortie n'est sans risque que parce que la phase A a
+prouvé qu'aucune ne porte d'entrée optocouplée ni de poussoir — donc qu'aucun
+organe de la carte ne cherche à leur imposer un niveau.
 
 ## 7. Comment l'hypothèse initiale a été invalidée
 

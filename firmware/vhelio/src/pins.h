@@ -11,20 +11,19 @@
  *   Un Nano en offre 20. Le registre à décalage n'est pas un choix, c'est une
  *   nécessité arithmétique.
  *
- * Source : bibliothèque de référence af3556/IO22_IO_Board, recoupée avec les
- * spécifications Eletechsup. Relu ligne à ligne contre cette bibliothèque :
- * broches data/horloge/verrou/OE, tableaux d'entrées et de boutons, ordre des
- * bits relais et ordre d'émission des trois octets concordent tous. Restent à
- * confirmer sur la carte réelle, avec tools/pinscan (specs/03 §6), les deux
- * points que la bibliothèque ne tranche pas : la polarité NPN des entrées et
- * le sens de la sérigraphie K1..K4.
+ * Source : MESURÉ sur la carte avec tools/pinfind (specs/03 §6 bis), et non
+ * plus déduit. La bibliothèque af3556/IO22_IO_Board, qui servait de référence,
+ * ne couvre que l'IO22D08 : la DN22D08 en diffère sur les boutons et sur deux
+ * des huit entrées. Le brochage ci-dessous est celui de la DN22D08 réelle.
+ *
+ * Reste inconnu : la chaîne à décalage. Voir le bloc en fin de fichier.
  */
 #pragma once
 
 #include <Arduino.h>
 
 /* ---- Entrées optocouplées (NPN, déclenchement à l'état bas) --------------
- * Reliées directement au Nano : D2, D3, D4, D5, D6, A0, D12, D11.
+ * Reliées directement au Nano : D2, D3, D4, D5, D6, D7, D9, D11 — mesuré.
  * NPN = une borne s'active en la fermant sur la MASSE. Tous les contacts du
  * faisceau sont donc des contacts secs vers GND — y compris le contacteur de
  * frein avant, qui est unipolaire. Voir hardware/cablage.md §2.           */
@@ -34,8 +33,8 @@ enum InIdx : uint8_t {
   IN_ACK         = 2,  /* IN3 / D4  — bouton d'acquittement défaut  */
   IN_BRAKE_FRONT = 3,  /* IN4 / D5  — contacteur frein avant        */
   IN_BRAKE_REAR  = 4,  /* IN5 / D6  — contacteur frein arrière      */
-  IN_PARK        = 5,  /* IN6 / A0  — inter dédié « veilleuse »     */
-  IN_MAIN        = 6,  /* IN7 / D12 — comodo, éclairage fort        */
+  IN_PARK        = 5,  /* IN6 / D7  — inter dédié « veilleuse »     */
+  IN_MAIN        = 6,  /* IN7 / D9  — comodo, éclairage fort        */
   IN_HAZARD      = 7,  /* IN8 / D11 — inter dédié détresse (S1)     */
   IN_COUNT       = 8
 };
@@ -72,23 +71,40 @@ enum OutIdx : uint8_t {
  * usages s'excluent, config.h le vérifie.                                  */
 
 /* ---- Boutons de la carte -------------------------------------------------
- * Quatre poussoirs sur D7, D8, D9, D10. Ils sont SUR la carte, donc dans le
- * boîtier — et le boîtier est sous la coque : inaccessibles en roulant.
- * Réservés à la maintenance, jamais à une commande de conduite.
+ * Quatre poussoirs sur D12, D10, D8, A0 — mesuré, de K1 à K4 de gauche à
+ * droite. Ils sont SUR la carte, donc dans le boîtier — et le boîtier est
+ * sous la coque : inaccessibles en roulant. Réservés à la maintenance,
+ * jamais à une commande de conduite.
  *
- * Attention à la sérigraphie : sur cette famille de cartes, les repères K1..K4
- * sont imprimés dans l'ORDRE INVERSE du câblage. Le bouton marqué « K4 » est
- * celui qui est relié à D7, donc celui que le firmware appelle BTN_PAGE. Le
- * pinscan tranche (specs/03 §6, étape 5).                                  */
+ * La question de la sérigraphie est tranchée : le poussoir de gauche, marqué
+ * K1, est bien celui que le firmware appelle BTN_PAGE. Ce sont les NUMÉROS DE
+ * BROCHE qui décroissent de gauche à droite (12, 10, 8, puis A0 = 14), et
+ * c'est cette décroissance qui a fait parler d'une sérigraphie « inversée »
+ * sur les cartes voisines. Il n'y a rien à inverser.                       */
 enum BtnIdx : uint8_t {
-  BTN_PAGE     = 0,   /* D7 (sérigraphié K4) — page suivante        */
-  BTN_LAMPTEST = 1,   /* D8 (sérigraphié K3) — test des feux        */
-  BTN_SPARE1   = 2,   /* D9 (sérigraphié K2)                        */
-  BTN_SPARE2   = 3,   /* D10 (sérigraphié K1)                       */
+  BTN_PAGE     = 0,   /* K1, D12 — page suivante                    */
+  BTN_LAMPTEST = 1,   /* K2, D10 — test des feux                    */
+  BTN_SPARE1   = 2,   /* K3, D8                                     */
+  BTN_SPARE2   = 3,   /* K4, A0                                     */
   BTN_COUNT    = 4
 };
 
-/* ---- Chaîne de registres à décalage --------------------------------------
+/* ---- Chaîne de registres à décalage — NON CONFIRMÉ -----------------------
+ * ATTENTION : contrairement aux entrées et aux boutons ci-dessus, ces quatre
+ * broches n'ont PAS été mesurées. Elles viennent de l'IO22D08, dont on sait
+ * maintenant que la DN22D08 diffère. tools/pinchain les balaie (specs/03
+ * §6 bis, phase B) ; tant qu'il n'a pas parlé, ce bloc reste une hypothèse.
+ *
+ * Ce qui est certain, en revanche, c'est le jeu de broches où elles se
+ * trouvent : la phase A a attribué toutes les autres. Il ne reste que
+ * D13, A1, A2, A3, A4 et A5 — six broches pour huit relais et un afficheur,
+ * ce qui confirme au passage l'argument arithmétique de specs/03 §1.
+ *
+ * Conséquence à surveiller : A4 est prévue pour l'écoute UART Bafang. Si la
+ * chaîne réclame A4 et A5 en plus de trois autres, il ne reste plus de broche
+ * pour le Bafang, et la télémétrie tombe. C'est le seul enjeu de conception
+ * encore ouvert dans ce fichier.
+ *
  * Trois 74HC595 en série : U3 et U4 pour l'afficheur, U5 pour les relais.
  * L'ordre d'émission par digit est imposé par le câblage :
  *     octet bas du digit  ->  octet haut du digit  ->  octet relais

@@ -7,8 +7,9 @@ namespace {
  * Brochage physique. C'EST ICI qu'on corrige si la carte diffère.
  * Procédure de vérification : specs/03-affectation-es.md §6.
  * ------------------------------------------------------------------ */
-const uint8_t IN_PIN[IN_COUNT]   = { 2, 3, 4, 5, 6, A0, 12, 11 };
-const uint8_t BTN_PIN[BTN_COUNT] = { 7, 8, 9, 10 };
+/* Mesuré avec tools/pinfind, pas déduit : specs/03 §6 bis. */
+const uint8_t IN_PIN[IN_COUNT]   = { 2, 3, 4, 5, 6, 7, 9, 11 };
+const uint8_t BTN_PIN[BTN_COUNT] = { 12, 10, 8, A0 };
 
 /* Entrée optocouplée NPN : un signal sur la borne fait conduire
  * l'optocoupleur, qui tire la broche du Nano à l'état bas. */

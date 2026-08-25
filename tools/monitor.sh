@@ -36,6 +36,18 @@ if [ ! -r "$PORT" ] || [ ! -w "$PORT" ]; then
   exit 1
 fi
 
+# Deux lecteurs sur le meme port ne s'excluent pas : ils se PARTAGENT les
+# octets, un caractere sur deux chacun. L'affichage devient illisible sans
+# qu'aucune des deux consoles ne signale quoi que ce soit.
+if command -v fuser >/dev/null 2>&1 && fuser -s "$PORT" 2>/dev/null; then
+  echo "$PORT est deja ouvert par un autre programme :"
+  fuser -v "$PORT" 2>&1 || true
+  echo
+  echo "Fermer l'autre console (Ctrl-C) : deux lecteurs se partagent les"
+  echo "octets et les deux affichages deviennent illisibles."
+  exit 1
+fi
+
 echo "== $PORT a $SPEED bauds. Ctrl-C pour quitter. =="
 
 # Garder le descripteur ouvert pendant le stty : sinon la fermeture du port
