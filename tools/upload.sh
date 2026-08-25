@@ -9,7 +9,11 @@
 #
 # Le croquis se choisit avec VHELIO_SKETCH, exactement comme a la compilation :
 #   VHELIO_SKETCH=$PWD/tools/pinscan ./tools/build-nix.sh
-#   VHELIO_SKETCH=$PWD/tools/pinscan ./tools/upload.sh /dev/ttyACM0
+#   VHELIO_SKETCH=$PWD/tools/pinscan ./tools/upload.sh /dev/ttyACM0 old
+#
+# Le Nano de ce projet a un ANCIEN bootloader : le mot-cle "old" (57600 bauds)
+# est obligatoire. Il ne concerne que ce script, pas la compilation : atmega328
+# et atmega328old produisent le meme binaire.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -69,7 +73,25 @@ else
 fi
 
 echo "== $NAME -> $PORT ($SPEED bauds) =="
-"${AVRDUDE[@]}" -p atmega328p -c arduino -P "$PORT" -b "$SPEED" \
-                -D -U "flash:w:$HEX:i"
+if ! "${AVRDUDE[@]}" -p atmega328p -c arduino -P "$PORT" -b "$SPEED" \
+                     -D -U "flash:w:$HEX:i"; then
+  echo
+  echo "Echec du televersement."
+  if [ "$SPEED" = 115200 ]; then
+    # Le Nano de ce projet a un ANCIEN bootloader : il ecoute a 57600. A
+    # 115200 avrdude enchaine les "not in sync: resp=0x00", qui ressemblent
+    # a une panne de cablage. C'est la cause la plus frequente ici.
+    echo "Ce Nano a un ancien bootloader. Reessayer a 57600 bauds :"
+    echo "    VHELIO_SKETCH=$SKETCH $0 $PORT old"
+  else
+    echo "Verifier, dans l'ordre :"
+    echo "  - l'inverseur 485_ON / PRO de la carte, qui doit etre sur PRO"
+    echo "    (sinon le RS485 occupe D0/D1) ;"
+    echo "  - le cable USB (certains ne portent que l'alimentation) ;"
+    echo "  - le lien seul, sans rien ecrire :"
+    echo "    avrdude -v -p atmega328p -c arduino -P $PORT -b $SPEED"
+  fi
+  exit 1
+fi
 
 echo "== Televerse. Console : $CLI monitor -p $PORT -c baudrate=115200 =="

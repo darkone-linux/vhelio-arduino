@@ -61,8 +61,18 @@ actionneur de sécurité redondant.
 ./tools/upload.sh         # televerse (port detecte seul)
 ```
 
-Ajouter `old` en second argument pour un Nano à ancien bootloader ; le port se
-force en premier argument (`./tools/upload.sh /dev/ttyACM0 old`).
+**Le Nano de ce projet porte un ancien bootloader : le mot-clé `old`
+(57 600 bauds) est obligatoire au téléversement**, sinon avrdude enchaîne les
+`not in sync: resp=0x00`. Le port se force en premier argument :
+
+```bash
+./tools/upload.sh /dev/ttyACM0 old
+```
+
+Seul `upload.sh` en a besoin : `atmega328` et `atmega328old` produisent le même
+binaire et ne diffèrent que par le débit. Le nom du port ne renseigne pas sur la
+carte — celle-ci sort en `/dev/ttyACM0` (pont USB-CDC générique) là où un Nano
+officiel à FT232RL sort en `/dev/ttyUSB0`.
 
 `upload.sh` **ne compile pas** : il téléverse le résultat de la compilation
 précédente. Sous NixOS, l'utilisateur doit appartenir au groupe `dialout` — le
@@ -73,7 +83,7 @@ commandes, chaque croquis ayant son propre répertoire sous `.build/`) :
 
 ```bash
 VHELIO_SKETCH=$PWD/tools/pinscan ./tools/build-nix.sh
-VHELIO_SKETCH=$PWD/tools/pinscan ./tools/upload.sh
+VHELIO_SKETCH=$PWD/tools/pinscan ./tools/upload.sh /dev/ttyACM0 old
 ```
 
 Balayage de toutes les combinaisons d'options de `config.h` :

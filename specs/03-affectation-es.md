@@ -78,8 +78,12 @@ Conséquences pratiques :
   l'afficheur 4 digits (`DEBUG_SERIAL 0`) — mais l'afficheur est sous la coque
   (Q12), ce qui rend l'arbitrage nettement défavorable au RS485.
 
-> Si un téléversement échoue sans raison apparente, **vérifier cet inverseur
-> avant toute autre hypothèse.** C'est le piège classique de cette carte.
+> Si un téléversement échoue sans raison apparente, cet inverseur est **le
+> piège classique de cette carte** — mais il n'en est pas le premier suspect.
+> Tester d'abord le débit du bootloader (§6, étape 1) : cela coûte une
+> commande et n'oblige pas à ouvrir le boîtier. C'est d'ailleurs ce qui s'est
+> produit ici, le `not in sync: resp=0x00` venait de l'ancien bootloader et
+> pas du RS485.
 
 > **La LED D13 n'est pas utilisable comme témoin.** Elle est sur la ligne de
 > données du registre et papillote au rythme du rafraîchissement. Le battement
@@ -275,10 +279,33 @@ initiale à optocoupleur.
    produit.
    ```bash
    VHELIO_SKETCH=$PWD/tools/pinscan ./tools/build-nix.sh
-   VHELIO_SKETCH=$PWD/tools/pinscan ./tools/upload.sh
+   VHELIO_SKETCH=$PWD/tools/pinscan ./tools/upload.sh /dev/ttyACM0 old
    ```
-   Le port est détecté seul (`/dev/ttyACM0` pour un Nano officiel,
-   `/dev/ttyUSB0` pour un clone à CH340) ; le passer en argument pour forcer.
+
+   > **Le Nano de ce projet porte un ancien bootloader : le mot-clé `old`
+   > (57 600 bauds) est obligatoire au téléversement.** Sans lui, avrdude
+   > parle à 115 200 et enchaîne dix `not in sync: resp=0x00`, message qui
+   > ressemble à s'y méprendre à une panne de câblage. Mesuré sur
+   > l'exemplaire : `HW Version 3 / FW Version 4.4`, signature `1E 95 0F`.
+   >
+   > Il est en revanche **inutile de recompiler avec `old`** : `atmega328` et
+   > `atmega328old` partagent `build.mcu` et `maximum_size` (30 720 octets) et
+   > produisent le même binaire. Seul le débit de `upload.sh` change.
+
+   Le port se passe en premier argument pour forcer la détection. **Son nom ne
+   dit rien de la provenance de la carte** : celle-ci s'énumère en
+   `0843:5740 FIREPHX USB SER` sur le pilote `cdc_acm`, donc en
+   `/dev/ttyACM0`, alors qu'un Nano officiel à FT232RL sort en `/dev/ttyUSB0`.
+   Ne rien déduire du port, ni sur le bootloader ni sur l'authenticité.
+
+   > **Diagnostic d'un téléversement qui ne passe pas.** avrdude sait
+   > interroger la carte sans rien écrire — pas de `-U`, donc aucun risque :
+   > ```bash
+   > avrdude -v -p atmega328p -c arduino -P /dev/ttyACM0 -b 57600
+   > ```
+   > `Device signature = 1E 95 0F` → le lien série et le débit sont bons.
+   > Échec **aux deux débits** (115 200 puis 57 600) → suspecter alors
+   > l'inverseur `485_ON` (§2 bis), puis le câble, puis l'auto-reset.
 
    > **Prérequis NixOS.** Le port série appartient à `root:dialout` et
    > l'utilisateur n'est pas dans ce groupe par défaut. `upload.sh` le vérifie
