@@ -49,6 +49,20 @@ optocoupleur — c'est ce qui permet de mener les deux méthodes de front.
 `0` relâche les huit bornes en les gardant sous simulation, `x` les rend toutes
 au matériel, `?` rappelle l'aide.
 
+`tools/seq-banc.sh` enchaîne T1.2 à T1.6 tout seul — 2 min 40 — en **annonçant
+horodaté ce qui doit s'entendre**, et journalise la console dans
+`.build/seq-banc.log` :
+
+```bash
+./tools/seq-banc.sh /dev/ttyACM0            # tout
+./tools/seq-banc.sh /dev/ttyACM0 freins     # une phase seule
+```
+
+Il ne vérifie rien de lui-même, et ne le peut pas : **la chaîne de registres ne
+se relit pas**, le seul témoin de l'état d'un relais est son claquement. C'est
+un métronome pour l'opérateur. Le journal dit ce que le *firmware* a décidé, le
+claquement dit ce que la *carte* a fait — il faut les deux.
+
 > **Ce firmware ne doit jamais rouler.** Un caractère parasite sur la ligne
 > série fermerait un contact de frein ou allumerait une détresse. Trois choses
 > le rappellent : un `#warning` à la compilation, une bannière au démarrage, et
