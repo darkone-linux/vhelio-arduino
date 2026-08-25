@@ -79,7 +79,7 @@ sous la coque, rien ne signalait un défaut avant l'ouverture.
 | F-6.1 | M | Un chien de garde matériel (WDT 1 s) redémarre l'Arduino en cas de blocage. | Boucle infinie injectée en test. |
 | F-6.2 | M | Le WDT est explicitement désarmé au tout début de `setup()` (`MCUSR = 0; wdt_disable();`) pour éviter le redémarrage en boucle avec les anciens bootloaders. | Revue de code. |
 | F-6.3 | S | Un autotest au démarrage active chaque sortie 200 ms dans l'ordre : les six relais d'éclairage et de signalisation, **puis le voyant de défaut**. Seule la coupure moteur (R8) est exclue. | Observation visuelle et **auditive** — le claquement est le seul contrôle des relais perceptible coque fermée. |
-| F-6.4 | S | Le **deux-points de l'afficheur** bat à 1 Hz en fonctionnement nominal, à ~4 Hz si un défaut est actif. La LED D13 du Nano n'est pas utilisable : elle porte la ligne de données du registre à décalage. | Observation, coque ouverte. |
+| F-6.4 | S | Le **point décimal du digit de gauche** bat à 1 Hz en fonctionnement nominal, à ~4 Hz si un défaut est actif. L'afficheur n'a pas de deux-points (mesuré). La LED D13 du Nano n'est pas utilisable non plus : elle porte le TX logiciel du Bafang, maintenu haut au repos. | Observation, coque ouverte. |
 | F-6.5 | S | Un journal série (115 200 bauds) publie l'état consolidé toutes les secondes, désactivable à la compilation. L'inverseur de la carte doit être sur **`PRO`**, faute de quoi le RS485 occupe D0/D1. | Terminal série. |
 | F-6.6 | M | Le temps de cycle maximal observé est journalisé ; il doit rester < 10 ms. | Champ `loopMax` du journal. |
 

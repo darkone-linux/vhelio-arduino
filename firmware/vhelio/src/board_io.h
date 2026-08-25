@@ -51,7 +51,9 @@ void outputsEnabled(bool en);
 
 void showNumber(uint16_t n, bool blankLeadingZeros = true);
 void showGlyphs(const uint8_t g[4]);
-void setColon(bool on);
+/* L'afficheur n'a pas de deux-points : le battement de cœur est le point
+ * décimal du digit de gauche. Voir board_io.cpp. */
+void setHeartbeat(bool on);
 
 /* --- Rafraîchissement -------------------------------------------------- */
 

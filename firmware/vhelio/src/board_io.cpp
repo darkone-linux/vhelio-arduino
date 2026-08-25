@@ -28,26 +28,67 @@ const bool IN_ACTIVE_LOW[IN_COUNT] = {
  * changements de brochage de cette carte sans toucher un module métier. */
 const uint8_t RELAY_BIT[OUT_COUNT] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
-/* Afficheur à anode commune : un bit à 0 allume le segment.
- * Table issue de la bibliothèque de référence af3556/IO22_IO_Board. */
+/* ---- Afficheur — MESURÉ (specs/03 §6 ter) --------------------------------
+ * Tout ce bloc venait de l'IO22D08. La mesure l'a contredit sur les trois
+ * points qui comptent : la polarité des segments, celle de la sélection, et
+ * la répartition des bits.
+ *
+ * Le mot d'afficheur fait seize bits. Les bits 0 à 7 partent dans le DEUXIÈME
+ * octet émis, les bits 8 à 15 dans le PREMIER. Les segments sont répartis sur
+ * les deux — six d'un côté, deux de l'autre — ce qui interdit de raisonner
+ * « un octet segments, un octet digits ».
+ *
+ *   SEGMENTS : ACTIFS À L'ÉTAT HAUT. Un bit à 1 allume.
+ *   SÉLECTION : ACTIVE À L'ÉTAT BAS. Un bit à 0 valide le digit.
+ *
+ * La sélection à l'état bas explique ce qui déroutait pendant la mesure : mot
+ * à zéro, les quatre digits sont validés, et un segment isolé s'allume donc
+ * sur les quatre à la fois.                                                */
+#define SEG_A   (1u <<  4)
+#define SEG_B   (1u << 12)
+#define SEG_C   (1u <<  7)
+#define SEG_D   (1u <<  3)
+#define SEG_E   (1u <<  1)
+#define SEG_F   (1u <<  6)
+#define SEG_G   (1u << 11)
+#define SEG_DP  (1u <<  5)
+
 const uint16_t GLYPH[17] = {
-  0x2008, /* 0 */ 0x7A08, /* 1 */ 0xE000, /* 2 */ 0x6200, /* 3 */
-  0x3A00, /* 4 */ 0x2210, /* 5 */ 0x2010, /* 6 */ 0x6A08, /* 7 */
-  0x2000, /* 8 */ 0x2200, /* 9 */ 0xFA18, /* vide */ 0x2008, /* O */
-  0x7810, /* n */ 0xA810, /* F */ 0xA010, /* E */ 0xF810, /* r */
-  0xF218  /* _ */
+  SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F,        /* 0     */
+  SEG_B|SEG_C,                                /* 1     */
+  SEG_A|SEG_B|SEG_G|SEG_E|SEG_D,              /* 2     */
+  SEG_A|SEG_B|SEG_G|SEG_C|SEG_D,              /* 3     */
+  SEG_F|SEG_G|SEG_B|SEG_C,                    /* 4     */
+  SEG_A|SEG_F|SEG_G|SEG_C|SEG_D,              /* 5     */
+  SEG_A|SEG_F|SEG_G|SEG_E|SEG_D|SEG_C,        /* 6     */
+  SEG_A|SEG_B|SEG_C,                          /* 7     */
+  SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F|SEG_G,  /* 8     */
+  SEG_A|SEG_B|SEG_C|SEG_D|SEG_F|SEG_G,        /* 9     */
+  0,                                          /* vide  */
+  SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F,        /* O     */
+  SEG_E|SEG_G|SEG_C,                          /* n     */
+  SEG_A|SEG_F|SEG_G|SEG_E,                    /* F     */
+  SEG_A|SEG_F|SEG_G|SEG_E|SEG_D,              /* E     */
+  SEG_E|SEG_G,                                /* r     */
+  SEG_D                                       /* _     */
 };
 
-/* Bit de sélection du digit, mêlé au motif de segments. */
-const uint16_t DIGIT_SELECT[4] = { 0x0400, 0x0002, 0x0004, 0x0020 };
+/* Sélection, active à l'état bas : on part de DIGIT_ALL — les quatre digits
+ * inhibés — et on efface le bit du digit à allumer. */
+const uint16_t DIGIT_SELECT[4] = { 1u << 2, 1u << 9, 1u << 10, 1u << 13 };
+const uint16_t DIGIT_ALL = (1u << 2) | (1u << 9) | (1u << 10) | (1u << 13);
 
-/* Seuls DP2 et DP3 sont câblés, en guise de deux-points. */
-const uint16_t DP_SEGMENT = 0xDFFF;
+/* L'afficheur n'a PAS de deux-points : rien que des points décimaux, un par
+ * digit. Le battement de cœur se porte donc sur le point du digit 1, à
+ * gauche — celui qu'aucun format numérique ne réclamera : un point après le
+ * chiffre des milliers ne veut rien dire, alors que les formats usuels
+ * (12.5, 1.234) le placent après le deuxième ou le troisième.             */
+const uint8_t HEARTBEAT_DIGIT = 0;
 
 uint16_t g_disp[4];
 uint8_t  g_relays = 0;
 uint8_t  g_digit = 0;
-bool     g_colon = false;
+bool     g_heartbeat = false;
 uint8_t  g_glyphs[4] = { board::GL_BLANK, board::GL_BLANK,
                          board::GL_BLANK, board::GL_BLANK };
 
@@ -67,17 +108,13 @@ inline void shiftByteFast(uint8_t v) {
   }
 }
 
-/* Reconstruit le tampon d'un digit : segments, sélection, deux-points. */
+/* Reconstruit le tampon d'un digit : segments, point, sélection. */
 void rebuildDigit(uint8_t n) {
   uint16_t v = GLYPH[g_glyphs[n]];
-  if (n == 1 || n == 2) {
-    if (g_colon) {
-      v &= DP_SEGMENT;
-    } else {
-      v |= (uint16_t)~DP_SEGMENT;
-    }
-  }
-  v |= DIGIT_SELECT[n];
+  if (g_heartbeat && n == HEARTBEAT_DIGIT) v |= SEG_DP;
+  /* Tous les digits inhibés sauf celui-ci : la sélection est active bas. */
+  v |= DIGIT_ALL;
+  v &= (uint16_t)~DIGIT_SELECT[n];
   g_disp[n] = v;
 }
 
@@ -106,7 +143,7 @@ void board::begin() {
   for (uint8_t i = 0; i < BTN_COUNT; ++i) pinMode(BTN_PIN[i], INPUT_PULLUP);
 
   g_relays = 0;
-  g_colon = false;
+  g_heartbeat = false;
   rebuildAll();
 
   /* Purger la chaîne avant de valider les sorties, pour ne pas activer des
@@ -145,11 +182,10 @@ void board::outputsEnabled(bool en) {
   digitalWrite(PIN_RELAY_OE, en ? LOW : HIGH);
 }
 
-void board::setColon(bool on) {
-  if (on == g_colon) return;
-  g_colon = on;
-  rebuildDigit(1);
-  rebuildDigit(2);
+void board::setHeartbeat(bool on) {
+  if (on == g_heartbeat) return;
+  g_heartbeat = on;
+  rebuildDigit(HEARTBEAT_DIGIT);
 }
 
 void board::showGlyphs(const uint8_t g[4]) {
@@ -176,9 +212,11 @@ void board::showNumber(uint16_t n, bool blankLeadingZeros) {
 void board::refresh() {
   const uint16_t d = g_disp[g_digit];
   SR_LATCH_PORT &= (uint8_t)~_BV(SR_LATCH_BIT);
-  shiftByteFast((uint8_t)(d & 0xFF));   /* U4 */
-  shiftByteFast((uint8_t)(d >> 8));     /* U3 */
-  shiftByteFast(g_relays);              /* U5 */
+  /* L'ordre est celui de la mesure : bits 8..15 du mot d'abord, bits 0..7
+   * ensuite, les relais en dernier. */
+  shiftByteFast((uint8_t)(d >> 8));
+  shiftByteFast((uint8_t)(d & 0xFF));
+  shiftByteFast(g_relays);
   SR_LATCH_PORT |= _BV(SR_LATCH_BIT);
   g_digit = (uint8_t)((g_digit + 1) & 3);
 }

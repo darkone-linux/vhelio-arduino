@@ -14,7 +14,7 @@ La DN22D08 (famille Eletechsup IO22/DN22) embarque :
 - 8 sorties **relais**, contacts secs 10 A NO/NC, + une LED par voie
 - 8 entrées **optocouplées** NPN, déclenchement à l'état bas
 - 4 boutons-poussoirs sur la carte
-- 1 afficheur **4 digits 7 segments** avec deux-points
+- 1 afficheur **4 digits 7 segments**, avec un point décimal par digit et **pas de deux-points** (mesuré, §6 ter)
 - 1 interface RS485
 - 1 support Arduino Nano V3.0
 
@@ -115,8 +115,13 @@ Conséquences pratiques :
 > haut au repos : la LED reste **allumée en fixe**. Un témoin qui ne varie
 > jamais ne dit rien.
 >
-> Le battement de cœur reste donc sur le **deux-points de l'afficheur** :
-> 1 Hz en fonctionnement nominal, ~4 Hz si un défaut est actif.
+> Le battement de cœur est donc sur le **point décimal du digit de gauche** :
+> 1 Hz en fonctionnement nominal, ~4 Hz si un défaut est actif. Ce n'est pas
+> le deux-points annoncé par la conception initiale — l'afficheur n'en a pas,
+> rien que des points décimaux. Le digit de gauche est choisi parce qu'aucun
+> format numérique ne réclamera son point : un point après le chiffre des
+> milliers ne veut rien dire, alors que les formats usuels (12.5, 1.234) le
+> placent après le deuxième ou le troisième.
 
 ## 3. Entrées — IN1 … IN8
 
@@ -695,7 +700,37 @@ Le négatif est au bit de sélection ce que le motif `BIT A BIT` de la phase B
 était au triplet correct : le seul essai qui produise de l'ordre plutôt que du
 bruit.
 
-Restent trois digits et le deux-points. C'est la fin.
+### Résultat — la sélection des digits
+
+| Digit | Bit du mot | Octet émis |
+|---|---|---|
+| 1 — milliers, à gauche | 2 | 2ᵉ, b2 |
+| 2 | 9 | 1ᵉʳ, b1 |
+| 3 | 10 | 1ᵉʳ, b2 |
+| 4 — unités | 13 | 1ᵉʳ, b5 |
+
+Quatre bits du mot ne servent à rien : 0, 8, 14 et 15.
+
+**Il n'y a pas de deux-points**, contrairement à ce que la conception initiale
+supposait — rien que des points décimaux, un par digit. Le battement de cœur
+déménage donc sur le point du digit de gauche (§2 bis).
+
+### Validation
+
+Le modèle complet reproduit exactement les deux observations composées de la
+phase D, ce qui vaut mieux qu'un relevé bit à bit non recoupé :
+
+| Trame envoyée | Prédit | Observé |
+|---|---|---|
+| 2ᵉ octet `0xFF`, 1ᵉʳ octet bit 3 | A C D E F G + point, digit 1 inhibé | `6.6.6.` sur les digits 2, 3, 4 |
+| 2ᵉ octet `0xFF`, 1ᵉʳ octet bit 4 | A B C D E F + point, digit 1 inhibé | `0.0.0.` sur les digits 2, 3, 4 |
+
+Dans les deux cas, `0xFF` sur le deuxième octet arme le bit 2 — la sélection du
+digit 1 — et l'inhibe donc, ce qui explique que seuls trois digits s'allument.
+Aucun ajustement n'a été nécessaire pour faire coïncider modèle et mesure.
+
+**Le brochage de la DN22D08 est entièrement mesuré.** Plus rien n'y est
+supposé.
 
 ## 7. Comment l'hypothèse initiale a été invalidée
 

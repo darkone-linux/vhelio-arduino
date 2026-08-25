@@ -18,8 +18,8 @@ uint8_t g_acked = 0;      /* défauts acquittés, voyant éteint pour eux */
 uint32_t g_loopUs = 0;
 uint32_t g_loopMaxUs = 0;
 
-uint32_t g_colonToggled = 0;
-bool g_colonOn = false;
+uint32_t g_beatToggled = 0;
+bool g_beatOn = false;
 
 #if FAULT_LAMP_ENABLE
 Debouncer g_ackBtn;
@@ -143,15 +143,17 @@ void diag::update(uint32_t now) {
   board::setOutput(OUT_FAULT, (g_faults & FAULT_LAMP_MASK & ~g_acked) != 0);
 #endif
 
-  /* --- Battement de cœur sur le deux-points de l'afficheur.
-   * La LED D13 du Nano n'est PAS utilisable : cette broche porte la ligne
-   * de données du registre à décalage, elle papillote au rythme du
-   * rafraîchissement. --- */
+  /* --- Battement de cœur sur le point décimal du digit de gauche.
+   * L'afficheur n'a pas de deux-points, contrairement à ce que supposait la
+   * conception initiale : rien que des points décimaux. Et la LED D13 du
+   * Nano n'est pas utilisable non plus — elle porte le TX logiciel du
+   * Bafang, que SoftwareSerial maintient au repos à l'état haut : elle
+   * reste allumée en fixe. --- */
   const uint16_t period = g_faults ? DISPLAY_BLINK_FAULT_MS : DISPLAY_BLINK_MS;
-  if (now - g_colonToggled >= period) {
-    g_colonToggled = now;
-    g_colonOn = !g_colonOn;
-    board::setColon(g_colonOn);
+  if (now - g_beatToggled >= period) {
+    g_beatToggled = now;
+    g_beatOn = !g_beatOn;
+    board::setHeartbeat(g_beatOn);
   }
 
 #if DEBUG_SERIAL && !BAFANG_LEARN_MODE

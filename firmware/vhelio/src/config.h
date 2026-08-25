@@ -144,8 +144,8 @@
  * Le diagnostic de conduite repose entièrement sur le journal série. */
 #define DISPLAY_ENABLE            1
 #define DISPLAY_DEFAULT_PAGE      2    /* 0=vitesse 1=charge 2=défauts 3=odomètre */
-#define DISPLAY_BLINK_MS          500  /* deux-points = battement de cœur, 1 Hz  */
-#define DISPLAY_BLINK_FAULT_MS    120  /* deux-points rapide = défaut actif      */
+#define DISPLAY_BLINK_MS          500  /* point décimal = battement, 1 Hz        */
+#define DISPLAY_BLINK_FAULT_MS    120  /* battement rapide = défaut actif        */
 
 /* ======================================================================
  * Télémétrie
