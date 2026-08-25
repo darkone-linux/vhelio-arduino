@@ -645,8 +645,57 @@ claquent n'ajouteraient que du bruit. Avance à la main, aux boutons.
 - un **digit entier** s'allume → c'est l'octet de sélection, et le rang du bit
   donne la position du digit.
 
-Seize bits à noter. C'est fastidieux, mais c'est fini : après ça, plus rien
-n'est supposé sur cette carte.
+### Résultat — les segments, mesurés
+
+L'hypothèse « un octet segments, un octet sélection » est **fausse**. Les huit
+segments sont répartis sur les **deux** octets, six d'un côté et deux de
+l'autre.
+
+Le mot d'afficheur fait seize bits : bits 0 à 7 = deuxième octet émis (trame
+8 à 15), bits 8 à 15 = premier octet émis (trame 16 à 23).
+
+| Segment | Bit du mot | Octet émis |
+|---|---|---|
+| A — haut | 4 | 2ᵉ, b4 |
+| B — haut droite | **12** | 1ᵉʳ, b4 |
+| C — bas droite | 7 | 2ᵉ, b7 |
+| D — bas | 3 | 2ᵉ, b3 |
+| E — bas gauche | 1 | 2ᵉ, b1 |
+| F — haut gauche | 6 | 2ᵉ, b6 |
+| G — milieu | **11** | 1ᵉʳ, b3 |
+| DP — point | 5 | 2ᵉ, b5 |
+
+**Ce relevé se valide lui-même.** Deux essais ont produit des caractères
+entiers plutôt que des segments isolés : `6.` (A C D E F G + point) et `0.`
+(A B C D E F + point). Une seule affectation est compatible avec les deux, et
+c'est celle-ci. Deux lectures isolées annonçaient « haut gauche » là où le
+modèle prédit « haut droite » — les caractères composés tranchent, et la
+confusion gauche/droite à l'œil est sans conséquence.
+
+### La sélection des digits est active à l'état bas
+
+C'est le point le plus déroutant du relevé, et son explication. Un segment
+seul s'allume sur **tous** les digits : sélection à zéro, les quatre digits
+sont validés. Corollaire, **un bit de sélection ne montre rien** en parcours
+positif — non qu'il soit inerte, mais parce qu'aucun segment n'est allumé pour
+le révéler.
+
+Un bit est déjà identifié par déduction : **2ᵉ octet b2 = digit 1**. C'est le
+seul essai qui ait donné un écran entièrement noir (`bit 10` avec l'autre
+octet à `0xFF`), donc le seul où le digit 1 était éteint en plus des autres.
+
+### Le parcours négatif
+
+D'où l'ajout d'un second sens à `pindisp`, sur K3 : **un seul 0, tout le reste
+à 1**. Tous les segments allumés, toutes les sélections inhibées, écran noir.
+Effacer un bit de sélection valide son digit, qui s'allume seul, tous segments
+dehors — un `8.` franc. Effacer un bit de segment ne change rien.
+
+Le négatif est au bit de sélection ce que le motif `BIT A BIT` de la phase B
+était au triplet correct : le seul essai qui produise de l'ordre plutôt que du
+bruit.
+
+Restent trois digits et le deux-points. C'est la fin.
 
 ## 7. Comment l'hypothèse initiale a été invalidée
 

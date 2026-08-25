@@ -24,14 +24,27 @@
  *
  *     K1 (D12) : bit suivant
  *     K2 (D10) : bit précédent
- *     K3 (D8)  : l'AUTRE octet d'afficheur, 0x00 <-> 0xFF
+ *     K3 (D8)  : bascule POSITIF <-> NÉGATIF
  *     K4 (A0)  : avance automatique, 1,5 s par bit
  *
- * K3 EST LE TEST DÉCISIF. Avec l'autre octet à 0xFF, si l'octet qu'on promène
- * est celui des segments, on voit un segment s'allumer partout ; si c'est
- * celui de la sélection, on voit UN DIGIT ENTIER s'allumer. Un digit entier
- * qui s'allume seul désigne sans ambiguïté un bit de sélection, et son rang
- * donne la position du digit.
+ * DEUX SENS DE PARCOURS, et le second a été ajouté après le premier relevé.
+ *
+ * POSITIF — un seul 1, tout le reste à 0. C'est ce qui a donné les huit
+ * segments. Il a aussi montré que la sélection des digits est ACTIVE À L'ÉTAT
+ * BAS : sélection à zéro, les quatre digits sont validés, et un segment seul
+ * s'allume donc sur les quatre à la fois. Corollaire embarrassant, un bit de
+ * sélection ne montre RIEN en positif — non qu'il soit inerte, mais parce
+ * qu'aucun segment n'est allumé pour le révéler.
+ *
+ * NÉGATIF — un seul 0, tout le reste à 1. Tous les segments sont donc
+ * allumés, et toutes les sélections inhibées : l'écran est noir. Effacer un
+ * bit de SÉLECTION valide son digit, qui s'allume alors seul, tous segments
+ * dehors : un « 8. » franc, impossible à confondre. Effacer un bit de
+ * SEGMENT ne change rien, l'écran reste noir.
+ *
+ * Le négatif est donc au bit de sélection ce que le motif bit à bit de la
+ * phase B était au triplet correct : le seul essai qui produise de l'ordre
+ * plutôt que du bruit.
  */
 
 #include <Arduino.h>
@@ -53,7 +66,7 @@ const uint16_t AUTO_MS = 1500;
 const uint8_t  DEBOUNCE_MS = 30;
 
 uint8_t g_bit = 0;
-uint8_t g_fill = 0x00;
+bool    g_neg = false;        /* false = un seul 1 ; true = un seul 0 */
 bool    g_auto = false;
 uint32_t g_autoAt = 0;
 
@@ -72,10 +85,12 @@ void sendFrame(uint8_t first, uint8_t second) {
 }
 
 void apply() {
-  /* g_bit 0..7  -> deuxième octet émis, bits 8..15 de la trame
-   * g_bit 8..15 -> premier octet émis,  bits 16..23 de la trame */
-  if (g_bit < 8) sendFrame(g_fill, (uint8_t)(1u << g_bit));
-  else           sendFrame((uint8_t)(1u << (g_bit - 8)), g_fill);
+  /* Mot de seize bits : bits 0..7 = deuxième octet émis (trame 8..15),
+   * bits 8..15 = premier octet émis (trame 16..23). */
+  uint16_t word;
+  if (g_neg) word = (uint16_t)(0xFFFF & ~(1u << g_bit));
+  else       word = (uint16_t)(1u << g_bit);
+  sendFrame((uint8_t)(word >> 8), (uint8_t)(word & 0xFF));
 }
 
 void printState() {
@@ -92,12 +107,10 @@ void printState() {
     Serial.print(F("1er octet emis, bit "));
     Serial.print(g_bit - 8);
   }
-  Serial.print(F("   autre octet=0x"));
-  if (g_fill < 0x10) Serial.print('0');
-  Serial.print(g_fill, HEX);
+  Serial.print(g_neg ? F("   NEGATIF (un seul 0)") : F("   POSITIF (un seul 1)"));
   Serial.println(g_auto ? F("   AUTO") : F("   manuel"));
-  Serial.println(F("      que voit-on ? un segment partout, un digit entier,"));
-  Serial.println(F("      le deux-points, ou rien ?"));
+  if (g_neg) Serial.println(F("      un digit entier s'allume ? lequel ?"));
+  else       Serial.println(F("      quel segment, sur quels digits ?"));
 }
 
 void setup() {
@@ -126,17 +139,22 @@ void setup() {
   Serial.println();
   Serial.println(F("  K1 (D12) : bit suivant"));
   Serial.println(F("  K2 (D10) : bit precedent"));
-  Serial.println(F("  K3 (D8)  : l'AUTRE octet, 0x00 <-> 0xFF"));
+  Serial.println(F("  K3 (D8)  : POSITIF <-> NEGATIF"));
   Serial.println(F("  K4 (A0)  : avance automatique, 1,5 s par bit"));
   Serial.println();
-  Serial.println(F("K3 EST LE TEST DECISIF. L'autre octet a 0xFF :"));
-  Serial.println(F("  - un SEGMENT s'allume partout -> octet des segments ;"));
-  Serial.println(F("  - un DIGIT ENTIER s'allume    -> octet de selection,"));
-  Serial.println(F("    et le rang du bit donne la position du digit."));
+  Serial.println(F("Les huit SEGMENTS sont deja mesures. Reste la SELECTION"));
+  Serial.println(F("des digits, qui est ACTIVE A L'ETAT BAS -- d'ou le mode"));
+  Serial.println(F("NEGATIF, ou K3 mene directement."));
   Serial.println();
-  Serial.println(F("Noter pour chacun des 16 bits ce qui s'allume. C'est"));
-  Serial.println(F("fastidieux mais fini : 16 lignes, et l'afficheur est le"));
-  Serial.println(F("dernier organe non mesure de la carte.\n"));
+  Serial.println(F("NEGATIF : un seul 0, tout le reste a 1. L'ecran est noir."));
+  Serial.println(F("  - un DIGIT ENTIER s'allume, un 8. franc -> ce bit est"));
+  Serial.println(F("    sa selection ; noter QUEL digit, de gauche a droite ;"));
+  Serial.println(F("  - rien ne s'allume -> bit de segment, deja connu."));
+  Serial.println();
+  Serial.println(F("Le digit 1 est deja trouve : 2e octet, bit 2. Restent"));
+  Serial.println(F("trois digits et le deux-points. C'est la fin."));
+  Serial.println();
+  Serial.println(F("Appuyer sur K3 des le depart pour passer en NEGATIF.\n"));
 
   apply();
   printState();
@@ -156,7 +174,7 @@ void pollButtons() {
     switch (i) {
       case 0: g_bit = (uint8_t)((g_bit + 1) % N_BIT); break;
       case 1: g_bit = (uint8_t)((g_bit + N_BIT - 1) % N_BIT); break;
-      case 2: g_fill = (uint8_t)(g_fill ? 0x00 : 0xFF); break;
+      case 2: g_neg = !g_neg; break;
       case 3: g_auto = !g_auto; g_autoAt = now; break;
     }
     apply();
