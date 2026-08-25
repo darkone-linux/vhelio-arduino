@@ -107,13 +107,10 @@ enum BtnIdx : uint8_t {
 #define PIN_SR_CLOCK    A4   /* PC4 — mesuré                               */
 #define PIN_SR_LATCH    A3   /* PC3 — mesuré                               */
 
-/* OE — À CONFIRMER. Le balayage a réussi avec D13, A1 et A2 maintenues à
- * l'état BAS. Si l'une des trois est l'OE du registre relais, actif à l'état
- * bas, elle était donc validée sans qu'on le sache ; si aucune ne l'est, OE
- * est câblée à la masse sur la carte et les trois broches sont libres. Le
- * pinscan tranche : il colle les huit relais puis met chacune des trois au
- * niveau haut à son tour. A1 n'est ici qu'un choix provisoire.            */
-#define PIN_RELAY_OE    A1   /* PC1 — validation, ACTIVE À L'ÉTAT BAS      */
+/* OE — MESURÉ. Les huit relais collés, A2 passée au niveau haut les fait
+ * retomber ; D13 et A1 sont sans effet. La validation est donc bien active à
+ * l'état bas, et c'est bien A2 qui la porte.                              */
+#define PIN_RELAY_OE    A2   /* PC2 — validation, ACTIVE À L'ÉTAT BAS      */
 
 /* Masques d'accès direct aux ports, cohérents avec les broches ci-dessus.
  * Les trois lignes sont sur PORTC, ce qui n'était pas le cas du brochage
@@ -133,14 +130,19 @@ enum BtnIdx : uint8_t {
  * inverseur à glissière « 485_ON / PRO » l'en déconnecte. Position **PRO**
  * en permanence : la console et le téléversement USB fonctionnent alors
  * normalement. Voir specs/03 §2 bis.                                       */
-/* A4 et A5 sont parties à la chaîne. L'écoute Bafang déménage sur ce qui
- * reste — et elle survit, ce qui n'était pas acquis : D13, A1 et A2 portent
- * toutes les trois une interruption sur changement d'état (PCINT5, PCINT9,
- * PCINT10), seule condition pour un RX logiciel. A6 et A7, elles, n'auraient
- * pas pu : analogiques seules, sans PCINT.
+/* A4 et A5 sont parties à la chaîne, A2 à l'OE. Il ne reste donc que D13 et
+ * A1 — et l'écoute Bafang survit tout juste : un RX logiciel exige une
+ * interruption sur changement d'état, que A1 possède (PCINT9). A6 et A7
+ * n'auraient pas pu : analogiques seules, sans PCINT.
  *
- * PROVISOIRE tant que l'OE n'est pas identifiée : si le pinscan désigne A2 ou
- * A1, l'attribution ci-dessous se décale sur D13.                          */
-#define PIN_BAFANG_RX   A2   /* PC2 — écoute passive du contrôleur Bafang  */
+ * Le RX va sur A1 et non sur D13, bien que les deux aient un PCINT : la LED
+ * intégrée du Nano et sa résistance chargent D13, ce qui n'a aucune
+ * importance pour une sortie mais dégrade une entrée qu'on écoute.
+ *
+ * D13 hérite donc du TX, que SoftwareSerial exige mais que rien ne câble.
+ * Conséquence visible : SoftwareSerial met le TX au repos à l'état HAUT, donc
+ * la LED du Nano reste ALLUMÉE en permanence. Comme on n'émet jamais, on peut
+ * la rendre à l'état d'entrée juste après begin() pour l'éteindre.         */
+#define PIN_BAFANG_RX   A1   /* PC1 — écoute passive du contrôleur Bafang  */
 #define PIN_BAFANG_TX   13   /* PB5 — réservé par SoftwareSerial, NON CÂBLÉ */
 #define PIN_WHEEL       A6   /* capteur de roue (option) — lecture analogique */

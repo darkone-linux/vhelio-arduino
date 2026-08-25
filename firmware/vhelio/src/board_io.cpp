@@ -20,7 +20,13 @@ const bool IN_ACTIVE_LOW[IN_COUNT] = {
 /* Position du bit de chaque relais dans l'octet du registre.
  * L'ordre n'est pas séquentiel : le relais 8 occupe le bit 0, les relais
  * 1 à 7 les bits 1 à 7. C'est le câblage de la carte, pas une erreur. */
-const uint8_t RELAY_BIT[OUT_COUNT] = { 1, 2, 3, 4, 5, 6, 7, 0 };
+/* Mesuré : bit 0 -> CH1, bit 1 -> CH2, ... bit 7 -> CH8. La correspondance
+ * est DIRECTE. Le décalage de l'IO22D08, où le relais 8 occupait le bit 0,
+ * n'existe pas sur la DN22D08. Le tableau est conservé quand même : il coûte
+ * huit octets de flash et garde le reste du firmware indifférent à la
+ * question, ce qui est exactement ce qui a permis d'encaisser tous les
+ * changements de brochage de cette carte sans toucher un module métier. */
+const uint8_t RELAY_BIT[OUT_COUNT] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
 /* Afficheur à anode commune : un bit à 0 allume le segment.
  * Table issue de la bibliothèque de référence af3556/IO22_IO_Board. */

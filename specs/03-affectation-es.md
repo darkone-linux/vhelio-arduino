@@ -51,7 +51,9 @@ Nano.
 | A5 | **Données** de la chaîne (PC5) |
 | A4 | **Horloge** de la chaîne (PC4) |
 | A3 | **Verrou** de la chaîne (PC3) |
-| D13, A1, A2 | Libres — dont l'**OE** du registre relais, si elle n'est pas câblée à la masse. À confirmer, §6 |
+| A2 | **OE** du registre relais — validation, active à l'état bas |
+| A1 | Écoute UART Bafang (RX logiciel, PCINT9) |
+| D13 | TX logiciel, **non câblé** — *et LED intégrée du Nano* |
 | A6, A7 | Libres, analogiques seules |
 | D0, D1 | Console série — libres, voir §2 bis |
 
@@ -64,11 +66,17 @@ Les trois lignes de la chaîne sont sur **PORTC**, contrairement au brochage
 supposé qui les répartissait sur deux ports. Une seule écriture de port
 suffirait à les piloter ensemble.
 
-> **L'écoute Bafang déménage, mais elle survit.** A4 lui était réservée ; la
-> chaîne l'a prise, avec A5. Elle se replie sur `A2` — et c'était loin d'être
-> acquis : un RX logiciel exige une interruption sur changement d'état, que
-> D13, A1 et A2 possèdent (PCINT5, PCINT9, PCINT10) mais que A6 et A7 n'ont
-> pas. Si l'OE se révèle être A2, l'attribution se décale sur D13.
+> **L'écoute Bafang survit, mais tout juste.** A4 lui était réservée ; la
+> chaîne l'a prise avec A5, et l'OE a pris A2. Il ne restait que D13 et A1.
+> Elle va sur **A1** : les deux ont bien l'interruption sur changement d'état
+> qu'exige un RX logiciel (PCINT9, PCINT5), mais la LED intégrée du Nano
+> charge D13 — sans importance pour une sortie, gênant pour une entrée qu'on
+> écoute. A6 et A7 n'auraient pas pu du tout : analogiques seules, sans PCINT.
+>
+> D13 hérite du TX, que `SoftwareSerial` exige mais que rien ne câble. Il le
+> met au repos à l'état haut : **la LED du Nano reste allumée en permanence**.
+> Comme on n'émet jamais, la rendre à l'état d'entrée juste après `begin()`
+> l'éteint.
 
 ## 2 bis. Le RS485 et l'inverseur « 485_ON / PRO »
 
@@ -100,10 +108,15 @@ Conséquences pratiques :
 > produit ici, le `not in sync: resp=0x00` venait de l'ancien bootloader et
 > pas du RS485.
 
-> **La LED D13 n'est pas utilisable comme témoin.** Elle est sur la ligne de
-> données du registre et papillote au rythme du rafraîchissement. Le battement
-> de cœur est reporté sur le **deux-points de l'afficheur** : 1 Hz en
-> fonctionnement nominal, ~4 Hz si un défaut est actif.
+> **La LED D13 n'est toujours pas utilisable comme témoin, mais la raison a
+> changé.** On la croyait sur la ligne de données du registre, papillotant au
+> rythme du rafraîchissement ; la mesure a mis les données sur A5. D13 porte
+> désormais le TX logiciel du Bafang, que `SoftwareSerial` maintient à l'état
+> haut au repos : la LED reste **allumée en fixe**. Un témoin qui ne varie
+> jamais ne dit rien.
+>
+> Le battement de cœur reste donc sur le **deux-points de l'afficheur** :
+> 1 Hz en fonctionnement nominal, ~4 Hz si un défaut est actif.
 
 ## 3. Entrées — IN1 … IN8
 
@@ -146,19 +159,25 @@ ni module MOSFET, ni relais externe, ni optocoupleur de coupure moteur.
 
 | Relais | Bit registre | Nom logique | Charge | Régime |
 |---|---|---|---|---|
-| R1 | 1 | `OUT_PARK_FRONT` | Veilleuse avant | continu |
-| R2 | 2 | `OUT_MAIN` | Phares (éclairage fort) | continu |
-| R3 | 3 | `OUT_TURN_LEFT` | Clignotants gauche (AV + AR) | **cyclique 1,33 Hz** |
-| R4 | 4 | `OUT_TURN_RIGHT` | Clignotants droite (AV + AR) | **cyclique 1,33 Hz** |
-| R5 | 5 | `OUT_TAIL_PARK` | Feux de position arrière | continu |
-| R6 | 6 | `OUT_TAIL_STOP` | Feux stop arrière | intermittent |
-| R7 | 7 | `OUT_FAULT` | Voyant rouge de défaut | rare |
-| R8 | **0** | `OUT_MOTOR_CUT` | Ligne frein du contrôleur | intermittent |
+| R1 | 0 | `OUT_PARK_FRONT` | Veilleuse avant | continu |
+| R2 | 1 | `OUT_MAIN` | Phares (éclairage fort) | continu |
+| R3 | 2 | `OUT_TURN_LEFT` | Clignotants gauche (AV + AR) | **cyclique 1,33 Hz** |
+| R4 | 3 | `OUT_TURN_RIGHT` | Clignotants droite (AV + AR) | **cyclique 1,33 Hz** |
+| R5 | 4 | `OUT_TAIL_PARK` | Feux de position arrière | continu |
+| R6 | 5 | `OUT_TAIL_STOP` | Feux stop arrière | intermittent |
+| R7 | 6 | `OUT_FAULT` | Voyant rouge de défaut | rare |
+| R8 | 7 | `OUT_MOTOR_CUT` | Ligne frein du contrôleur | intermittent |
 
-> L'ordre des bits n'est pas séquentiel : le relais 8 occupe le **bit 0**, les
-> relais 1 à 7 les bits 1 à 7. C'est le câblage de la carte. Le tableau
-> `RELAY_BIT[]` de `board_io.cpp` encode cette bizarrerie une fois pour
-> toutes ; aucun module métier ne la voit.
+> **Mesuré : la correspondance est directe**, bit 0 → CH1 … bit 7 → CH8. Le
+> décalage de l'IO22D08, où le relais 8 occupait le bit 0, **n'existe pas sur
+> la DN22D08**. Une bizarrerie documentée depuis le début de ce projet vient
+> donc de disparaître : elle avait été héritée avec le reste du brochage.
+>
+> Le tableau `RELAY_BIT[]` de `board_io.cpp` est conservé quand même, bien
+> qu'il soit devenu l'identité. Il coûte huit octets et garde le reste du
+> firmware indifférent à la question — c'est exactement ce qui a permis
+> d'encaisser tous les changements de brochage de cette carte sans toucher un
+> seul module métier.
 
 ### Ce que les relais changent, en bien
 
@@ -186,12 +205,12 @@ ni module MOSFET, ni relais externe, ni optocoupleur de coupure moteur.
 
 ### Validation globale des sorties (OE)
 
-La broche A1 pilote l'entrée OE du registre des relais. À l'état haut, **tous
+La broche **A2** pilote l'entrée OE du registre des relais — mesuré (§6). À l'état haut, **tous
 les relais retombent en un cycle d'horloge**, sans toucher au contenu du
 registre : l'état antérieur est restitué intact à la réactivation. C'est un
 arrêt d'urgence matériel, exploitable pour un futur mode sécurité.
 
-Au démarrage, le firmware écrit `HIGH` sur A1 **avant** de la passer en sortie.
+Au démarrage, le firmware écrit `HIGH` sur A2 **avant** de la passer en sortie.
 Sur une broche encore en entrée, `digitalWrite(HIGH)` active le tirage interne,
 donc la broche est déjà haute au moment où elle devient une sortie. L'ordre
 inverse produirait une impulsion basse — **tous les relais collés** — pendant
@@ -546,8 +565,15 @@ distinction que le motif `BIT A BIT` avait été ajouté pour trancher.
 
 L'octet des relais est donc le **dernier** émis des trois.
 
-Restent deux inconnues, que `tools/pinscan` lève (§6) : la correspondance
-bit ↔ relais, et l'emplacement de l'OE parmi D13, A1 et A2.
+**Les deux inconnues restantes ont été levées** par `tools/pinscan` :
+
+| Question | Résultat mesuré |
+|---|---|
+| Correspondance bit ↔ relais | **Directe** : bit 0 → CH1 … bit 7 → CH8 |
+| Emplacement de l'OE | **A2**, active à l'état bas. D13 et A1 sont sans effet sur les relais |
+
+Le brochage de la DN22D08 est donc **entièrement mesuré**, à l'exception de
+l'afficheur.
 
 Le brochage de l'**afficheur** — sélection des digits, ordre des segments — est
 une phase distincte, pas encore écrite. Il n'est nécessaire à aucune fonction
@@ -593,7 +619,7 @@ l'afficheur, et le déplacement de l'écoute UART de D10 vers A4.
 | Relais | 8 / 8 | 0 |
 | Boutons carte | 1 / 4 (page d'afficheur) | 3, mais sous la coque |
 | Afficheur | vitesse, charge, défauts, odomètre — **maintenance seule** | — |
-| Broches Nano hors carte | A4, A5 (écoute Bafang) | A6, A7 |
+| Broches Nano hors carte | A1 (écoute Bafang), D13 (TX non câblé) | A6, A7 — analogiques seules |
 | Timers | Timer0 (`millis`) | Timer1, Timer2 |
 | UART matériel | console de mise au point (inverseur sur `PRO`) | — |
 | RS485 | inutilisé, déconnecté par l'inverseur | disponible |
