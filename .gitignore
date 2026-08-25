@@ -2,3 +2,5 @@
 .build/
 *.hex
 *.elf
+*.md
+!README.md
