@@ -732,6 +732,45 @@ Aucun ajustement n'a été nécessaire pour faire coïncider modèle et mesure.
 **Le brochage de la DN22D08 est entièrement mesuré.** Plus rien n'y est
 supposé.
 
+## 6 quater. L'afficheur en conditions réelles
+
+Les phases A à D ont mesuré le brochage **bit par bit**. Vérifier que
+l'assemblage de ces mesures produit quelque chose de **lisible** n'est pas la
+même chose : un relevé bit à bit peut être juste et la table de glyphes fausse
+quand même. Il suffit d'un segment mal nommé à l'œil, et le `6` devient un `5`
+sans que rien ne le signale.
+
+```bash
+VHELIO_SKETCH=$PWD/tools/dispcheck ./tools/build-nix.sh
+VHELIO_SKETCH=$PWD/tools/dispcheck ./tools/upload.sh /dev/ttyACM0 old
+./tools/monitor.sh
+```
+
+`tools/dispcheck` reprend les tables de `board_io.cpp` **à l'identique**, mais
+sans dépendre du firmware — il doit rester utilisable pendant une refonte.
+Toute divergence entre les deux fichiers est un bug de l'un ou de l'autre.
+
+| Bouton | Effet |
+|---|---|
+| K1 (D12) | Mode — compteur, défilé, tout allumé |
+| K2 (D10) | Vitesse du compteur — 10 ms, 100 ms, 1 ms |
+| K3 (D8) | Zéros de tête, affichés ou masqués |
+| K4 (A0) | Battement de cœur, marche/arrêt |
+
+**Trois modes, qui ne prouvent pas la même chose.**
+
+- **Compteur** 0 → 9999 : les dix chiffres passent dans les quatre positions.
+  C'est le test des glyphes *et* du multiplexage — un digit mal sélectionné se
+  voit immédiatement, le chiffre apparaît sur la mauvaise position.
+- **Défilé** : les dix chiffres, puis les glyphes de service `O n F E r _`.
+  Ceux-là ne servent qu'aux **codes de défaut** et n'apparaîtraient jamais dans
+  un compteur — or un code de défaut illisible est pire qu'inutile.
+- **Tout allumé** : huit segments sur quatre digits, points compris. Un segment
+  mort ou un digit mort ne se voit que là.
+
+Le point du digit de **gauche** bat à 1 Hz : c'est le battement de cœur (§2 bis).
+Les relais restent à zéro, ce croquis est muet.
+
 ## 7. Comment l'hypothèse initiale a été invalidée
 
 Elle venait d'un mapping très répandu sur les cartes rail DIN pour Nano
