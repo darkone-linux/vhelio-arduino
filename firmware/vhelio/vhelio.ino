@@ -1,5 +1,5 @@
 /*
- * vhelio.ino — Calculateur d'éclairage et de signalisation du VHélio.
+ * vhelio.ino — Calculateur d'éclairage et de signalisation du Vhélio.
  *
  * Arduino Nano + carte d'E/S rail DIN DN22D08.
  * Spécification complète dans ../../specs/.

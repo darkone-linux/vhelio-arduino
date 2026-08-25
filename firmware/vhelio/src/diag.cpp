@@ -58,7 +58,7 @@ void diag::begin(uint8_t mcusr) {
   if (mcusr & _BV(WDRF)) g_faults |= FLT_WDT_RESET;
 
 #if DEBUG_SERIAL
-  Serial.print(F("\n[VH] VHelio firmware "));
+  Serial.print(F("\n[VH] Vhelio firmware "));
   Serial.print(F(VHELIO_FW_VERSION));
   Serial.print(F("  reset=0x"));
   Serial.println(mcusr, HEX);
