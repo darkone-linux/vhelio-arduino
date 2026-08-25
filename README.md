@@ -120,10 +120,10 @@ installer au niveau système.
 ### Empreinte mesurée
 
 Configuration par défaut, avr-gcc 15.3, `-Os -flto` :
-**9 710 octets de flash (31 %)** et **770 octets de RAM (37 %)** sur les
+**9 692 octets de flash (31 %)** et **781 octets de RAM (38 %)** sur les
 30 720 / 2 048 disponibles. Compile sans avertissement dans les quinze
 combinaisons d'options couvertes par `tools/check-variants.sh`. Le firmware de
-banc coûte 1 078 octets de flash et 3 de RAM de plus ; à `SIM_INPUTS 0`, il ne
+banc coûte 1 072 octets de flash et 3 de RAM de plus ; à `SIM_INPUTS 0`, il ne
 coûte **rien du tout**, l'empreinte étant identique à l'octet près.
 
 Temps de cycle mesuré à vide : **265 µs**, pointe à 6,7 ms sur la seconde où le
@@ -160,12 +160,18 @@ normale. Un code hexadécimal suppose d'avoir cette page sous les yeux ; `Fr` et
 | Afficheur | Événement | Durée |
 |---|---|---|
 | `Fr` | Freinage | 1 s — **prioritaire sur tout le reste** |
+| `AC` | Bouton d'acquittement pressé | 1 s — devant `Err` |
 | `Err` | Défaut ou conflit de clignotants | tant qu'il dure, 1 s au minimum |
 | `Ph` | Phares allumés | 1 s |
 | `UE` | Veilleuse allumée | 1 s (`U` tient lieu de `V`, indessinable sur 7 segments) |
-| `CLL` / `CLr` | Clignotant gauche / droit | tant qu'il clignote |
+| `CLG` / `CLd` | Clignotant gauche / droit | tant qu'il clignote |
+| `CLO` | Clignotant **oublié** | remplace `CLG`/`CLd` après 45 s ou 300 m |
 | `CL2` | Détresse — les deux clignotants | tant qu'elle dure |
 | `---` | Rien à signaler | — |
+
+`AC` est le seul retour du bouton d'acquittement : c'est l'unique organe que
+le conducteur actionne sans qu'aucune sortie ne bouge, rien d'autre ne dirait
+que l'appui a été pris en compte.
 
 Le point décimal de gauche est le battement de cœur : **1 Hz** en
 fonctionnement nominal, **~4 Hz** si un défaut est actif.
@@ -191,10 +197,10 @@ marque le passage au point suivant.
 | 2 | Veilleuse : **2 claquements** (R1 avant, R5 arrière), afficheur `UE 2`. Puis phares : **1 seul** (R2), afficheur `Ph 2` | Le feu rouge arrière suit l'éclairage avant — exigence F-1.7 |
 | 3 | **Rien ne bouge, pas un claquement** | `MAIN_KEEPS_PARK` : relâcher la veilleuse phares allumés n'éteint pas la veilleuse |
 | 4 | **3 claquements** simultanés, tout retombe | Aucune sortie ne reste collée |
-| 5 | **30 cycles en 22,5 s ± 1 s** au chronomètre, afficheur `CLL5` | La cadence réglementaire, 80 cycles/min dans la plage 60–120. **Seul contrôle qui ne peut se faire qu'à l'oreille** |
+| 5 | **30 cycles en 22,5 s ± 1 s** au chronomètre, afficheur `CLG5` | La cadence réglementaire, 80 cycles/min dans la plage 60–120. **Seul contrôle qui ne peut se faire qu'à l'oreille** |
 | 6 | **Silence total** pendant 5 s, plus 1 claquement de R7, afficheur `Err6` | Gauche et droite demandés ensemble éteignent les deux et allument le voyant |
 | 7 | Le relâchement du frein en **deux temps** : R6 aussitôt, R8 environ 300 ms plus tard | `BRAKE_HOLD_MS` : l'assistance ne se réengage pas par à-coups sur un levier modulé |
-| 8 | Le rythme devient **syncopé** — bref allumé, long éteint — **sans que la cadence change** | Le rappel d'oubli des clignotants, seul canal vers le conducteur une fois la coque fermée |
+| 8 | Le rythme devient **syncopé** — bref allumé, long éteint — **sans que la cadence change**, et l'afficheur passe de `CLG8` à `CLO8` | Le rappel d'oubli des clignotants, seul canal vers le conducteur une fois la coque fermée |
 
 Entre le point 6 et le point 7, la détresse fait claquer R3 et R4 **en phase** :
 le claquement est double, et c'est ce qui la distingue à l'oreille d'un

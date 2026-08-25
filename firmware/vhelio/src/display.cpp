@@ -10,6 +10,7 @@
 #include "brakes.h"
 #include "debounce.h"
 #include "diag.h"
+#include "inputs.h"
 #include "lights.h"
 #include "telemetry.h"
 #include "turnsignals.h"
@@ -34,6 +35,7 @@ struct Pulse {
 };
 
 Pulse g_pBrake = { 0, false };
+Pulse g_pAck   = { 0, false };
 Pulse g_pFault = { 0, false };
 Pulse g_pMain  = { 0, false };
 Pulse g_pPark  = { 0, false };
@@ -54,22 +56,26 @@ inline bool alive(Pulse& p, uint32_t now) {
 
 /* --- Messages, dans l'ordre de PRIORITÉ décroissante ----------------------
  * Le freinage passe devant tout : c'est le seul événement de cette liste qui
- * engage la sécurité. Le défaut vient ensuite, puis les allumages, et les
+ * engage la sécurité. L'acquittement vient juste après, et DEVANT le défaut :
+ * on acquitte précisément parce que « Err » est affiché, un « AC » qui
+ * passerait derrière ne serait jamais vu. Puis les allumages, et les
  * clignotants en dernier — ils durent, on a le temps de les voir. */
 enum Msg : uint8_t {
-  MSG_NONE = 0, MSG_BRAKE, MSG_FAULT, MSG_MAIN, MSG_PARK,
-  MSG_TURN_L, MSG_TURN_R, MSG_HAZARD, MSG_COUNT
+  MSG_NONE = 0, MSG_BRAKE, MSG_ACK, MSG_FAULT, MSG_MAIN, MSG_PARK,
+  MSG_TURN_L, MSG_TURN_R, MSG_HAZARD, MSG_REMIND, MSG_COUNT
 };
 
 const uint8_t MSG_GLYPH[MSG_COUNT][3] PROGMEM = {
   { board::GL_DASH, board::GL_DASH, board::GL_DASH  },  /* ---  rien       */
   { board::GL_F,    board::GL_r,    board::GL_BLANK },  /* Fr   freinage   */
+  { board::GL_A,    board::GL_C,    board::GL_BLANK },  /* AC   acquitté   */
   { board::GL_E,    board::GL_r,    board::GL_r     },  /* Err  défaut     */
   { board::GL_P,    board::GL_h,    board::GL_BLANK },  /* Ph   phares     */
   { board::GL_U,    board::GL_E,    board::GL_BLANK },  /* UE   veilleuse  */
-  { board::GL_C,    board::GL_L,    board::GL_L     },  /* CLL  gauche     */
-  { board::GL_C,    board::GL_L,    board::GL_r     },  /* CLr  droite     */
-  { board::GL_C,    board::GL_L,    board::GL_2     }   /* CL2  détresse   */
+  { board::GL_C,    board::GL_L,    board::GL_G     },  /* CLG  gauche     */
+  { board::GL_C,    board::GL_L,    board::GL_d     },  /* CLd  droite     */
+  { board::GL_C,    board::GL_L,    board::GL_2     },  /* CL2  détresse   */
+  { board::GL_C,    board::GL_L,    board::GL_O     }   /* CLO  oubli      */
 };
 
 /* Quatre tirets bas : la grandeur n'est pas disponible, ce qui n'est pas la
@@ -124,9 +130,18 @@ void showEvents(uint32_t now) {
    * disent ainsi toujours la même chose. */
   if (diag::faults() & FAULT_LAMP_MASK) fire(g_pFault, now);
 
+#if FAULT_LAMP_ENABLE
+  /* Le bouton d'acquittement est le seul organe que le conducteur actionne
+   * sans qu'aucune sortie ne bouge : sans accusé de réception, rien ne dit
+   * que l'appui a été pris en compte. */
+  if (inputs::state().rose[IN_ACK]) fire(g_pAck, now);
+#endif
+
   uint8_t m;
   if (alive(g_pBrake, now)) {
     m = MSG_BRAKE;
+  } else if (alive(g_pAck, now)) {
+    m = MSG_ACK;
   } else if (alive(g_pFault, now)) {
     m = MSG_FAULT;
   } else if (alive(g_pMain, now)) {
@@ -136,8 +151,17 @@ void showEvents(uint32_t now) {
   } else {
     switch (turnsignals::mode()) {
       case turnsignals::HAZARD: m = MSG_HAZARD; break;
-      case turnsignals::LEFT:   m = MSG_TURN_L; break;
-      case turnsignals::RIGHT:  m = MSG_TURN_R; break;
+      /* Le rappel d'oubli remplace le côté au lieu de s'y ajouter : après
+       * 45 s ou 300 m, savoir QUE le clignotant est resté allumé importe
+       * plus que de savoir lequel — et le claquement syncopé, lui, ne dit
+       * rien du côté non plus. */
+      case turnsignals::LEFT:
+      case turnsignals::RIGHT:
+        m = turnsignals::reminderActive()
+              ? MSG_REMIND
+              : (turnsignals::mode() == turnsignals::LEFT ? MSG_TURN_L
+                                                          : MSG_TURN_R);
+        break;
       default:                  m = MSG_NONE;   break;
     }
   }

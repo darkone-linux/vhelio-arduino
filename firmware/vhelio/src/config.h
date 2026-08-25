@@ -147,11 +147,14 @@
  * numéro du point de contrôle en cours (0 en exploitation) :
  *
  *   Fr    freinage ......... 1 s, prioritaire sur tout le reste
+ *   AC    acquittement ..... 1 s, devant Err : on acquitte parce qu'Err
+ *                            est affiché, un AC derrière ne se verrait pas
  *   Err   défaut ........... tant qu'il dure, 1 s au minimum
  *   Ph    phares allumés ... 1 s
  *   UE    veilleuse allumée. 1 s   (U tient lieu de V, indessinable)
- *   CLL   clignotant gauche. tant qu'il clignote
- *   CLr   clignotant droit .    "
+ *   CLG   clignotant gauche. tant qu'il clignote
+ *   CLd   clignotant droit .    "
+ *   CLO   clignotant oublié. remplace CLG/CLd après 45 s ou 300 m
  *   CL2   détresse ......... tant qu'elle dure
  *   ---   rien à signaler
  *

@@ -51,7 +51,7 @@ const uint8_t RELAY_BIT[OUT_COUNT] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 #define SEG_G   (1u << 11)
 #define SEG_DP  (1u <<  5)
 
-const uint16_t GLYPH[24] = {
+const uint16_t GLYPH[27] = {
   SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F,        /* 0     */
   SEG_B|SEG_C,                                /* 1     */
   SEG_A|SEG_B|SEG_G|SEG_E|SEG_D,              /* 2     */
@@ -75,6 +75,9 @@ const uint16_t GLYPH[24] = {
   SEG_B|SEG_C|SEG_D|SEG_E|SEG_F,              /* U     */
   SEG_A|SEG_D|SEG_E|SEG_F,                    /* C     */
   SEG_D|SEG_E|SEG_F,                          /* L     */
+  SEG_A|SEG_B|SEG_C|SEG_E|SEG_F|SEG_G,        /* A     */
+  SEG_A|SEG_C|SEG_D|SEG_E|SEG_F,              /* G     */
+  SEG_B|SEG_C|SEG_D|SEG_E|SEG_G,              /* d     */
   SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F|SEG_G|SEG_DP  /* test */
 };
 

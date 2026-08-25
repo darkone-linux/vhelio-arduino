@@ -89,7 +89,7 @@ fi
 
 if [ "$PHASE" = all ] || [ "$PHASE" = clignotants ]; then
   point 5 "cadence du clignotant"
-  step 25 g "R3 claque a 1,33 Hz. CHRONOMETRER 30 cycles = 22,5 s +/- 1 s. Afficheur : CLL5"
+  step 25 g "R3 claque a 1,33 Hz. CHRONOMETRER 30 cycles = 22,5 s +/- 1 s. Afficheur : CLG5"
   point 6 "conflit gauche + droite"
   step 5 d "SILENCE TOTAL, les deux relaches, et R7 colle. Afficheur : Err6"
   step 3 d "droite relachee -> retour a gauche, R7 retombe"
@@ -111,7 +111,7 @@ if [ "$PHASE" = all ] || [ "$PHASE" = voyant ]; then
   point 0 "voyant de defaut et acquittement"
   step 3 g "gauche"
   step 4 d "conflit -> R7 colle et RESTE colle (allumage fixe)"
-  step 2 3 "acquittement -> R7 retombe. Le defaut reste au journal"
+  step 2 3 "acquittement -> R7 retombe, afficheur AC. Le defaut reste au journal"
   step 2 3 "bouton relache"
   step 4 d "conflit leve -> retour a gauche"
   step 4 d "conflit refait -> R7 SE RALLUME : l'acquittement portait sur l'evenement"
@@ -120,7 +120,7 @@ fi
 
 if [ "$PHASE" = all ] || [ "$PHASE" = rappel ]; then
   point 8 "rappel d'oubli du clignotant"
-  step 50 g "gauche maintenu -> a +45 s le rythme devient SYNCOPE (200/550)"
+  step 50 g "gauche maintenu -> a +45 s : rythme SYNCOPE (200/550) et CLG8 devient CLO8"
   step 2 x "repos"
 fi
 
