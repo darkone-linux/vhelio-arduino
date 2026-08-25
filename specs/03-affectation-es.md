@@ -271,7 +271,26 @@ initiale à optocoupleur.
 
 ## 6. Procédure de vérification
 
-À faire **avant** de brancher autre chose que l'USB.
+À faire **avant de câbler le faisceau** — mais **carte alimentée en 12 V**.
+L'USB seul ne suffit pas, et c'est contre-intuitif parce que la console série,
+elle, fonctionne parfaitement sans.
+
+| Fonctionne sur USB seul | Exige le 12 V au bornier |
+|---|---|
+| Console série, boutons K1..K4, afficheur | **Relais** (bobines 12 V) et **entrées IN1..IN8** (la LED de chaque optocoupleur est alimentée par le +12 V de la carte, §3) |
+
+> **Symptôme.** Aucun relais ne claque à l'étape 3, et les entrées restent à
+> `11111111` quoi qu'on relie à la masse à l'étape 4. La carte n'est pas
+> alimentée.
+>
+> **Discriminant : l'afficheur.** Les 74HC595 sont alimentés en 5 V, que le
+> Nano fournit depuis l'USB. L'afficheur doit donc s'allumer même sans 12 V.
+> S'il s'allume et que rien ne claque → alimentation. S'il reste éteint
+> *aussi* → le problème est bien dans la chaîne de registres.
+>
+> Alimenter la borne 12 V de la carte (F11, 2 A — `hardware/cablage.md`).
+> **USB et 12 V peuvent rester branchés ensemble**, c'est le régime normal de
+> mise au point.
 
 1. Téléverser le croquis de contrôle. **`VHELIO_SKETCH` est nécessaire aux
    deux commandes** : chaque croquis a son propre répertoire de compilation,
@@ -330,7 +349,8 @@ initiale à optocoupleur.
    > `./.arduino` du dépôt. `monitor.sh` n'utilise que `stty` et `cat`.
 3. **Chaîne de registres.** Un digit doit s'allumer sur l'afficheur et les
    relais doivent coller **un par un**, 1,5 s chacun, dans l'ordre annoncé.
-   - Si rien ne bouge : les broches data / horloge / verrou sont fausses.
+   - Si rien ne bouge : **d'abord vérifier le 12 V** (voir ci-dessus) ; ce
+     n'est qu'ensuite que les broches data / horloge / verrou sont en cause.
    - Si tous les relais collent en même temps : OE est mal identifiée.
    - Si l'ordre ne correspond pas : corriger `RELAY_BIT[]` dans `board_io.cpp`.
 4. **Entrées.** La polarité est donnée par le constructeur (NPN) ; il ne
@@ -339,7 +359,11 @@ initiale à optocoupleur.
    une par une, avec un simple fil volant :
    - le chiffre correspondant passe à `0` → **entrées NPN**, hypothèse
      confirmée, tous les communs du faisceau vont à la masse ;
-   - rien ne bouge → réessayer en appliquant **+12 V** sur la borne. Si le
+   - rien ne bouge → **vérifier le 12 V de la carte avant toute autre
+     conclusion** : sans lui la LED de l'optocoupleur ne peut pas conduire et
+     aucune entrée ne bougera jamais, ce qui imite exactement une carte PNP.
+     Carte alimentée et toujours rien → réessayer en appliquant **+12 V** sur
+     la borne. Si le
      chiffre passe à `0`, les entrées sont PNP : **le firmware ne change pas**,
      mais tous les communs du faisceau vont au +12 V. Corriger
      `hardware/cablage.md` §2 en conséquence.

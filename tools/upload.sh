@@ -57,6 +57,19 @@ if [ ! -r "$PORT" ] || [ ! -w "$PORT" ]; then
   exit 1
 fi
 
+# --- Port deja ouvert -------------------------------------------------------
+# Une console laissee ouverte (tools/monitor.sh, screen, picocom) ne verrouille
+# pas le port : avrdude l'ouvre quand meme, mais les deux se partagent les
+# octets du bootloader et la synchro n'aboutit jamais. Le message est le meme
+# "not in sync" qu'un mauvais debit, d'ou la verification prealable.
+if command -v fuser >/dev/null 2>&1 && fuser -s "$PORT" 2>/dev/null; then
+  echo "$PORT est deja ouvert par un autre programme :"
+  fuser -v "$PORT" 2>&1 || true
+  echo
+  echo "Fermer la console (Ctrl-C) avant de televerser."
+  exit 1
+fi
+
 # --- avrdude ----------------------------------------------------------------
 # Celui qu'embarque arduino-cli est lie dynamiquement contre un /lib inexistant
 # sur NixOS : "Could not start dynamically linked executable". On prend donc,

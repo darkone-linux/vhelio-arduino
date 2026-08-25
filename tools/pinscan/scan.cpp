@@ -86,7 +86,11 @@ void setup() {
   Serial.println(F("          iraient au +12 V au lieu de la masse."));
   Serial.println(F("Boutons : la serigraphie K1..K4 est reputee INVERSEE. Noter quel"));
   Serial.println(F("          poussoir physique fait passer K1 a 0."));
-  Serial.println(F("Attendu au repos : 11111111 (actif = 0).\n"));
+  Serial.println(F("Attendu au repos : 11111111 (actif = 0)."));
+  Serial.println(F("!! La carte doit etre ALIMENTEE EN 12 V : l'USB n'alimente"));
+  Serial.println(F("   que le Nano. Sans 12 V, aucun relais ne claque (bobines"));
+  Serial.println(F("   12 V) et aucune entree ne bouge (LED des optocoupleurs"));
+  Serial.println(F("   alimentee par le 12 V de la carte).\n"));
 }
 
 void loop() {
