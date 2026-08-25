@@ -7,7 +7,7 @@ namespace {
  * Brochage physique. C'EST ICI qu'on corrige si la carte diffère.
  * Procédure de vérification : specs/03-affectation-es.md §6.
  * ------------------------------------------------------------------ */
-/* Mesuré avec tools/pinfind, pas déduit : specs/03 §6 bis. */
+/* Mesuré avec tools/pinfind, pas déduit : specs/03 §2. */
 const uint8_t IN_PIN[IN_COUNT]   = { 2, 3, 4, 5, 6, 7, 9, 11 };
 const uint8_t BTN_PIN[BTN_COUNT] = { 12, 10, 8, A0 };
 
@@ -26,7 +26,7 @@ const bool IN_ACTIVE_LOW[IN_COUNT] = {
  * changements de brochage de cette carte sans toucher un module métier. */
 const uint8_t RELAY_BIT[OUT_COUNT] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
-/* ---- Afficheur — MESURÉ (specs/03 §6 ter) --------------------------------
+/* ---- Afficheur — MESURÉ (specs/03 §4 bis) --------------------------------
  * Tout ce bloc venait de l'IO22D08. La mesure l'a contredit sur les trois
  * points qui comptent : la polarité des segments, celle de la sélection, et
  * la répartition des bits.
@@ -51,7 +51,7 @@ const uint8_t RELAY_BIT[OUT_COUNT] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 #define SEG_G   (1u << 11)
 #define SEG_DP  (1u <<  5)
 
-const uint16_t GLYPH[27] = {
+const uint16_t GLYPH[28] = {
   SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F,        /* 0     */
   SEG_B|SEG_C,                                /* 1     */
   SEG_A|SEG_B|SEG_G|SEG_E|SEG_D,              /* 2     */
@@ -78,6 +78,7 @@ const uint16_t GLYPH[27] = {
   SEG_A|SEG_B|SEG_C|SEG_E|SEG_F|SEG_G,        /* A     */
   SEG_A|SEG_C|SEG_D|SEG_E|SEG_F,              /* G     */
   SEG_B|SEG_C|SEG_D|SEG_E|SEG_G,              /* d     */
+  SEG_C|SEG_D|SEG_E|SEG_F|SEG_G,              /* b     */
   SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F|SEG_G|SEG_DP  /* test */
 };
 

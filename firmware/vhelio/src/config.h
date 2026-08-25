@@ -1,5 +1,5 @@
 /*
- * config.h — Tous les réglages du firmware VHélio.
+ * config.h — Tous les réglages du firmware Vhélio.
  *
  * Rien d'autre que des #define ici : c'est le seul fichier à toucher pour
  * adapter le comportement sans lire le code. Le brochage est dans pins.h.
@@ -158,8 +158,10 @@
  *   CL2   détresse ......... tant qu'elle dure
  *   ---   rien à signaler
  *
- * La page défauts garde le code hexadécimal : « Err » dit qu'il y a un
- * défaut, elle seule dit LEQUEL. */
+ * La page défauts garde le code : « Err » dit qu'il y a un défaut, elle seule
+ * dit LEQUEL. Elle l'écrit `F0xx`, le mot de défaut en HEXADÉCIMAL — même base
+ * que le `flt=0x..` du journal série et que la table de bits de specs/02 §2.6,
+ * pour qu'il n'y ait jamais de conversion à faire de tête. */
 #define DISPLAY_ENABLE            1
 #define DISPLAY_DEFAULT_PAGE      0    /* 0=événements 1=vitesse 2=charge 3=défauts 4=odomètre */
 #define DISPLAY_BLINK_MS          500  /* point décimal = battement, 1 Hz        */

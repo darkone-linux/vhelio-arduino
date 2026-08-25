@@ -94,12 +94,28 @@ void showBlank() {
   board::showGlyphs(none);
 }
 
+/* GL_0..GL_9 valent 0..9 ; au-delà, six lettres suffisent. Une table de six
+ * octets plutôt que de seize : le chiffre EST son glyphe. */
+const uint8_t HEX_LETTER[6] PROGMEM = {
+  board::GL_A, board::GL_b, board::GL_C,
+  board::GL_d, board::GL_E, board::GL_F
+};
+
+inline uint8_t hexGlyph(uint8_t nibble) {
+  return nibble < 10 ? nibble : pgm_read_byte(&HEX_LETTER[nibble - 10]);
+}
+
+/* `F0xx` — le mot de défaut en HEXADÉCIMAL, la même base que le `flt=0x..` du
+ * journal série et que la table de bits de specs/02 §2.6. En décimal, 0x14
+ * s'écrirait « F020 » et se relirait comme le bit 5, reset chien de garde :
+ * un défaut qui n'a jamais eu lieu. Le mot tient sur 7 bits, donc deux
+ * chiffres hexadécimaux suffisent toujours. */
 void showFaults(uint8_t f) {
   const uint8_t g[4] = {
     board::GL_F,
-    (uint8_t)(f / 100),
-    (uint8_t)((f / 10) % 10),
-    (uint8_t)(f % 10)
+    board::GL_0,
+    hexGlyph((uint8_t)(f >> 4)),
+    hexGlyph((uint8_t)(f & 0x0F))
   };
   board::showGlyphs(g);
 }

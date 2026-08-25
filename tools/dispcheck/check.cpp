@@ -22,10 +22,14 @@
  * test des glyphes ET du multiplexage — un digit mal sélectionné se voit
  * immédiatement comme un chiffre fantôme sur la mauvaise position.
  *
- * DÉFILÉ : les dix chiffres puis les glyphes de service (O n F E r _), les
- * quatre digits ensemble. Les glyphes de service ne servent qu'aux codes de
- * défaut, donc n'apparaîtraient jamais dans un compteur — et un code de
- * défaut illisible est pire qu'inutile.
+ * DÉFILÉ : les dix chiffres puis TOUS les glyphes de service, les quatre
+ * digits ensemble. Aucun d'eux n'apparaîtrait dans un compteur, or ce sont
+ * eux qui écrivent les codes de défaut (`F0xx` en hexadécimal, donc `A b C d
+ * E F`) et les messages de la page d'événements (`Fr AC Err Ph UE CLG CLd
+ * CLO CL2`). Un code de défaut illisible est pire qu'inutile.
+ *
+ * La table ci-dessous est celle de board_io.cpp, index par index : toute
+ * divergence entre les deux fichiers est un bug de l'un ou de l'autre.
  *
  * TOUT ALLUMÉ : les huit segments des quatre digits, points compris. Un
  * segment mort ou un digit mort se voit là, et nulle part ailleurs.
@@ -56,7 +60,7 @@ const uint8_t BTN[4] = { 12, 10, 8, A0 };
 #define SEG_G   (1u << 11)
 #define SEG_DP  (1u <<  5)
 
-const uint16_t GLYPH[17] = {
+const uint16_t GLYPH[27] = {
   SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F,        /* 0     */
   SEG_B|SEG_C,                                /* 1     */
   SEG_A|SEG_B|SEG_G|SEG_E|SEG_D,              /* 2     */
@@ -73,10 +77,20 @@ const uint16_t GLYPH[17] = {
   SEG_A|SEG_F|SEG_G|SEG_E,                    /* F     */
   SEG_A|SEG_F|SEG_G|SEG_E|SEG_D,              /* E     */
   SEG_E|SEG_G,                                /* r     */
-  SEG_D                                       /* _     */
+  SEG_D,                                      /* _     */
+  SEG_G,                                      /* -     */
+  SEG_A|SEG_B|SEG_E|SEG_F|SEG_G,              /* P     */
+  SEG_C|SEG_E|SEG_F|SEG_G,                    /* h     */
+  SEG_B|SEG_C|SEG_D|SEG_E|SEG_F,              /* U     */
+  SEG_A|SEG_D|SEG_E|SEG_F,                    /* C     */
+  SEG_D|SEG_E|SEG_F,                          /* L     */
+  SEG_A|SEG_B|SEG_C|SEG_E|SEG_F|SEG_G,        /* A     */
+  SEG_A|SEG_C|SEG_D|SEG_E|SEG_F,              /* G     */
+  SEG_B|SEG_C|SEG_D|SEG_E|SEG_G,              /* d     */
+  SEG_C|SEG_D|SEG_E|SEG_F|SEG_G               /* b     */
 };
 const uint8_t GL_BLANK = 10;
-const uint8_t N_GLYPH = 17;
+const uint8_t N_GLYPH = 27;
 
 const uint16_t DIGIT_SELECT[4] = { 1u << 2, 1u << 9, 1u << 10, 1u << 13 };
 const uint16_t DIGIT_ALL = (1u << 2) | (1u << 9) | (1u << 10) | (1u << 13);
@@ -180,7 +194,7 @@ void setup() {
   Serial.println(F("COMPTEUR : les dix chiffres dans les quatre positions."));
   Serial.println(F("  Un digit mal selectionne se voit tout de suite : le"));
   Serial.println(F("  chiffre apparait sur la mauvaise position."));
-  Serial.println(F("DEFILE : 0..9 puis les glyphes de service O n F E r _,"));
+  Serial.println(F("DEFILE : 0..9 puis tous les glyphes de service,"));
   Serial.println(F("  qui ne servent qu'aux codes de defaut et n'apparaitraient"));
   Serial.println(F("  jamais dans un compteur."));
   Serial.println(F("TOUT ALLUME : huit segments sur quatre digits, points"));

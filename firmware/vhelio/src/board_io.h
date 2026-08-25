@@ -25,8 +25,13 @@ namespace board {
  *
  * Plusieurs de ces lettres ne diffèrent d'un chiffre que par UN segment : `U`
  * et `0` par celui du haut, `G` et `0` par celui d'en haut à droite, `A` et `8`
- * par celui du bas. Un segment mort ne rendrait donc pas l'afficheur illisible,
- * il le rendrait MENTEUR — c'est ce que GL_TEST attrape au démarrage.
+ * par celui du bas, `b` et `6` par celui du haut. Un segment mort ne rendrait
+ * donc pas l'afficheur illisible, il le rendrait MENTEUR — c'est ce que
+ * GL_TEST attrape au démarrage.
+ *
+ * `A b C d E F` complètent les chiffres pour écrire les codes de défaut en
+ * hexadécimal, seule base qui se recoupe avec le `flt=0x..` du journal série et
+ * avec la table de bits de specs/02 §2.6.
  *
  * GL_TEST allume TOUT, point compris : c'est le test de l'afficheur au
  * démarrage, seul moyen de découvrir un segment mort. */
@@ -34,8 +39,8 @@ enum Glyph : uint8_t {
   GL_0 = 0, GL_1, GL_2, GL_3, GL_4, GL_5, GL_6, GL_7, GL_8, GL_9,
   GL_BLANK = 10, GL_O = 11, GL_n = 12, GL_F = 13, GL_E = 14, GL_r = 15,
   GL_UNDER = 16, GL_DASH = 17, GL_P = 18, GL_h = 19, GL_U = 20,
-  GL_C = 21, GL_L = 22, GL_A = 23, GL_G = 24, GL_d = 25,
-  GL_TEST = 26
+  GL_C = 21, GL_L = 22, GL_A = 23, GL_G = 24, GL_d = 25, GL_b = 26,
+  GL_TEST = 27
 };
 
 void begin();
