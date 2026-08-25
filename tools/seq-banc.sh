@@ -69,6 +69,10 @@ step() {
 }
 
 echo "== Sequence de banc, $PORT, phase '$PHASE' — journal : $LOG =="
+echo "== L'ouverture du port vient de RESET la carte : c'est voulu, le point 1"
+echo "== est cet autotest-la. Un televersement juste avant en a provoque un"
+echo "== autre, quelques secondes plus tot : voir DEUX fois le test d'afficheur"
+echo "== est donc normal, seul le second appartient a la sequence."
 echo
 
 step 4 - "DEMARRAGE : tous les segments allumes 2 s, et pendant ce temps"

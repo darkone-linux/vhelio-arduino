@@ -204,8 +204,19 @@ marque le passage au point suivant.
 
 Entre le point 6 et le point 7, la détresse fait claquer R3 et R4 **en phase** :
 le claquement est double, et c'est ce qui la distingue à l'oreille d'un
-clignotant simple. L'afficheur montre alors `CL2` — et le digit de droite
-revient à `0`, puisqu'on est entre deux points numérotés.
+clignotant simple.
+
+**Le digit de droite revient à `0` entre les points**, et c'est voulu : la
+détresse (9 s) puis tout le cycle d'acquittement (24 s) ne sont pas des points
+numérotés. Sur les 181 s de la séquence, une trentaine se passent donc à `0`.
+Voir `0` ailleurs qu'à ces deux endroits est en revanche une anomalie.
+
+> **Le test d'afficheur se produit deux fois si l'on vient de téléverser.**
+> `upload.sh` redémarre la carte en fin de téléversement, puis `seq-banc.sh`
+> ouvre le port, ce qui abaisse DTR et la redémarre encore. Deux boots réels,
+> donc deux fois les 2 s tous segments allumés — **seul le second appartient à
+> la séquence**. Ce reset à l'ouverture n'est pas un effet de bord subi : c'est
+> lui qui fait du point 1 un autotest observable.
 
 ### Ce que le journal établit tout seul
 
