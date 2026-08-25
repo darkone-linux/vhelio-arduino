@@ -442,11 +442,31 @@ Les broches qui ne bougent **jamais** sont les candidates de la chaîne de
 registres. C'est ce que la phase A produit de plus utile : elle réduit
 l'espace de recherche de la phase B à quatre ou cinq broches.
 
+### Résultats mesurés sur l'exemplaire
+
+**Boutons** — mesuré, la supposition était fausse :
+
+| | Supposé d'après l'IO22D08 | **Mesuré sur la DN22D08** |
+|---|---|---|
+| Poussoirs | D7, D8, D9, D10 | **D8, D10, D12, A0** |
+
+`A0` valant 14 sur un Nano, c'est **8, 10, 12, 14** : une progression de deux
+en deux. Les broches impaires intercalées — `D9, D11, D13, A1` — sont donc les
+candidates naturelles des quatre lignes de la chaîne (données, horloge,
+verrou, OE). Hypothèse, pas conclusion : elle sert seulement à **ordonner** la
+recherche de la phase B, pas à la remplacer.
+
+**Entrées** — à mesurer, carte alimentée.
+
 ### Phase B — la chaîne de registres
 
-À écrire quand la phase A aura livré la liste des broches restantes : le jeu
-de candidats en dépend, et l'écrire avant reviendrait à refaire l'erreur qui
-nous a menés ici — coder une hypothèse plutôt que la mesurer.
+À écrire quand la phase A aura livré la liste complète des broches restantes.
+Sans le résultat des entrées, l'espace de recherche est de 14 broches, soit
+2 184 triplets ordonnés — une demi-heure de balayage. Les entrées identifiées,
+il en reste quatre ou cinq, soit vingt-quatre à soixante combinaisons.
+
+L'écrire avant reviendrait à refaire l'erreur qui nous a menés ici : coder une
+hypothèse plutôt que la mesurer.
 
 ## 7. Comment l'hypothèse initiale a été invalidée
 
