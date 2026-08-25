@@ -347,13 +347,36 @@ elle, fonctionne parfaitement sans.
    > serial` après l'avoir téléchargé. Lancé sans les variables
    > `ARDUINO_DIRECTORIES_*`, il peuple en prime `~/.arduino15` au lieu du
    > `./.arduino` du dépôt. `monitor.sh` n'utilise que `stty` et `cat`.
-3. **Chaîne de registres.** Un digit doit s'allumer sur l'afficheur et les
+3. **Boutons — c'est le test de la liaison Nano ↔ carte, à faire en premier.**
+   Appuyer sur les quatre poussoirs, de gauche à droite.
+
+   > Les poussoirs sont câblés **directement** de la carte aux broches D7..D10.
+   > Ils ne dépendent ni du 12 V, ni de la chaîne de registres, ni des
+   > optocoupleurs : c'est le seul organe de la carte que le Nano voit sans
+   > aucun intermédiaire. **Si `K1..K4` ne bouge pas, le Nano n'est pas
+   > réellement connecté à la carte** — mal enfiché, décalé d'une rangée,
+   > retourné, ou une broche tordue sous le support.
+   >
+   > Tout ce qui précède — console, téléversement — passe par l'USB du Nano et
+   > ne prouve **rien** sur le support : un Nano posé à côté de la carte
+   > donnerait exactement les mêmes résultats. D'où l'ordre de cette étape.
+
+   Attention : la sérigraphie `K1..K4` est réputée **inversée** par rapport au
+   câblage sur cette famille de cartes — le poussoir marqué `K4` serait celui
+   relié à D7. Noter quel poussoir physique fait passer `K1` à `0` : c'est
+   celui qui changera de page d'afficheur.
+4. **Chaîne de registres.** Un digit doit s'allumer sur l'afficheur et les
    relais doivent coller **un par un**, 1,5 s chacun, dans l'ordre annoncé.
-   - Si rien ne bouge : **d'abord vérifier le 12 V** (voir ci-dessus) ; ce
-     n'est qu'ensuite que les broches data / horloge / verrou sont en cause.
+   - Rien ne bouge, mais l'afficheur s'allume : la chaîne fonctionne, le
+     défaut est du côté des relais — 12 V absent, appliqué aux mauvaises
+     bornes, ou bobines prévues pour 24 V.
+   - Rien ne bouge et l'afficheur reste éteint : la chaîne ne tourne pas.
+     Reprendre l'étape 3 — c'est presque toujours la liaison Nano ↔ carte.
+     Les broches data / horloge / verrou ne viennent qu'après : elles sont
+     recoupées avec `af3556/IO22_IO_Board`, qui donne les mêmes.
    - Si tous les relais collent en même temps : OE est mal identifiée.
    - Si l'ordre ne correspond pas : corriger `RELAY_BIT[]` dans `board_io.cpp`.
-4. **Entrées.** La polarité est donnée par le constructeur (NPN) ; il ne
+5. **Entrées.** La polarité est donnée par le constructeur (NPN) ; il ne
    s'agit que de la confirmer. Au repos, la console doit afficher
    `IN1..IN8 = 11111111`. Relier alors chaque borne d'entrée **à la masse**,
    une par une, avec un simple fil volant :
@@ -370,11 +393,6 @@ elle, fonctionne parfaitement sans.
 
    Noter aussi tout écart d'**ordre** (borne IN3 qui fait bouger le 5ᵉ
    chiffre, par exemple) et corriger `IN_PIN[]`.
-5. **Boutons.** Appuyer sur les quatre poussoirs, de gauche à droite. Attention :
-   la sérigraphie `K1..K4` est réputée **inversée** par rapport au câblage sur
-   cette famille de cartes — le poussoir marqué `K4` serait celui relié à D7.
-   Noter quel poussoir physique fait passer `K1` à `0` : c'est celui qui
-   changera de page d'afficheur.
 6. **Inverseur `485_ON` / `PRO`.** Le mettre sur `PRO` et vérifier que la
    console répond. Le basculer sur `485_ON` : la console doit **cesser** de
    répondre — ce qui confirme que le RS485 est bien sur D0/D1. Le remettre sur

@@ -12,7 +12,12 @@
  *   nécessité arithmétique.
  *
  * Source : bibliothèque de référence af3556/IO22_IO_Board, recoupée avec les
- * spécifications Eletechsup. À confirmer avec tools/pinscan (specs/03 §6).
+ * spécifications Eletechsup. Relu ligne à ligne contre cette bibliothèque :
+ * broches data/horloge/verrou/OE, tableaux d'entrées et de boutons, ordre des
+ * bits relais et ordre d'émission des trois octets concordent tous. Restent à
+ * confirmer sur la carte réelle, avec tools/pinscan (specs/03 §6), les deux
+ * points que la bibliothèque ne tranche pas : la polarité NPN des entrées et
+ * le sens de la sérigraphie K1..K4.
  */
 #pragma once
 
