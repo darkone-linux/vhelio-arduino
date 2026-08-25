@@ -575,9 +575,8 @@ L'octet des relais est donc le **dernier** émis des trois.
 Le brochage de la DN22D08 est donc **entièrement mesuré**, à l'exception de
 l'afficheur.
 
-Le brochage de l'**afficheur** — sélection des digits, ordre des segments — est
-une phase distincte, pas encore écrite. Il n'est nécessaire à aucune fonction
-de conduite : l'afficheur est un organe de maintenance, sous la coque (Q12).
+Le brochage de l'**afficheur** — sélection des digits, ordre des segments —
+fait l'objet du §6 ter.
 
 > **Le faisceau ne doit pas être câblé.** En motif `TOUS`, huit circuits sont
 > fermés en même temps, ce qui n'est un régime prévu nulle part. À vide, les
@@ -587,6 +586,67 @@ de conduite : l'afficheur est un organe de maintenance, sous la coque (Q12).
 Piloter ces six broches en sortie n'est sans risque que parce que la phase A a
 prouvé qu'aucune ne porte d'entrée optocouplée ni de poussoir — donc qu'aucun
 organe de la carte ne cherche à leur imposer un niveau.
+
+## 6 ter. L'afficheur — phase D
+
+Dernier organe non mesuré. Il n'est nécessaire à aucune fonction de conduite :
+c'est un organe de maintenance, sous la coque (Q12). Mais il porte le battement
+de cœur et l'affichage des défauts, et la LED D13 ne peut pas le remplacer
+(§2 bis).
+
+Acquis : les relais occupent le **dernier** octet émis, bits 0 à 7. Restent les
+seize bits des deux premiers octets.
+
+### Ce qu'une documentation officieuse propose
+
+Une synthèse trouvée en ligne donne la structure suivante :
+
+| Octet | Ordre d'émission | Rôle | Bits de trame |
+|---|---|---|---|
+| 1er | premier | sélection des digits | 16 à 23 |
+| 2e | | segments, codage `DP G F E D C B A` | 8 à 15 |
+| 3e | dernier | relais | 0 à 7 |
+
+**À traiter comme une orientation, pas comme une source.** La même
+documentation donne pour la chaîne `D13/A3/A2/A1`, c'est-à-dire le brochage de
+l'IO22D08, que le balayage des 120 triplets a réfuté : chaque rôle y est
+décalé d'un cran par rapport au nôtre. Elle se contredit d'ailleurs
+elle-même — sa prose annonce les relais « décalés en premier » quand son code
+les envoie en dernier.
+
+Ce qu'elle apporte de solide, c'est que **son code place les relais en
+dernier**, ce que nous avions mesuré indépendamment. Et sa structure explique
+l'observation faite en phase B — un segment s'allumant sur les quatre digits à
+la fois — qui est le comportement attendu si la sélection valait alors zéro et
+les activait tous.
+
+### La mesure
+
+```bash
+VHELIO_SKETCH=$PWD/tools/pindisp ./tools/build-nix.sh
+VHELIO_SKETCH=$PWD/tools/pindisp ./tools/upload.sh /dev/ttyACM0 old
+./tools/monitor.sh
+```
+
+Un seul bit d'afficheur allumé à la fois, **l'octet des relais tenu à zéro** :
+cette phase est muette, l'afficheur se règle à l'œil et des relais qui
+claquent n'ajouteraient que du bruit. Avance à la main, aux boutons.
+
+| Bouton | Effet |
+|---|---|
+| K1 (D12) | Bit suivant |
+| K2 (D10) | Bit précédent |
+| K3 (D8) | L'**autre** octet d'afficheur, `0x00` ↔ `0xFF` |
+| K4 (A0) | Avance automatique, 1,5 s par bit |
+
+**K3 est le test décisif.** L'autre octet à `0xFF` :
+
+- un **segment** s'allume partout → c'est l'octet des segments ;
+- un **digit entier** s'allume → c'est l'octet de sélection, et le rang du bit
+  donne la position du digit.
+
+Seize bits à noter. C'est fastidieux, mais c'est fini : après ça, plus rien
+n'est supposé sur cette carte.
 
 ## 7. Comment l'hypothèse initiale a été invalidée
 
