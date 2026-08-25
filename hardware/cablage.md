@@ -9,7 +9,7 @@ Complément de `specs/03-affectation-es.md` (table d'E/S) et
 flowchart TB
   subgraph HT["Bus 48 V"]
     PACK[Pack 16S + BMS JK] -->|F1 30A| CTRL[Contrôleur Bafang]
-    PACK -->|F2 10A| CONV[Convertisseur 48→12 V]
+    PACK -->|F2 5A| CONV[Convertisseur 48→12 V]
     MPPT[MPPT Victron] -->|F3| PACK
   end
   subgraph BT["Bus 12 V"]
@@ -56,7 +56,7 @@ unipolaire.
 
 > **Colonne « broche Nano » corrigée après mesure.** IN6 était donnée sur A0 et
 > IN7 sur D12, d'après la bibliothèque de l'IO22D08 ; la DN22D08 les porte sur
-> **D7** et **D9** (`specs/03` §6 bis). Cela ne change rien au sertissage — on
+> **D7** et **D9** (`specs/03` §2). Cela ne change rien au sertissage — on
 > câble sur les **borniers** IN1..IN8 — mais tout au dépannage au multimètre.
 >
 > La polarité NPN est **mesurée**, pas seulement annoncée : chaque borne reliée
@@ -232,17 +232,23 @@ Contrôleur ── TX ──┬──────────────> Affic
                    │
                   1 kΩ
                    │
-                   └──────────────> A4 du Nano
+                   └──────────────> A1 du Nano (RX logiciel)
 
 Contrôleur ── GND ────────────────> GND de la carte DN22D08
 ```
 
+> **A1, et surtout pas A4 ni A5.** Ces deux-là portent l'horloge et les données
+> de la chaîne à décalage (`specs/03` §2) : y injecter le TX du contrôleur
+> ferait n'importe quoi des relais et de l'afficheur. A1 est la dernière broche
+> libre à interruption sur changement d'état — A6 et A7 sont analogiques
+> seules, sans PCINT.
+
 - **Ne toucher qu'aux fils données et masse.** Le fil d'alimentation du
   connecteur afficheur porte la tension batterie sur certains modèles.
-- La broche A5 est réservée par `SoftwareSerial` comme TX : **la laisser en
-  l'air**. C'est ce qui rend l'émission physiquement impossible.
-- A4 et A5 sont les deux seules broches libres capables d'interruption sur
-  changement d'état, donc les seules utilisables en réception logicielle.
+- La broche **D13** est réservée par `SoftwareSerial` comme TX : **la laisser
+  en l'air**. C'est ce qui rend l'émission physiquement impossible — et ce qui
+  laisse la LED intégrée du Nano allumée en fixe, donc inutilisable comme
+  témoin.
 - Utiliser une dérivation en Y sur un connecteur au format d'origine plutôt
   que de couper le faisceau : le montage reste réversible.
 

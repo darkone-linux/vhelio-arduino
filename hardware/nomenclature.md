@@ -76,7 +76,7 @@ et une intervention sur le faisceau moteur, contre un rupteur à 2 €.
 
 | Rep. | Désignation | Qté | Remarque |
 |---|---|---|---|
-| R4 | Résistance 1 kΩ 1/4 W | 1 | En série sur la ligne sniffée, vers **A4** |
+| R4 | Résistance 1 kΩ 1/4 W | 1 | En série sur la ligne sniffée, vers **A1** — surtout pas A4/A5, qui portent la chaîne à décalage |
 | — | Connecteur Higo/JST au format du faisceau Bafang | 1 | Dérivation en Y, sans couper l'existant |
 | OK2 | PC817 + résistance 10 kΩ | 1 | **Seulement** si le convertisseur 48/12 V est isolé |
 
