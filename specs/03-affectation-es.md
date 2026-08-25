@@ -492,22 +492,42 @@ VHELIO_SKETCH=$PWD/tools/pinchain ./tools/upload.sh /dev/ttyACM0 old
 ./tools/monitor.sh
 ```
 
-Pour chaque triplet **ordonné** (données, horloge, verrou) pris parmi les six
-broches restantes, le croquis décale trois octets de `0xFF` puis verrouille.
-Si le triplet est bon, **les huit relais collent d'un coup** — impossible à
-manquer. Les trois broches restantes sont maintenues à un niveau fixe pour
-couvrir une validation OE parmi elles, d'où deux passes : une à l'état bas,
-une à l'état haut. 6×5×4 = 120 triplets, 240 essais, environ cinq minutes.
+Le balayage est **manuel**, et c'est tout l'intérêt. Une première version
+enchaînait les 240 essais toute seule, à la seconde : inutilisable. Plusieurs
+triplets produisent un effet partiel — décaler des bits avec l'horloge et les
+données interverties fait quand même bouger quelque chose — si bien que la
+console défile trop vite pour qu'on note quoi que ce soit.
 
-Noter le **numéro de l'essai** qui claque, puis reporter dans `pins.h`.
+Les boutons de la carte, que la phase A vient d'identifier, règlent le
+problème. Le montage reste dans l'état choisi indéfiniment.
 
-> **Le faisceau ne doit pas être câblé.** Huit circuits fermés simultanément
-> n'est un régime prévu nulle part. À vide, les huit bobines représentent
-> ≈ 300 mA sur le 12 V, que la carte encaisse sans difficulté.
+| Bouton | Effet |
+|---|---|
+| K1 (D12) | Triplet suivant |
+| K2 (D10) | Triplet précédent |
+| K3 (D8) | Niveau des trois autres broches, `BAS` ↔ `HAUT` — couvre une validation OE parmi elles |
+| K4 (A0) | Motif, `TOUS` ↔ `BIT A BIT` |
 
-> Surveiller aussi l'afficheur : s'il s'allume **sans** que les relais bougent,
-> la chaîne est trouvée mais les relais ont leur propre validation, et c'est
-> alors le passage `autres=BAS` ou `autres=HAUT` qui la désigne.
+**Deux motifs, et le second est le juge.**
+
+`TOUS` alterne `0xFF` et `0x00` : fort, repérable de loin, bon pour dégrossir.
+Mais il ne prouve rien — un triplet faux fait souvent claquer quelque chose.
+
+`BIT A BIT` promène **un seul 1** à travers les 24 bits. Sur le bon triplet,
+et sur lui seul, on entend **exactement un relais à la fois**, proprement,
+huit fois sur vingt-quatre positions. C'est ce qui distingue le triplet
+correct de ceux qui font seulement du bruit.
+
+Et il donne gratuitement `RELAY_BIT[]` : la position annoncée quand tel relais
+claque **est** son bit dans la chaîne. C'est l'étape suivante faite d'avance.
+
+Noter le **numéro du triplet**, le niveau des autres broches, et la position
+de chacun des huit relais. Puis reporter dans `pins.h` et `board_io.cpp`.
+
+> **Le faisceau ne doit pas être câblé.** En motif `TOUS`, huit circuits sont
+> fermés en même temps, ce qui n'est un régime prévu nulle part. À vide, les
+> huit bobines représentent ≈ 300 mA sur le 12 V, que la carte encaisse sans
+> difficulté.
 
 Piloter ces six broches en sortie n'est sans risque que parce que la phase A a
 prouvé qu'aucune ne porte d'entrée optocouplée ni de poussoir — donc qu'aucun
