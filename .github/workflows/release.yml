@@ -58,8 +58,8 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           awk -v ver="$TAG" '
-            $0 == "## [" ver "]" { dedans=1; next }
-            dedans && /^## \[/ { exit }
+            substr($0, 1, length("## [" ver "]")) == "## [" ver "]" { dedans=1; next }
+            dedans && substr($0, 1, 4) == "## [" { exit }
             dedans { print }
           ' CHANGELOG.md > /tmp/notes.md
           [ -s /tmp/notes.md ] || { echo "Pas de section [${TAG}] dans CHANGELOG.md."; exit 1; }
