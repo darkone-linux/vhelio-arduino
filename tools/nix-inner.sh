@@ -6,8 +6,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 ARDUINO_DIR="$ROOT/.arduino"
 CLI="$ARDUINO_DIR/bin/arduino-cli"
-PLATFORM_DIR="$ARDUINO_DIR/data/packages/arduino/hardware/avr/1.8.8"
-CTAGS_STUB="$ARDUINO_DIR/data/packages/builtin/tools/ctags/5.8-arduino11/ctags"
+# Versions resolues dynamiquement : un `core update-index && core install`
+# peut faire monter le coeur AVR ou ctags, et un chemin code en dur casserait
+# alors la compilation avec un message obscur. On prend la plus recente.
+PLATFORM_DIR="$(printf '%s\n' "$ARDUINO_DIR"/data/packages/arduino/hardware/avr/*/ | sort -V | tail -n 1)"
+CTAGS_STUB="$(printf '%s\n' "$ARDUINO_DIR"/data/packages/builtin/tools/ctags/*/ctags | sort -V | tail -n 1)"
+[ -n "$PLATFORM_DIR" ] && [ -d "$PLATFORM_DIR" ] || { echo "Coeur AVR introuvable sous $ARDUINO_DIR/data/packages/arduino/hardware/avr/ : lancer ./tools/setup.sh"; exit 1; }
+[ -n "$CTAGS_STUB" ] || { echo "ctags introuvable sous $ARDUINO_DIR/data/packages/builtin/tools/ctags/ : lancer ./tools/setup.sh"; exit 1; }
 # La ferme de liens NE DOIT PAS etre sous .build/ : arduino-cli considere
 # --build-path comme son repertoire a lui et le VIDE des qu'il change de
 # croquis. La chaine de compilation disparaissait donc au premier build
