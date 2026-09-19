@@ -14,6 +14,14 @@ on:
 permissions:
   contents: write
 
+# tools/build.sh (et setup.sh) travaillent dans ./.arduino, jamais dans le
+# profil utilisateur : sans ces variables, `core install` deposerait le coeur
+# AVR ailleurs que la ou la compilation le cherche.
+env:
+  ARDUINO_DIRECTORIES_DATA: ${{ github.workspace }}/.arduino/data
+  ARDUINO_DIRECTORIES_DOWNLOADS: ${{ github.workspace }}/.arduino/downloads
+  ARDUINO_DIRECTORIES_USER: ${{ github.workspace }}/.arduino/user
+
 jobs:
   verifier:
     name: Balayage des variantes
