@@ -1,5 +1,10 @@
 # vhelio-arduino
 
+[![Release](https://github.com/darkone-linux/vhelio-arduino/actions/workflows/release.yml/badge.svg)](https://github.com/darkone-linux/vhelio-arduino/actions/workflows/release.yml)
+[![Dernière version](https://img.shields.io/github/v/release/darkone-linux/vhelio-arduino?display_name=tag&sort=semver)](https://github.com/darkone-linux/vhelio-arduino/releases)
+[![Plateforme](https://img.shields.io/badge/plateforme-Arduino%20Nano%20(ATmega328P)-00979D?logo=arduino&logoColor=white)](https://www.arduino.cc/)
+[![Langage](https://img.shields.io/badge/langage-C++-00599C?logo=cplusplus&logoColor=white)](firmware/vhelio/src/)
+
 Électronique et électricité embarqués d'un **[Vhélio](https://vhelio.fr/)**, en
 alternative au montage décrit dans le
 [guide officiel](https://documentation.vhelio.org/vheliotech/guide-de-montage/main/080_installation_electricite.html).
@@ -15,6 +20,14 @@ Ce calculateur gère l'éclairage, la signalisation, la détection de freinage e
 la télémétrie moteur. Il **ne gère pas** la traction : le contrôleur
 Bafang reste maître du moteur, l'Arduino n'est qu'un observateur et un
 actionneur de sécurité redondant.
+
+## Fonctions
+
+- Éclairage avant / arrière (veilleuse, phares)
+- Clignotants, détresse, rappel d'oubli
+- Feu stop et coupure d'assistance moteur **redondante**
+- Télémétrie Bafang en écoute passive (confort, jamais sécurité)
+- Diagnostic, voyant de défaut et afficheur 4 digits
 
 ---
 
@@ -53,12 +66,16 @@ actionneur de sécurité redondant.
 
 > **L'inverseur `485_ON` / `PRO` de la carte doit être sur `PRO`.** Sinon
 > l'émetteur RS485 occupe D0/D1 et le téléversement échoue sans message clair.
+>
+> Les versions publiées (paquet `.zip` prêt à téléverser) sont dans
+> [Releases](https://github.com/darkone-linux/vhelio-arduino/releases), avec le
+> détail des changements dans [`CHANGELOG.md`](CHANGELOG.md).
 
 ```bash
 ./tools/setup.sh          # installe arduino-cli + coeur AVR dans ./.arduino
 ./tools/build-nix.sh      # compile (NixOS)
 ./tools/build.sh          # compile (distribution classique)
-./tools/upload.sh         # televerse (port detecte seul)
+./tools/upload.sh         # téléverse (port détecté seul)
 ./tools/monitor.sh        # console serie a 115200 bauds
 ```
 
