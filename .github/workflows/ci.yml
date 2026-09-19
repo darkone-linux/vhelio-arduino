@@ -1,0 +1,38 @@
+# CI : rejoue sur chaque poussee vers main et chaque pull request le balayage
+# des quinze variantes de config.h, obligatoire avant tout commit (AGENTS.md).
+# Les #if non pris ne sont pas verifies par le compilateur : sans ce balayage,
+# une variante peut rester cassee des mois. Meme script et memes variables que
+# le travail `verifier` de release.yml pour eviter toute divergence.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# tools/build.sh (et setup.sh) travaillent dans ./.arduino, jamais dans le
+# profil utilisateur : sans ces variables, `core install` deposerait le coeur
+# AVR ailleurs que la ou la compilation le cherche.
+env:
+  ARDUINO_DIRECTORIES_DATA: ${{ github.workspace }}/.arduino/data
+  ARDUINO_DIRECTORIES_DOWNLOADS: ${{ github.workspace }}/.arduino/downloads
+  ARDUINO_DIRECTORIES_USER: ${{ github.workspace }}/.arduino/user
+
+jobs:
+  variantes:
+    name: Les quinze variantes compilent
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Coeur AVR
+        run: arduino-cli core install arduino:avr
+      - name: Balayage des variantes
+        run: VHELIO_BUILD=./tools/build.sh ./tools/check-variants.sh
