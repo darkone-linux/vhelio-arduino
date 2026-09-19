@@ -6,8 +6,12 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 CFG="$ROOT/firmware/vhelio/src/config.h"
-BUILD="$ROOT/tools/build-nix.sh"
-[ -x "$BUILD" ] || BUILD="$ROOT/tools/build.sh"
+# VHELIO_BUILD permet de forcer le script de compilation (ex. en CI sur
+# Ubuntu, ou build-nix.sh est executable mais `nix` est absent).
+BUILD="${VHELIO_BUILD:-$ROOT/tools/build-nix.sh}"
+if [ -z "${VHELIO_BUILD:-}" ]; then
+  { [ -x "$BUILD" ] && command -v nix >/dev/null 2>&1; } || BUILD="$ROOT/tools/build.sh"
+fi
 
 cp "$CFG" "$CFG.bak"
 # Rendre config.h ET effacer le binaire : .build/vhelio contiendrait sinon la

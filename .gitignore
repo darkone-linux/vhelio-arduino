@@ -1,6 +1,8 @@
 .arduino/
 .build/
+/dist/
 *.hex
 *.elf
 /*.md
 !README.md
+!CHANGELOG.md

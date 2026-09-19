@@ -1,0 +1,63 @@
+# Release : publie le paquet d'une version sur chaque etiquette vX.Y.Z.
+#
+# Declencheur : `just release` commite, etiquette vX.Y.Z et pousse l'etiquette ;
+# c'est cette poussee qui demarre ce workflow. Ne jamais creer l'etiquette a
+# la main : passer par `just release` garantit que config.h, CHANGELOG.md,
+# le commit et l'etiquette disent la meme version.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  verifier:
+    name: Balayage des variantes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Coeur AVR
+        run: arduino-cli core install arduino:avr
+      - name: Les quinze variantes compilent
+        run: VHELIO_BUILD=./tools/build.sh ./tools/check-variants.sh
+
+  publier:
+    name: Paquet et Release GitHub
+    needs: verifier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Coeur AVR
+        run: arduino-cli core install arduino:avr
+
+      - name: Coherence etiquette / config.h
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          CFG=$(sed -nE 's/^#define[[:space:]]+VHELIO_FW_VERSION[[:space:]]+"([^"]+)".*/\1/p' firmware/vhelio/src/config.h)
+          echo "etiquette : $TAG — config.h : $CFG"
+          [ "$TAG" = "$CFG" ] || { echo "L'etiquette v$TAG ne correspond pas a VHELIO_FW_VERSION $CFG : passer par \`just release\`."; exit 1; }
+
+      - name: Paquet
+        run: VHELIO_BUILD=./tools/build.sh ./tools/package.sh
+
+      - name: Notes de version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          awk -v ver="$TAG" '
+            $0 == "## [" ver "]" { dedans=1; next }
+            dedans && /^## \[/ { exit }
+            dedans { print }
+          ' CHANGELOG.md > /tmp/notes.md
+          [ -s /tmp/notes.md ] || { echo "Pas de section [${TAG}] dans CHANGELOG.md."; exit 1; }
+
+      - name: Release GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/vhelio-*.zip
+          body_path: /tmp/notes.md
