@@ -1,7 +1,9 @@
 # vhelio-arduino
 
 [![Release](https://github.com/darkone-linux/vhelio-arduino/actions/workflows/release.yml/badge.svg)](https://github.com/darkone-linux/vhelio-arduino/actions/workflows/release.yml)
+[![CI](https://github.com/darkone-linux/vhelio-arduino/actions/workflows/ci.yml/badge.svg)](https://github.com/darkone-linux/vhelio-arduino/actions/workflows/ci.yml)
 [![Dernière version](https://img.shields.io/github/v/release/darkone-linux/vhelio-arduino?display_name=tag&sort=semver)](https://github.com/darkone-linux/vhelio-arduino/releases)
+[![Licence](https://img.shields.io/github/license/darkone-linux/vhelio-arduino)](LICENSE)
 [![Plateforme](https://img.shields.io/badge/plateforme-Arduino%20Nano%20(ATmega328P)-00979D?logo=arduino&logoColor=white)](https://www.arduino.cc/)
 [![Langage](https://img.shields.io/badge/langage-C++-00599C?logo=cplusplus&logoColor=white)](firmware/vhelio/src/)
 
