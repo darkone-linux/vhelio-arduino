@@ -270,7 +270,8 @@ contre-intuitif parce que la console série, elle, fonctionne parfaitement sans.
    VHELIO_SKETCH=$PWD/tools/pinscan ./tools/upload.sh /dev/ttyACM0 old
    ```
    > **Le mot-clé `old` (57 600 bauds) est obligatoire** : le Nano de ce projet
-   > porte un ancien bootloader (`HW 3 / FW 4.4`, signature `1E 95 0F`). Sans
+   > porte un ancien bootloader (`HW 3 / FW 4.4`, signature `1E 95 0F`). Ces
+   > numéros de version sont ceux d'Optiboot 4.4 (`optiboot.c` du cœur AVR). Sans
    > lui, avrdude parle à 115 200 et enchaîne les `not in sync: resp=0x00`, qui
    > ressemblent à s'y méprendre à une panne de câblage. Il est en revanche
    > inutile de recompiler avec `old` : `atmega328` et `atmega328old`

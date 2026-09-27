@@ -48,22 +48,28 @@ void printFixed1(uint16_t x10) {
 
 }  // namespace
 
-void diag::begin(uint8_t mcusr) {
+void diag::begin(uint8_t mcusr, bool wdtReset) {
   g_faults = 0;
   g_acked = 0;
 #if FAULT_LAMP_ENABLE
   g_ackBtn.begin(DEBOUNCE_ACK_MS, false);
   board::setOutput(OUT_FAULT, false);
 #endif
-  /* WDRF : un reset par chien de garde en roulage est une anomalie, elle
-   * doit rester visible après la reprise. */
-  if (mcusr & _BV(WDRF)) g_faults |= FLT_WDT_RESET;
+  /* Un reset par chien de garde en roulage est une anomalie, elle doit rester
+   * visible après la reprise. */
+  if (wdtReset) g_faults |= FLT_WDT_RESET;
 
 #if DEBUG_SERIAL
   Serial.print(F("\n[VH] Vhelio firmware "));
   Serial.print(F(VHELIO_FW_VERSION));
+  /* MCUSR est publié tel quel, pour information : derrière Optiboot il vaut
+   * toujours 0 (voir scheduler.cpp). */
   Serial.print(F("  reset=0x"));
-  Serial.println(mcusr, HEX);
+  Serial.print(mcusr, HEX);
+  if (wdtReset) Serial.print(F(" CHIEN DE GARDE"));
+  Serial.println();
+#else
+  (void)mcusr;
 #endif
 }
 

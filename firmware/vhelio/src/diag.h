@@ -21,8 +21,11 @@ enum Fault : uint8_t {
   FLT_BRAKE_NEVER   = 1 << 6   /* 2 km parcourus sans jamais voir de freinage */
 };
 
-/* mcusr : copie de MCUSR relevée AVANT son effacement dans setup(). */
-void begin(uint8_t mcusr);
+/* mcusr : copie de MCUSR relevée AVANT son effacement dans setup(), publiée
+ * au journal pour information.
+ * wdtReset : le reset précédent vient du chien de garde. C'est lui, et non
+ * MCUSR, qui lève FLT_WDT_RESET — voir scheduler.cpp. */
+void begin(uint8_t mcusr, bool wdtReset);
 
 /* Balayage visuel des sorties d'éclairage et de signalisation.
  * Le voyant de défaut (R7) est inclus : c'est le contrôle de la LED elle-même.

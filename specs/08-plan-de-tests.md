@@ -172,7 +172,13 @@ pas un voyant qui fonctionne.
 ### T1.7 — Chien de garde
 
 Injecter temporairement `while(1);` dans `loop()`. **Critère** : redémarrage en
-~1 s, et `FLT_WDT_RESET` au journal après reprise. **Retirer l'injection.**
+~1 s, `reset=0x0 CHIEN DE GARDE` en tête de journal, le bit `0x20` dans
+`flt=` et le voyant allumé après reprise — et **pas d'autotest** : ni segments
+allumés, ni claquement de R1 à R7. **Retirer l'injection.**
+
+Contre-épreuve, sans injection : appuyer sur le bouton reset du Nano. Le
+bootloader attend puis relance le croquis par son propre chien de garde ;
+l'autotest doit être rejoué et le bit `0x20` doit rester absent.
 
 ### T1.7 bis — Arrêt d'urgence par la broche OE
 

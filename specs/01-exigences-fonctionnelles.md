@@ -87,7 +87,7 @@ avant l'ouverture.
 
 | Id | Prio | Exigence |
 |---|---|---|
-| NF-1 | M | Empreinte flash < 24 ko et RAM statique < 1,4 ko. **Mesuré : 9 696 o de flash (31 %) et 784 o de RAM (38 %)** sur les 30 720 / 2 048 utilisables |
+| NF-1 | M | Empreinte flash < 24 ko et RAM statique < 1,4 ko. **Mesuré : 9 868 o de flash (32 %) et 788 o de RAM (38 %)** sur les 30 720 / 2 048 utilisables |
 | NF-2 | M | Aucun `String`, aucune allocation dynamique |
 | NF-3 | M | Tout le brochage est concentré dans `src/pins.h` et les tableaux en tête de `src/board_io.cpp` ; tout le réglage dans `src/config.h`. C'est ce qui a permis d'absorber un changement complet d'architecture de carte sans toucher un module métier |
 | NF-4 | S | Chaque fonction est un module indépendant, testable en isolant ses entrées |

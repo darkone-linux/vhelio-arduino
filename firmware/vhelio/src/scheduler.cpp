@@ -39,14 +39,52 @@
 #include "turnsignals.h"
 #include "wheelspeed.h"
 
+#if WATCHDOG_ENABLE
+namespace {
+
+/* Marqueur de reset par chien de garde. Section .noinit : le démarrage ne
+ * l'initialise ni ne l'efface, il survit donc au reset.
+ *
+ * MCUSR ne peut pas servir à cela. Le bootloader de la carte est Optiboot 4.4
+ * (avrdude lit « HW 3 / FW 4.4 », specs/03 §6), qui efface MCUSR avant de
+ * lancer le croquis : setup() y relirait toujours 0.
+ *
+ * Le chien est donc armé en mode « interruption puis reset » : au premier
+ * débordement, WDT_vect pose le marqueur ; au second, le matériel redémarre
+ * la carte. Deux périodes de 500 ms : le reset tombe 1 s après le blocage,
+ * comme avec l'ancien réglage. Un blocage interruptions masquées fait
+ * exception : l'ISR ne s'exécute pas, le reset a lieu quand même, mais sans
+ * marqueur. Au démarrage à froid, la RAM contient n'importe quoi : une
+ * valeur de 32 bits rend la confusion improbable. */
+const uint32_t WDT_MARK = 0x57445452UL;   /* « WDTR » */
+volatile uint32_t g_wdtMark __attribute__((section(".noinit")));
+
+}  // namespace
+
+ISR(WDT_vect) {
+  /* Le matériel vient d'effacer WDIE : le prochain débordement sera un
+   * reset. Ne surtout pas réarmer WDIE ici, cela repousserait le reset
+   * indéfiniment. */
+  g_wdtMark = WDT_MARK;
+}
+#endif
+
 void setup() {
   /* Relever puis effacer MCUSR, et désarmer le chien de garde AVANT tout le
-   * reste. Sans cela, après un reset par WDT, le chien reste armé avec un
-   * délai trop court pour que le bootloader finisse : la carte repart en
-   * boucle de reset. */
+   * reste. Optiboot le fait déjà ; d'autres bootloaders, ou une carte
+   * programmée sans bootloader, laisseraient le chien armé après un reset par
+   * WDT, avec un délai trop court pour finir le démarrage : la carte
+   * repartirait en boucle de reset. */
   const uint8_t mcusr = MCUSR;
   MCUSR = 0;
   wdt_disable();
+
+#if WATCHDOG_ENABLE
+  const bool wdtReset = (g_wdtMark == WDT_MARK);
+  g_wdtMark = 0;
+#else
+  const bool wdtReset = false;
+#endif
 
   board::begin();
   board::allOff();          /* état sûr avant toute autre initialisation */
@@ -55,7 +93,7 @@ void setup() {
   Serial.begin(DEBUG_BAUD);
 #endif
 
-  diag::begin(mcusr);
+  diag::begin(mcusr, wdtReset);
   simconsole::begin();      /* banc d'essai ; ne compile rien si SIM_INPUTS=0 */
   inputs::begin();
   brakes::begin();
@@ -67,10 +105,18 @@ void setup() {
   wheelspeed::begin();
   bafang::begin();
 
-  diag::selfTest();         /* bloquant ~0,9 s, chien de garde non armé */
+  /* Bloquant 2 s, chien de garde non armé. Pas après un reset par chien de
+   * garde : le véhicule roule peut-être, de nuit, et l'autotest priverait de
+   * feux et de stop pendant 2 s tout en faisant claquer R3 puis R4 — un faux
+   * signal de direction pour les autres usagers. On rend la main tout de
+   * suite ; le contrôle des lampes attendra la prochaine mise sous tension. */
+  if (!wdtReset) diag::selfTest();
 
 #if WATCHDOG_ENABLE
-  wdt_enable(WDTO_1S);
+  /* wdt_enable() règle la période et arme le reset ; WDIE s'y ajoute ensuite,
+   * sans séquence temporisée. Voir WDT_vect. */
+  wdt_enable(WDTO_500MS);
+  WDTCSR |= _BV(WDIE);
 #endif
 }
 

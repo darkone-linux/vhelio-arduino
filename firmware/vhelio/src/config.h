@@ -107,7 +107,7 @@
  *   bit 2  lien Bafang perdu ......... NON — principe P2, voir ci-dessous
  *   bit 3  frein collé ............... OUI, assistance coupée en continu
  *   bit 4  cycle lent ................ NON, information de maintenance
- *   bit 5  reset chien de garde ...... OUI, les feux se sont éteints ~1,5 s
+ *   bit 5  reset chien de garde ...... OUI, firmware bloqué ~1 s en roulant
  *   bit 6  aucun freinage vu en 2 km . OUI, fil de contacteur probablement coupé
  *
  * Le lien Bafang est délibérément exclu : la télémétrie est un confort, pas

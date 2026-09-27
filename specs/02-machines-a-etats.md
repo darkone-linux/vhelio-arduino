@@ -177,7 +177,7 @@ attend l'ouverture de la coque.
 | 2 | Lien Bafang perdu | **non** | Confort, pas sécurité — voir ci-dessous |
 | 3 | Frein collé | **oui** | Assistance coupée en continu, stop allumé en permanence |
 | 4 | Cycle lent | non | Information de maintenance |
-| 5 | Reset chien de garde | **oui** | Les feux se sont éteints ~1,5 s en roulant |
+| 5 | Reset chien de garde | **oui** | Le firmware s'est bloqué en roulant : sorties figées ~1 s, puis redémarrage |
 | 6 | Aucun freinage vu en 2 km | **oui** | Fil de contacteur probablement coupé : le feu stop ne fonctionne pas |
 
 > **L'exclusion du lien Bafang est la décision de conception de ce module** —

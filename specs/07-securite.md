@@ -8,7 +8,7 @@ Pour chaque panne plausible : ce qui se passe, et pourquoi c'est acceptable.
 |---|---|---|---|
 | **Arduino planté (boucle infinie)** | Sorties figées dans leur dernier état | Non | WDT 1 s → reset → état sûr en < 1,5 s. La coupure moteur reste assurée par le câblage direct |
 | **Arduino non alimenté** | Toutes sorties inactives : plus de feux, plus de clignotants | Éclairage oui ; **coupure moteur non** | Les deux freins coupent nativement (contacteur d'origine à l'arrière, diode D1 à l'avant). Panne très visible : plus aucun feu. Fusible F11 dédié |
-| **Reset intempestif en roulant** | Autotest 2 s pendant lequel les feux clignotent | Éclairage 2 s | L'autotest peut être désactivé (`SELFTEST_ENABLE 0`) une fois le véhicule validé |
+| **Reset intempestif en roulant** | Autotest 2 s pendant lequel les feux clignotent | Éclairage 2 s | Pas d'autotest après un reset par chien de garde (§4). Les autres causes — baisse de tension, parasite sur la ligne de reset — ne se distinguent pas d'une mise sous tension, `MCUSR` étant effacé par le bootloader : elles rejouent l'autotest. Celui-ci peut être désactivé (`SELFTEST_ENABLE 0`) une fois le véhicule validé |
 | **Fil de contacteur de frein coupé (contact sec direct)** | L'entrée reste inactive → pas de feu stop, et au frein avant, plus de coupure moteur du tout | **Oui, le feu stop** | Détectable par `FLT_BRAKE_NEVER` (aucun freinage vu depuis 2 km). Contrôle avant départ T3.1 |
 | **Fil de frein coupé (interface transistor optionnelle)** | L'entrée retombe → le firmware conclut « freinage » | Non | État sûr : stop allumé, coupure moteur active. Le défaut est visible immédiatement |
 | **Ligne frein Bafang raccordée à une borne d'entrée SANS diode** | +12 V injecté dans une entrée 5 V du contrôleur | — | **Destruction probable du contrôleur.** C'est exactement ce que D1 empêche à l'avant ; à l'arrière, le connecteur jaune reste intact et S2 est un contact sec séparé (`03` §5) |
@@ -109,18 +109,40 @@ matériel disponible pour un futur mode sécurité.
 Le premier balayage complet des entrées a lieu au premier tour de `loop()`,
 soit **moins de 10 ms** après la fin de `setup()`. L'éclairage est donc rétabli
 imperceptiblement — sauf si l'autotest est actif, auquel cas il faut compter
-2 s de plus.
+2 s de plus. L'autotest n'est pas rejoué après un reset par chien de garde
+(§4).
 
 ## 4. Chien de garde
 
 - Désarmé explicitement au tout début de `setup()` :
-  `MCUSR = 0; wdt_disable();`. Sans cela, après un reset par WDT, l'ancien
-  bootloader Optiboot peut repartir en boucle de reset — le WDT reste armé avec
-  un délai trop court pour laisser le bootloader finir.
-- Le drapeau `WDRF` de `MCUSR` est lu **avant** d'être effacé et publié dans
-  `FLT_WDT_RESET`. Un reset par chien de garde en roulage est une anomalie qui
-  doit être visible.
-- Armé à **1 s**, après l'autotest (qui dure 2 s et déclencherait le WDT).
+  `MCUSR = 0; wdt_disable();`. Le bootloader de la carte, Optiboot 4.4
+  (`HW 3 / FW 4.4`, `03` §6), le fait déjà avant de lancer le croquis
+  (`optiboot.c`, `appStart()`) ; la précaution vaut pour les autres
+  bootloaders et pour une carte programmée sans bootloader, où le WDT resterait
+  armé après un reset par chien de garde avec un délai trop court pour finir
+  le démarrage — la carte repartirait en boucle de reset.
+- **`MCUSR` ne dit pas la cause du reset.** Optiboot 4.4 l'efface avant de
+  sauter au croquis (`optiboot.c`, « Adaboot no-wait mod ») : `setup()` y lit
+  toujours 0, et un `FLT_WDT_RESET` fondé sur `WDRF` ne se lèverait jamais. Il
+  est publié au journal pour information, sans plus.
+- La cause est donc portée par un **marqueur en `.noinit`**, une zone de RAM
+  que le démarrage n'initialise pas. Le chien est armé en mode *interruption
+  puis reset* : au premier débordement, `WDT_vect` écrit le marqueur ; au
+  second, le matériel redémarre la carte. `setup()` lit le marqueur, l'efface,
+  et lève `FLT_WDT_RESET`. Un reset par le bouton, une mise sous tension ou un
+  reset du bootloader n'écrivent pas le marqueur.
+- Limite : un blocage **interruptions masquées** empêche l'ISR de s'exécuter.
+  Le reset a quand même lieu (le matériel l'applique au second débordement,
+  que l'interruption ait été servie ou non), mais sans marqueur, donc sans
+  `FLT_WDT_RESET` et avec l'autotest.
+- Armé après l'autotest (qui dure 2 s et déclencherait le WDT) : **2 × 500 ms**,
+  soit un reset 1 s après le blocage.
+- **Pas d'autotest après un reset par chien de garde.** Le véhicule roule
+  peut-être : 2 s sans feux ni stop, et R3 puis R4 qui claquent chacun
+  200 ms — un faux signal de direction. L'éclairage est rendu dès le premier
+  tour de `loop()` ; le contrôle des lampes attend la mise sous tension
+  suivante. Ce comportement est lu dans le code ; T1.7 ne l'a pas encore
+  vérifié sur la carte.
 - `wdt_reset()` est appelé **une seule fois**, en fin de `loop()`. Jamais dans
   une boucle interne : cela masquerait précisément le blocage qu'on cherche à
   détecter.
