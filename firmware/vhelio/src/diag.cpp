@@ -39,10 +39,92 @@ static_assert((FAULT_LAMP_MASK & diag::FLT_BAFANG_LINK) == 0,
 #if DEBUG_SERIAL && !BAFANG_LEARN_MODE
 uint32_t g_lastLog = 0;
 
+/* La ligne de journal part en LOG_PARTS morceaux. Le pire cas de chacun tient
+ * en LOG_PART_MAX octets ; c'est le dernier :
+ *   " pg=4 loop=4294967295/4294967295us flt=0x7F LAMP\r\n"  -> 50 octets.
+ * Qui allonge un morceau refait ce compte. */
+const uint8_t LOG_PARTS = 5;
+const uint8_t LOG_PART_MAX = 50;
+static_assert(LOG_PART_MAX < SERIAL_TX_BUFFER_SIZE,
+              "un morceau de journal doit tenir dans le tampon d'emission");
+uint8_t g_logPart = 0;    /* morceau à émettre ; 0 = aucune ligne en cours */
+
 void printFixed1(uint16_t x10) {
   Serial.print(x10 / 10);
   Serial.print('.');
   Serial.print(x10 % 10);
+}
+
+/* Pire cas de chaque morceau entre crochets, octets comptés. */
+void printLogPart(uint8_t part) {
+  switch (part) {
+    case 1: {   /* [29] "[VH] in=01234567 sim=01234567" */
+      const InputState& in = inputs::state();
+      Serial.print(F("[VH] in="));
+      for (uint8_t i = 0; i < IN_COUNT; ++i) Serial.print(in.level[i] ? '1' : '0');
+#if SIM_INPUTS
+      /* Quelles bornes ne sont PAS lues sur leur optocoupleur. Cette colonne
+       * est la seule chose qui distingue une ligne de journal de banc d'une
+       * ligne de journal de roulage : elle doit rester sous les yeux. */
+      Serial.print(F(" sim="));
+      for (uint8_t i = 0; i < IN_COUNT; ++i) {
+        Serial.print(simconsole::active(i) ? '1' : '0');
+      }
+#endif
+      break;
+    }
+
+    case 2:     /* [38] " VL=1 PH=1 AR=1 ST=1 TRN=L! HN=1 CUT=1" */
+      Serial.print(F(" VL=")); Serial.print(lights::parkOn());
+      Serial.print(F(" PH=")); Serial.print(lights::mainOn());
+      Serial.print(F(" AR=")); Serial.print(lights::tailParkOn());
+      Serial.print(F(" ST=")); Serial.print(lights::tailStopOn());
+      Serial.print(F(" TRN="));
+      switch (turnsignals::mode()) {
+        case turnsignals::LEFT:   Serial.print('L'); break;
+        case turnsignals::RIGHT:  Serial.print('R'); break;
+        case turnsignals::HAZARD: Serial.print('H'); break;
+        default:                  Serial.print('-'); break;
+      }
+      if (turnsignals::reminderActive()) Serial.print('!');
+#if HORN_ENABLE
+      Serial.print(F(" HN=")); Serial.print(horn::sounding());
+#endif
+      Serial.print(F(" CUT=")); Serial.print(brakes::motorCut());
+      break;
+
+    case 3:     /* [25] " spd=6553.5? odo=4294967m" */
+      Serial.print(F(" spd=")); printFixed1(telemetry::speedKmh10());
+      if (!telemetry::speedValid()) Serial.print('?');
+      Serial.print(F(" odo=")); Serial.print(telemetry::odoMm() / 1000UL);
+      Serial.print(F("m"));
+      break;
+
+    case 4:     /* [36] " soc=100 I=6553.5 ok=65535 rej=65535" */
+#if BAFANG_ENABLE
+      Serial.print(F(" soc=")); Serial.print(bafang::socPct());
+      Serial.print(F(" I=")); printFixed1(bafang::currentA10());
+      Serial.print(F(" ok=")); Serial.print(bafang::framesOk());
+      Serial.print(F(" rej=")); Serial.print(bafang::framesRejected());
+#endif
+      break;
+
+    default:    /* [50] voir LOG_PART_MAX */
+#if DISPLAY_ENABLE
+      Serial.print(F(" pg=")); Serial.print(display::page());
+#endif
+      Serial.print(F(" loop=")); Serial.print(g_loopUs);
+      Serial.print('/'); Serial.print(g_loopMaxUs); Serial.print(F("us"));
+      Serial.print(F(" flt=0x"));
+      if (g_faults < 0x10) Serial.print('0');
+      Serial.print(g_faults, HEX);
+#if FAULT_LAMP_ENABLE
+      if (diag::lampOn()) Serial.print(F(" LAMP"));
+      else if (g_acked) Serial.print(F(" ack"));
+#endif
+      Serial.println();
+      break;
+  }
 }
 #endif
 
@@ -190,63 +272,31 @@ void diag::update(uint32_t now) {
   board::setHeartbeat(g_beatOn && !display::blanking());
 
 #if DEBUG_SERIAL && !BAFANG_LEARN_MODE
-  if (now - g_lastLog < DEBUG_PERIOD_MS) return;
-  g_lastLog = now;
-
-  const InputState& in = inputs::state();
-  Serial.print(F("[VH] in="));
-  for (uint8_t i = 0; i < IN_COUNT; ++i) Serial.print(in.level[i] ? '1' : '0');
-
+  if (g_logPart == 0) {
+    if (now - g_lastLog < DEBUG_PERIOD_MS) return;
+    g_lastLog = now;
+    g_logPart = 1;
+  }
 #if SIM_INPUTS
-  /* Quelles bornes ne sont PAS lues sur leur optocoupleur. Cette colonne est
-   * la seule chose qui distingue une ligne de journal de banc d'une ligne de
-   * journal de roulage : elle doit rester sous les yeux. */
-  Serial.print(F(" sim="));
-  for (uint8_t i = 0; i < IN_COUNT; ++i) {
-    Serial.print(simconsole::active(i) ? '1' : '0');
+  /* Banc : la ligne part d'un bloc, sinon une réponse de la console pourrait
+   * s'intercaler entre deux morceaux. Le banc peut attendre, et T1.8 se
+   * mesure avec le binaire de route. */
+  while (g_logPart != 0) {
+    printLogPart(g_logPart);
+    g_logPart = (g_logPart < LOG_PARTS) ? (uint8_t)(g_logPart + 1) : 0;
   }
+#else
+  /* Route : la ligne fait ~120 caractères, deux fois le tampon d'émission de
+   * Serial. D'un bloc, print() attendait que la liaison vide le tampon :
+   * ~6,7 ms de boucle chaque seconde (specs/08 T1.8), de loin le plus long
+   * traitement du cycle. Elle part donc en morceaux, un par tour, et
+   * seulement quand le tampon peut prendre le morceau entier : print()
+   * n'attend plus jamais. Contrepartie : les morceaux d'une même ligne sont
+   * relevés à quelques millisecondes d'écart. */
+  if (Serial.availableForWrite() < LOG_PART_MAX) return;
+  printLogPart(g_logPart);
+  g_logPart = (g_logPart < LOG_PARTS) ? (uint8_t)(g_logPart + 1) : 0;
 #endif
-
-  Serial.print(F(" VL=")); Serial.print(lights::parkOn());
-  Serial.print(F(" PH=")); Serial.print(lights::mainOn());
-  Serial.print(F(" AR=")); Serial.print(lights::tailParkOn());
-  Serial.print(F(" ST=")); Serial.print(lights::tailStopOn());
-  Serial.print(F(" TRN="));
-  switch (turnsignals::mode()) {
-    case turnsignals::LEFT:   Serial.print('L'); break;
-    case turnsignals::RIGHT:  Serial.print('R'); break;
-    case turnsignals::HAZARD: Serial.print('H'); break;
-    default:                  Serial.print('-'); break;
-  }
-  if (turnsignals::reminderActive()) Serial.print('!');
-#if HORN_ENABLE
-  Serial.print(F(" HN=")); Serial.print(horn::sounding());
-#endif
-  Serial.print(F(" CUT=")); Serial.print(brakes::motorCut());
-
-  Serial.print(F(" spd=")); printFixed1(telemetry::speedKmh10());
-  if (!telemetry::speedValid()) Serial.print('?');
-  Serial.print(F(" odo=")); Serial.print(telemetry::odoMm() / 1000UL);
-  Serial.print(F("m"));
-#if BAFANG_ENABLE
-  Serial.print(F(" soc=")); Serial.print(bafang::socPct());
-  Serial.print(F(" I=")); printFixed1(bafang::currentA10());
-  Serial.print(F(" ok=")); Serial.print(bafang::framesOk());
-  Serial.print(F(" rej=")); Serial.print(bafang::framesRejected());
-#endif
-#if DISPLAY_ENABLE
-  Serial.print(F(" pg=")); Serial.print(display::page());
-#endif
-  Serial.print(F(" loop=")); Serial.print(g_loopUs);
-  Serial.print('/'); Serial.print(g_loopMaxUs); Serial.print(F("us"));
-  Serial.print(F(" flt=0x"));
-  if (g_faults < 0x10) Serial.print('0');
-  Serial.print(g_faults, HEX);
-#if FAULT_LAMP_ENABLE
-  if (lampOn()) Serial.print(F(" LAMP"));
-  else if (g_acked) Serial.print(F(" ack"));
-#endif
-  Serial.println();
 #endif
 }
 

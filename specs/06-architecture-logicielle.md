@@ -187,28 +187,28 @@ Mesuré avec `tools/check-variants.sh` (avr-gcc 15.3, `-Os -flto`, ATmega328P �
 
 | Configuration | Flash | |
 |---|---|---|
-| **Défaut** (Bafang + afficheur + voyant + journal + autotest + WDT) | **9 884 o** | **32 %** |
-| Freins en parallèle + flash d'attaque du stop | 10 090 o | 32 % |
-| Bus Bafang **et** capteur de roue | 10 028 o | 32 % |
-| Freins inversés (interface transistor) | 9 926 o | 32 % |
-| Klaxon raccordé à la voie IN3 / R7 | 9 920 o | 32 % |
-| Phare conditionné à la veilleuse | 9 882 o | 32 % |
-| Rappel clignotant muet + page vitesse | 9 860 o | 32 % |
-| Vitesse Bafang en valeur directe | 9 830 o | 31 % |
-| Sans voyant de défaut | 9 738 o | 31 % |
+| **Défaut** (Bafang + afficheur + voyant + journal + autotest + WDT) | **9 944 o** | **32 %** |
+| Freins en parallèle + flash d'attaque du stop | 10 174 o | 33 % |
+| Bus Bafang **et** capteur de roue | 10 102 o | 32 % |
+| Klaxon raccordé à la voie IN3 / R7 | 9 994 o | 32 % |
+| Freins inversés (interface transistor) | 9 986 o | 32 % |
+| Rappel clignotant muet + page vitesse | 9 944 o | 32 % |
+| Phare conditionné à la veilleuse | 9 942 o | 32 % |
+| Vitesse Bafang en valeur directe | 9 890 o | 32 % |
+| Sans voyant de défaut | 9 832 o | 32 % |
 | Mode apprentissage Bafang | 9 098 o | 29 % |
-| Sans afficheur | 8 780 o | 28 % |
-| Sans bus Bafang, vitesse par capteur de roue | 8 018 o | 26 % |
+| Sans afficheur | 8 878 o | 28 % |
+| Sans bus Bafang, vitesse par capteur de roue | 8 088 o | 26 % |
 | Production silencieuse (ni journal, ni autotest, ni WDT) | 7 132 o | 23 % |
 | Minimal (ni afficheur, ni bus, ni journal) | 3 986 o | 12 % |
-| *Banc d'essai — entrées simulées à la console* | *10 938 o* | *35 %* |
+| *Banc d'essai — entrées simulées à la console* | *10 998 o* | *35 %* |
 
-**RAM en configuration par défaut : 789 o, soit 38 %.** À `SIM_INPUTS 0`, le
+**RAM en configuration par défaut : 790 o, soit 38 %.** À `SIM_INPUTS 0`, le
 firmware de banc coûte **zéro** — l'empreinte est identique à l'octet près.
 
 Cible NF-1 (< 24 ko flash / < 1,4 ko RAM) tenue avec une marge de plus du
 double. Les chaînes du journal sont en flash via `F()` : c'est ce qui maintient
-la RAM à 789 o malgré une trentaine de messages.
+la RAM à 790 o malgré une trentaine de messages.
 
 Le balayage de ces quinze variantes est automatisé par
 `tools/check-variants.sh`. Une branche `#if` non prise n'est pas vérifiée par
@@ -217,6 +217,14 @@ le compilateur et resterait cassée sans qu'on le sache.
 **Temps de cycle mesuré à vide : 265 µs**, pointe à 6,7 ms sur la seconde où le
 journal série est émis — c'est de loin le plus long traitement du cycle. Seuil
 de défaut à 10 ms (`LOOP_SLOW_US`).
+
+Cette pointe venait de la ligne de journal elle-même : ~120 caractères, deux
+fois le tampon d'émission de 64 octets, donc `print()` attendait que la
+liaison se vide. Le binaire de route l'émet désormais en cinq morceaux de
+50 octets au plus, un par tour, et seulement quand
+`Serial.availableForWrite()` peut prendre le morceau entier. Le firmware de
+banc garde l'émission d'un bloc, pour qu'une réponse de la console ne
+s'intercale pas au milieu d'une ligne. **Pointe à remesurer** (T1.8).
 
 ## 8. Options de compilation
 

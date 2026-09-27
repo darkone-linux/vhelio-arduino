@@ -139,14 +139,17 @@ installer au niveau système.
 ### Empreinte mesurée
 
 Configuration par défaut, avr-gcc 15.3, `-Os -flto` :
-**9 884 octets de flash (32 %)** et **789 octets de RAM (38 %)** sur les
+**9 944 octets de flash (32 %)** et **790 octets de RAM (38 %)** sur les
 30 720 / 2 048 disponibles. Compile sans avertissement dans les quinze
 combinaisons d'options couvertes par `tools/check-variants.sh`. Le firmware de
 banc coûte 1 054 octets de flash et 3 de RAM de plus ; à `SIM_INPUTS 0`, il ne
 coûte **rien du tout**, l'empreinte étant identique à l'octet près.
 
 Temps de cycle mesuré à vide : **265 µs**, pointe à 6,7 ms sur la seconde où le
-journal série est émis. Le seuil de défaut est à 10 ms.
+journal série est émis. Le seuil de défaut est à 10 ms. Cette pointe a été
+mesurée quand la ligne de journal partait d'un bloc ; le binaire de route
+l'émet désormais par morceaux, sans jamais attendre le tampon série. Elle n'a
+pas été remesurée depuis (T1.8).
 
 ## Autotest et contrôle au banc
 

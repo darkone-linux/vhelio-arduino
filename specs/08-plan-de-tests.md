@@ -196,7 +196,9 @@ sans rapport avec le firmware embarqué ; l'acquittement (touche `3`) l'efface.
 
 **Critère : < 10 ms** (F-6.6). Mesuré à vide : ~265 µs par tour, pointe à
 6,7 ms sur la ligne de journal elle-même. Avec `BAFANG_ENABLE 1` et une source
-UART branchée, des pics à ~9 ms sont normaux (`SoftwareSerial`).
+UART branchée, des pics à ~9 ms sont normaux (`SoftwareSerial`). Depuis cette
+mesure, le binaire de route émet la ligne de journal par morceaux, sans
+attendre le tampon série (`06` §7) : la pointe de 6,7 ms est à remesurer.
 
 Observer aussi l'afficheur : un léger scintillement toutes les ~200 ms est
 attendu (les octets Bafang) ; un scintillement **permanent** signalerait une
