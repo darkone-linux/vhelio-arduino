@@ -58,6 +58,9 @@ cp "$ROOT/CHANGELOG.md" "$ROOT/README.md" "$DIST/"
   echo "date : $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "git : $(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo "?")"
   echo "fqbn : arduino:avr:nano:cpu=atmega328${BOOT_ARG:+$BOOT_ARG}"
+  # Le compilateur change le binaire : la CI publie avec l'avr-gcc du coeur
+  # Arduino, le banc compile avec celui de nixpkgs. Lu dans l'ELF lui-meme.
+  echo "compilateur : $( { grep -ao 'GCC: ([^)]*) [0-9][0-9.]*' "$route_elf" 2>/dev/null || echo '?'; } | sort -u | head -1)"
   echo ""
   echo "vhelio-route-$VERSION.hex : firmware de ROUTE (a televerser)."
   echo "vhelio-banc-$VERSION.hex  : firmware de BANC (VHELIO_SIM=1, ne doit pas rouler)."

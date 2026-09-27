@@ -4,6 +4,13 @@
 # c'est cette poussee qui demarre ce workflow. Ne jamais creer l'etiquette a
 # la main : passer par `just release` garantit que config.h, CHANGELOG.md,
 # le commit et l'etiquette disent la meme version.
+#
+# Outils : tools/setup.sh (versions epinglees, empreinte verifiee). Le binaire
+# publie sort donc de l'avr-gcc du coeur Arduino, pas de celui de nixpkgs qui
+# compile au banc : LISEZ-MOI.txt, dans le paquet, dit lequel.
+#
+# Seul `publier` ecrit sur le depot, et par la CLI gh preinstallee : aucune
+# action tierce ne voit le jeton en ecriture.
 name: Release
 
 on:
@@ -12,25 +19,18 @@ on:
       - "v*.*.*"
 
 permissions:
-  contents: write
-
-# tools/build.sh (et setup.sh) travaillent dans ./.arduino, jamais dans le
-# profil utilisateur : sans ces variables, `core install` deposerait le coeur
-# AVR ailleurs que la ou la compilation le cherche.
-env:
-  ARDUINO_DIRECTORIES_DATA: ${{ github.workspace }}/.arduino/data
-  ARDUINO_DIRECTORIES_DOWNLOADS: ${{ github.workspace }}/.arduino/downloads
-  ARDUINO_DIRECTORIES_USER: ${{ github.workspace }}/.arduino/user
+  contents: read
 
 jobs:
   verifier:
     name: Balayage des variantes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: arduino/setup-arduino-cli@v2
-      - name: Coeur AVR
-        run: arduino-cli core install arduino:avr
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: arduino-cli et coeur AVR, versions epinglees
+        run: ./tools/setup.sh
       - name: Les quinze variantes compilent
         run: VHELIO_BUILD=./tools/build.sh ./tools/check-variants.sh
 
@@ -38,11 +38,14 @@ jobs:
     name: Paquet et Release GitHub
     needs: verifier
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: arduino/setup-arduino-cli@v2
-      - name: Coeur AVR
-        run: arduino-cli core install arduino:avr
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: arduino-cli et coeur AVR, versions epinglees
+        run: ./tools/setup.sh
 
       - name: Coherence etiquette / config.h
         run: |
@@ -61,11 +64,15 @@ jobs:
             substr($0, 1, length("## [" ver "]")) == "## [" ver "]" { dedans=1; next }
             dedans && substr($0, 1, 4) == "## [" { exit }
             dedans { print }
-          ' CHANGELOG.md > /tmp/notes.md
-          [ -s /tmp/notes.md ] || { echo "Pas de section [${TAG}] dans CHANGELOG.md."; exit 1; }
+          ' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          [ -s "$RUNNER_TEMP/notes.md" ] || { echo "Pas de section [${TAG}] dans CHANGELOG.md."; exit 1; }
 
       - name: Release GitHub
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/vhelio-*.zip
-          body_path: /tmp/notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/vhelio-*.zip \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/notes.md"

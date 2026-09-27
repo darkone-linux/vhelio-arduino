@@ -71,7 +71,13 @@ actionneur de sécurité redondant.
 >
 > Les versions publiées (paquet `.zip` prêt à téléverser) sont dans
 > [Releases](https://github.com/darkone-linux/vhelio-arduino/releases), avec le
-> détail des changements dans [`CHANGELOG.md`](CHANGELOG.md).
+> détail des changements dans [`CHANGELOG.md`](CHANGELOG.md). La CI les compile
+> avec l'avr-gcc du cœur Arduino ; les empreintes et temps de cycle cités ici
+> ont été mesurés avec celui de nixpkgs (`build-nix.sh`). Le `LISEZ-MOI.txt`
+> du paquet dit quel compilateur a produit le binaire.
+>
+> `setup.sh` installe des versions **épinglées** — arduino-cli 1.5.1, empreinte
+> SHA-256 vérifiée, et `arduino:avr@1.8.8` — et la CI passe par lui.
 
 ```bash
 ./tools/setup.sh          # installe arduino-cli + coeur AVR dans ./.arduino
