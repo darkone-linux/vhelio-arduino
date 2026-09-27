@@ -134,19 +134,24 @@ void rebuildAll() {
 }  // namespace
 
 void board::begin() {
+  /* OE EN PREMIER, avant de toucher à la chaîne : le front montant du verrou,
+   * quelques lignes plus bas, copie vers les sorties le contenu résiduel des
+   * registres. OE déjà haute, cette copie n'atteint aucun relais ; OE encore
+   * flottante, elle ne dépendrait plus que du tirage supposé de la carte.
+   *
+   * Ordre volontaire aussi à l'intérieur : on écrit HIGH AVANT de passer la
+   * broche en sortie. Sur une entrée, digitalWrite(HIGH) active le tirage
+   * interne ; la broche est donc déjà haute quand elle devient une sortie.
+   * L'inverse produirait une impulsion basse — donc tous les relais collés —
+   * pendant quelques microsecondes au démarrage. */
+  digitalWrite(PIN_RELAY_OE, HIGH);   /* OE actif bas : haut = relais coupés */
+  pinMode(PIN_RELAY_OE, OUTPUT);
+
   pinMode(PIN_SR_LATCH, OUTPUT);
   pinMode(PIN_SR_CLOCK, OUTPUT);
   pinMode(PIN_SR_DATA, OUTPUT);
   digitalWrite(PIN_SR_LATCH, HIGH);
   digitalWrite(PIN_SR_CLOCK, LOW);
-
-  /* Ordre volontaire : on écrit HIGH AVANT de passer la broche en sortie.
-   * Sur une entrée, digitalWrite(HIGH) active le tirage interne ; la broche
-   * est donc déjà haute quand elle devient une sortie. L'inverse
-   * produirait une impulsion basse — donc tous les relais collés — pendant
-   * quelques microsecondes au démarrage. */
-  digitalWrite(PIN_RELAY_OE, HIGH);   /* OE actif bas : haut = relais coupés */
-  pinMode(PIN_RELAY_OE, OUTPUT);
 
   for (uint8_t i = 0; i < IN_COUNT; ++i) pinMode(IN_PIN[i], INPUT_PULLUP);
   for (uint8_t i = 0; i < BTN_COUNT; ++i) pinMode(BTN_PIN[i], INPUT_PULLUP);

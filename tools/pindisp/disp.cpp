@@ -122,16 +122,20 @@ void setup() {
     g_btnAt[i] = 0;
   }
 
+  /* OE HAUTE d'abord, relais coupés : les registres gardent sous tension ce
+   * qu'y a laissé le croquis précédent — 0xFF verrouillé après une chasse à
+   * l'OE avec pinscan, par exemple. Valider les sorties avant d'avoir décalé
+   * un octet relais nul, c'était coller les huit relais, R8 compris. */
+  digitalWrite(PIN_OE, HIGH);
+  pinMode(PIN_OE, OUTPUT);
+
   pinMode(PIN_LATCH, OUTPUT);
   pinMode(PIN_CLOCK, OUTPUT);
   pinMode(PIN_DATA, OUTPUT);
   digitalWrite(PIN_LATCH, HIGH);
   digitalWrite(PIN_CLOCK, LOW);
-
-  /* BAS avant OUTPUT : OE est active à l'état bas, on la veut au bon niveau
-   * avant qu'elle ne devienne une sortie. */
-  digitalWrite(PIN_OE, LOW);
-  pinMode(PIN_OE, OUTPUT);
+  sendFrame(0, 0);              /* octet relais nul dans la chaîne... */
+  digitalWrite(PIN_OE, LOW);    /* ...avant de valider les sorties     */
 
   Serial.println(F("\n=== pindisp : phase D, brochage de l'afficheur ==="));
   Serial.println(F("Chaine mesuree : donnees=A5 horloge=A4 verrou=A3 OE=A2."));
