@@ -11,6 +11,26 @@ correspondantes sont de la forme `vX.Y.Z`. Le format suit, en esprit,
 
 ## [Non publié]
 
+## [0.3.1] - 2026-09-27
+
+- build-nix.sh épingle nixpkgs : l'avr-gcc du banc ne change plus avec le système, binaire identique à l'octet
+- Le balayage affiche la taille des variantes en locale anglaise aussi, comme en CI
+- arduino-cli 1.5.1 et arduino:avr 1.8.8 épinglés, archive vérifiée ; CI par setup.sh, checkout v7.0.1 par SHA, écriture réservée à la publication, sans action tierce
+- upload.sh trouve l'avrdude embarqué quelle que soit sa version, comme nix-inner.sh le fait du cœur AVR
+- Les bornes de période de roue Bafang quittent bafang.cpp pour config.h
+- L'acquittement consomme le front déjà filtré par inputs ; changedAt et g_phaseOn, jamais lus, disparaissent (82 o de RAM)
+- Le journal de route part par morceaux de 50 octets au plus : print() n'attend plus le tampon série dans loop()
+- FLT_BRAKE_NEVER suit chaque entrée frein : un seul fil de contacteur coupé n'échappe plus au défaut
+- Le reset par chien de garde est détecté malgré Optiboot, par un marqueur .noinit, et ne rejoue plus l'autotest
+- Le lien Bafang ne tombe plus à la 65 536e trame : linkUp() ne s'appuie plus sur le compteur de journal
+- OE est tenue haute avant le premier front du verrou et avant la purge de la chaîne, au firmware comme aux croquis de banc
+- Le drapeau de banc ne fuit plus dans le binaire de route ; upload.sh et package.sh refusent un firmware de banc
+- Le balayage des variantes échoue sur tout avertissement du projet ; celui du mode apprentissage Bafang est corrigé
+- Affiche les badges CI et licence dans le README
+- Publie le projet sous licence MIT
+- Vérifie les quinze variantes de compilation en CI sur main et PR
+- Ajoute les badges GitHub au README et une section fonctions
+
 ## [0.3.0] - 2026-08-24
 
 Version de banc : le brochage est mesuré borne par borne, le faisceau peut
@@ -92,7 +112,8 @@ du guide de montage officiel.
   (31 %) sur ATmega328P ; 9 variantes de `config.h` couvertes par
   `tools/check-variants.sh`.
 
-[Non publié]: https://github.com/darkone-linux/vhelio-arduino/compare/v0.3.0...HEAD
+[Non publié]: https://github.com/darkone-linux/vhelio-arduino/compare/v0.3.1...HEAD
 [0.3.0]: https://github.com/darkone-linux/vhelio-arduino/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/darkone-linux/vhelio-arduino/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/darkone-linux/vhelio-arduino/releases/tag/v0.1.0
+[0.3.1]: https://github.com/darkone-linux/vhelio-arduino/compare/v0.3.0...v0.3.1

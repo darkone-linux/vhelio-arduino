@@ -6,7 +6,7 @@
  */
 #pragma once
 
-#define VHELIO_FW_VERSION "0.3.0"
+#define VHELIO_FW_VERSION "0.3.1"
 
 /* ======================================================================
  * Variantes de câblage
