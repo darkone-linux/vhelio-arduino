@@ -187,28 +187,28 @@ Mesuré avec `tools/check-variants.sh` (avr-gcc 15.3, `-Os -flto`, ATmega328P �
 
 | Configuration | Flash | |
 |---|---|---|
-| **Défaut** (Bafang + afficheur + voyant + journal + autotest + WDT) | **9 692 o** | **31 %** |
-| Freins en parallèle + flash d'attaque du stop | 9 916 o | 32 % |
-| Bus Bafang **et** capteur de roue | 9 834 o | 32 % |
-| Freins inversés (interface transistor) | 9 734 o | 31 % |
-| Klaxon raccordé à la voie IN3 / R7 | 9 710 o | 31 % |
-| Phare conditionné à la veilleuse | 9 690 o | 31 % |
-| Rappel clignotant muet + page vitesse | 9 664 o | 31 % |
+| **Défaut** (Bafang + afficheur + voyant + journal + autotest + WDT) | **9 696 o** | **31 %** |
+| Freins en parallèle + flash d'attaque du stop | 9 920 o | 32 % |
+| Bus Bafang **et** capteur de roue | 9 836 o | 32 % |
+| Freins inversés (interface transistor) | 9 738 o | 31 % |
+| Klaxon raccordé à la voie IN3 / R7 | 9 714 o | 31 % |
+| Phare conditionné à la veilleuse | 9 694 o | 31 % |
+| Rappel clignotant muet + page vitesse | 9 668 o | 31 % |
 | Vitesse Bafang en valeur directe | 9 642 o | 31 % |
-| Sans voyant de défaut | 9 528 o | 31 % |
-| Mode apprentissage Bafang | 8 906 o | 28 % |
-| Sans afficheur | 8 584 o | 27 % |
+| Sans voyant de défaut | 9 532 o | 31 % |
+| Mode apprentissage Bafang | 8 908 o | 28 % |
+| Sans afficheur | 8 588 o | 27 % |
 | Sans bus Bafang, vitesse par capteur de roue | 7 818 o | 25 % |
-| Production silencieuse (ni journal, ni autotest, ni WDT) | 7 124 o | 23 % |
+| Production silencieuse (ni journal, ni autotest, ni WDT) | 7 128 o | 23 % |
 | Minimal (ni afficheur, ni bus, ni journal) | 3 844 o | 12 % |
-| *Banc d'essai — entrées simulées à la console* | *10 764 o* | *35 %* |
+| *Banc d'essai — entrées simulées à la console* | *10 768 o* | *35 %* |
 
-**RAM en configuration par défaut : 783 o, soit 38 %.** À `SIM_INPUTS 0`, le
+**RAM en configuration par défaut : 784 o, soit 38 %.** À `SIM_INPUTS 0`, le
 firmware de banc coûte **zéro** — l'empreinte est identique à l'octet près.
 
 Cible NF-1 (< 24 ko flash / < 1,4 ko RAM) tenue avec une marge de plus du
 double. Les chaînes du journal sont en flash via `F()` : c'est ce qui maintient
-la RAM à 783 o malgré une trentaine de messages.
+la RAM à 784 o malgré une trentaine de messages.
 
 Le balayage de ces quinze variantes est automatisé par
 `tools/check-variants.sh`. Une branche `#if` non prise n'est pas vérifiée par

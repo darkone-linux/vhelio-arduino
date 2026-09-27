@@ -20,6 +20,11 @@ bool g_overflow = false;
 uint32_t g_lastByteMs = 0;
 uint32_t g_lastValidMs = 0;
 uint32_t g_nowMs = 0;
+/* Une trame valide a-t-elle déjà été reçue ? Sans elle, g_lastValidMs vaut 0
+ * et le lien paraîtrait établi pendant les deux premières secondes. On ne
+ * s'appuie pas sur g_framesOk : ce compteur de journal repasse par 0 à la
+ * 65 536e trame, et le lien tomberait alors jusqu'à la trame suivante. */
+bool g_seenValid = false;
 
 uint16_t g_framesOk = 0;
 uint16_t g_framesRejected = 0;
@@ -98,6 +103,7 @@ void closeFrame() {
 
   if (!g_overflow && checksumOk(g_buf, g_len)) {
     ++g_framesOk;
+    g_seenValid = true;
     g_lastValidMs = g_nowMs;
 #if BAFANG_LEARN_MODE
     dumpFrame(g_buf, g_len);
@@ -148,7 +154,7 @@ void bafang::poll(uint32_t now) {
 }
 
 bool bafang::linkUp() {
-  return g_framesOk > 0 && (g_nowMs - g_lastValidMs) < BAFANG_LINK_TIMEOUT_MS;
+  return g_seenValid && (g_nowMs - g_lastValidMs) < BAFANG_LINK_TIMEOUT_MS;
 }
 
 bool bafang::speedValid() { return g_speedValid && linkUp(); }

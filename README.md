@@ -139,7 +139,7 @@ installer au niveau système.
 ### Empreinte mesurée
 
 Configuration par défaut, avr-gcc 15.3, `-Os -flto` :
-**9 692 octets de flash (31 %)** et **783 octets de RAM (38 %)** sur les
+**9 696 octets de flash (31 %)** et **784 octets de RAM (38 %)** sur les
 30 720 / 2 048 disponibles. Compile sans avertissement dans les quinze
 combinaisons d'options couvertes par `tools/check-variants.sh`. Le firmware de
 banc coûte 1 072 octets de flash et 3 de RAM de plus ; à `SIM_INPUTS 0`, il ne
