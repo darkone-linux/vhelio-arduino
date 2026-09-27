@@ -187,28 +187,28 @@ Mesuré avec `tools/check-variants.sh` (avr-gcc 15.3, `-Os -flto`, ATmega328P �
 
 | Configuration | Flash | |
 |---|---|---|
-| **Défaut** (Bafang + afficheur + voyant + journal + autotest + WDT) | **9 868 o** | **32 %** |
-| Freins en parallèle + flash d'attaque du stop | 10 088 o | 32 % |
-| Bus Bafang **et** capteur de roue | 10 008 o | 32 % |
-| Freins inversés (interface transistor) | 9 910 o | 32 % |
-| Klaxon raccordé à la voie IN3 / R7 | 9 902 o | 32 % |
-| Phare conditionné à la veilleuse | 9 862 o | 32 % |
-| Rappel clignotant muet + page vitesse | 9 840 o | 32 % |
-| Vitesse Bafang en valeur directe | 9 814 o | 31 % |
-| Sans voyant de défaut | 9 720 o | 31 % |
-| Mode apprentissage Bafang | 9 088 o | 29 % |
-| Sans afficheur | 8 760 o | 28 % |
-| Sans bus Bafang, vitesse par capteur de roue | 7 990 o | 26 % |
-| Production silencieuse (ni journal, ni autotest, ni WDT) | 7 118 o | 23 % |
-| Minimal (ni afficheur, ni bus, ni journal) | 3 974 o | 12 % |
-| *Banc d'essai — entrées simulées à la console* | *10 922 o* | *35 %* |
+| **Défaut** (Bafang + afficheur + voyant + journal + autotest + WDT) | **9 884 o** | **32 %** |
+| Freins en parallèle + flash d'attaque du stop | 10 090 o | 32 % |
+| Bus Bafang **et** capteur de roue | 10 028 o | 32 % |
+| Freins inversés (interface transistor) | 9 926 o | 32 % |
+| Klaxon raccordé à la voie IN3 / R7 | 9 920 o | 32 % |
+| Phare conditionné à la veilleuse | 9 882 o | 32 % |
+| Rappel clignotant muet + page vitesse | 9 860 o | 32 % |
+| Vitesse Bafang en valeur directe | 9 830 o | 31 % |
+| Sans voyant de défaut | 9 738 o | 31 % |
+| Mode apprentissage Bafang | 9 098 o | 29 % |
+| Sans afficheur | 8 780 o | 28 % |
+| Sans bus Bafang, vitesse par capteur de roue | 8 018 o | 26 % |
+| Production silencieuse (ni journal, ni autotest, ni WDT) | 7 132 o | 23 % |
+| Minimal (ni afficheur, ni bus, ni journal) | 3 986 o | 12 % |
+| *Banc d'essai — entrées simulées à la console* | *10 938 o* | *35 %* |
 
-**RAM en configuration par défaut : 788 o, soit 38 %.** À `SIM_INPUTS 0`, le
+**RAM en configuration par défaut : 789 o, soit 38 %.** À `SIM_INPUTS 0`, le
 firmware de banc coûte **zéro** — l'empreinte est identique à l'octet près.
 
 Cible NF-1 (< 24 ko flash / < 1,4 ko RAM) tenue avec une marge de plus du
 double. Les chaînes du journal sont en flash via `F()` : c'est ce qui maintient
-la RAM à 788 o malgré une trentaine de messages.
+la RAM à 789 o malgré une trentaine de messages.
 
 Le balayage de ces quinze variantes est automatisé par
 `tools/check-variants.sh`. Une branche `#if` non prise n'est pas vérifiée par

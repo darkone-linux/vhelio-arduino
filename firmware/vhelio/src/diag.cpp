@@ -149,10 +149,11 @@ void diag::update(uint32_t now) {
 #if BAFANG_ENABLE
   if (!bafang::linkUp()) f |= FLT_BAFANG_LINK;
 #endif
-  /* Aucun freinage vu après 2 km : très probablement un fil de contacteur
-   * coupé. C'est le seul défaut qui rattrape une panne silencieuse du feu
-   * stop en câblage direct (specs/07-securite.md §1). */
-  if (!brakes::everBraked() && telemetry::odoMm() > BRAKE_NEVER_MM) {
+  /* Un frein câblé jamais vu après 2 km : très probablement un fil de
+   * contacteur coupé. C'est le seul défaut qui rattrape une panne silencieuse
+   * du feu stop en câblage direct (specs/07-securite.md §1). Contrepartie : un
+   * trajet de 2 km sans toucher l'un des deux freins le lève aussi. */
+  if (!brakes::allBrakesSeen() && telemetry::odoMm() > BRAKE_NEVER_MM) {
     f |= FLT_BRAKE_NEVER;
   }
   g_faults = f;

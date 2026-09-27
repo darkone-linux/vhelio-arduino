@@ -108,7 +108,7 @@
  *   bit 3  frein collé ............... OUI, assistance coupée en continu
  *   bit 4  cycle lent ................ NON, information de maintenance
  *   bit 5  reset chien de garde ...... OUI, firmware bloqué ~1 s en roulant
- *   bit 6  aucun freinage vu en 2 km . OUI, fil de contacteur probablement coupé
+ *   bit 6  frein jamais vu en 2 km ... OUI, fil de contacteur probablement coupé
  *
  * Le lien Bafang est délibérément exclu : la télémétrie est un confort, pas
  * une fonction de sécurité (P2). Afficheur d'origine débranché, bus muet ou
@@ -223,7 +223,7 @@
 
 #define WATCHDOG_ENABLE           1
 #define LOOP_SLOW_US              10000UL /* seuil de défaut sur le cycle     */
-#define BRAKE_NEVER_MM            2000000UL /* 2 km sans freinage => défaut   */
+#define BRAKE_NEVER_MM            2000000UL /* 2 km sans voir un frein => défaut */
 
 /* ======================================================================
  * Banc d'essai — simulation des entrées depuis la console

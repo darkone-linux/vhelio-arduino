@@ -18,7 +18,7 @@ enum Fault : uint8_t {
   FLT_BRAKE_STUCK   = 1 << 3,  /* freinage continu > 2 min                  */
   FLT_LOOP_SLOW     = 1 << 4,  /* temps de cycle > LOOP_SLOW_US             */
   FLT_WDT_RESET     = 1 << 5,  /* dernier reset provoqué par le chien de garde */
-  FLT_BRAKE_NEVER   = 1 << 6   /* 2 km parcourus sans jamais voir de freinage */
+  FLT_BRAKE_NEVER   = 1 << 6   /* 2 km sans voir l'un des freins câblés       */
 };
 
 /* mcusr : copie de MCUSR relevée AVANT son effacement dans setup(), publiée

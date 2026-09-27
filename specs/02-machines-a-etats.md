@@ -178,7 +178,7 @@ attend l'ouverture de la coque.
 | 3 | Frein collé | **oui** | Assistance coupée en continu, stop allumé en permanence |
 | 4 | Cycle lent | non | Information de maintenance |
 | 5 | Reset chien de garde | **oui** | Le firmware s'est bloqué en roulant : sorties figées ~1 s, puis redémarrage |
-| 6 | Aucun freinage vu en 2 km | **oui** | Fil de contacteur probablement coupé : le feu stop ne fonctionne pas |
+| 6 | Un frein jamais vu en 2 km | **oui** | Fil de contacteur probablement coupé : le feu stop ne fonctionne pas à ce frein |
 
 > **L'exclusion du lien Bafang est la décision de conception de ce module** —
 > le principe P2 appliqué. Afficheur débranché, bus muet ou trames non
@@ -256,7 +256,7 @@ utilisable comme témoin (`03` §2).
 | 3 | `FLT_BRAKE_STUCK` | freinage maintenu > 120 s (contacteur collé) |
 | 4 | `FLT_LOOP_SLOW` | temps de cycle > 10 ms observé — **mémorisé** |
 | 5 | `FLT_WDT_RESET` | le dernier reset provient du chien de garde — **mémorisé** |
-| 6 | `FLT_BRAKE_NEVER` | plus de 2 km parcourus sans jamais voir de freinage |
+| 6 | `FLT_BRAKE_NEVER` | plus de 2 km parcourus sans avoir vu active **chaque** entrée frein câblée — avant et arrière en variante 2. Un trajet de 2 km sans toucher l'un des freins le lève aussi |
 
 Les deux défauts **mémorisés** sont des événements, pas des états : ils
 survivent jusqu'à l'acquittement ou la coupure de l'alimentation. Les cinq

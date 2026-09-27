@@ -26,9 +26,11 @@ bool motorCut();
 /* Contacteur vraisemblablement collé : freinage continu depuis > 2 min. */
 bool stuck();
 
-/* Vrai dès qu'un freinage a été vu au moins une fois depuis le démarrage.
- * Sert à détecter un fil de frein coupé (defaut FLT_BRAKE_NEVER). */
-bool everBraked();
+/* Vrai quand CHAQUE entrée frein câblée a été vue active au moins une fois
+ * depuis le démarrage — les deux en variante 2, l'avant seul en variante 1.
+ * Sert à détecter un fil de contacteur coupé (défaut FLT_BRAKE_NEVER) : un
+ * témoin commun aux deux freins serait satisfait par celui qui fonctionne. */
+bool allBrakesSeen();
 
 #if BRAKE_FLASH_ENABLE
 /* Demande d'extinction transitoire du stop pendant le flash d'attaque. */
