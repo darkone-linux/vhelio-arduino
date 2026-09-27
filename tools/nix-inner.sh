@@ -32,10 +32,15 @@ SKETCH="${VHELIO_SKETCH:-$ROOT/firmware/vhelio}"
 # a 0 dans le depot : on ne peut pas oublier de l'y remettre. Le binaire va
 # dans un repertoire separe, sinon arduino-cli reutiliserait des objets
 # compiles avec l'autre jeu de drapeaux.
-SIM_FLAG=""
+#
+# Il passe par --build-property, jamais par platform.local.txt : ce fichier
+# survit a la compilation et vaut pour TOUTES les suivantes, build.sh compris.
+# Y ecrire -DSIM_INPUTS=1 faisait du prochain binaire de route un firmware de
+# banc, sans bandeau au televersement.
+SIM_PROPS=()
 SUFFIX=""
 if [ "${VHELIO_SIM:-0}" = "1" ]; then
-  SIM_FLAG=" -DSIM_INPUTS=1"
+  SIM_PROPS=(--build-property "build.extra_flags=-DSIM_INPUTS=1")
   SUFFIX="-sim"
 fi
 
@@ -68,7 +73,7 @@ chmod +x "$TC_BIN/avr-gcc-ar"
 {
   echo "compiler.path=$TC_BIN/"
   echo "compiler.ar.cmd=avr-gcc-ar"
-  echo "compiler.cpp.extra_flags=-fno-use-cxa-atexit$SIM_FLAG"
+  echo "compiler.cpp.extra_flags=-fno-use-cxa-atexit"
 } > "$PLATFORM_DIR/platform.local.txt"
 
 # --- ctags ------------------------------------------------------------------
@@ -96,5 +101,6 @@ export ARDUINO_DIRECTORIES_USER="$ARDUINO_DIR/user"
 exec "$CLI" compile \
   --fqbn "$FQBN" \
   --warnings all \
+  ${SIM_PROPS[@]+"${SIM_PROPS[@]}"} \
   --build-path "$OUTDIR" \
   "$SKETCH"

@@ -24,12 +24,21 @@ SKETCH="${VHELIO_SKETCH:-$ROOT/firmware/vhelio}"
 # VHELIO_SIM=1 : firmware de banc (entrees pilotables au clavier). Le drapeau
 # vient de la ligne de commande, pas de config.h, qui reste a 0 dans le depot.
 # Repertoire de compilation separe : sinon arduino-cli reutilise des objets
-# compiles avec l'autre jeu de drapeaux.
+# compiles avec l'autre jeu de drapeaux. build.extra_flags et non
+# compiler.cpp.extra_flags : sur NixOS, ce dernier porte deja, dans le
+# platform.local.txt de build-nix.sh, un drapeau que le lien exige.
 PROPS=()
 SUFFIX=""
 if [ "${VHELIO_SIM:-0}" = "1" ]; then
-  PROPS=(--build-property "compiler.cpp.extra_flags=-DSIM_INPUTS=1")
+  PROPS=(--build-property "build.extra_flags=-DSIM_INPUTS=1")
   SUFFIX="-sim"
+fi
+
+# Un platform.local.txt laisse par une version anterieure de build-nix.sh peut
+# encore porter -DSIM_INPUTS=1, qui vaudrait pour ce binaire aussi.
+if grep -qs SIM_INPUTS "$ARDUINO_DIR"/data/packages/arduino/hardware/avr/*/platform.local.txt; then
+  echo "platform.local.txt porte SIM_INPUTS : relancer ./tools/build-nix.sh, qui le reecrit."
+  exit 1
 fi
 
 "$CLI" compile \

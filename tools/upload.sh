@@ -38,6 +38,17 @@ if [ ! -f "$HEX" ]; then
   exit 1
 fi
 
+# --- Firmware de banc sous un nom de route ----------------------------------
+# Dernier garde-fou avant la carte : sans VHELIO_SIM, on televerse le binaire
+# de ROUTE, qui ne doit pas contenir la banniere du firmware de banc. Il suffit
+# d'un drapeau oublie dans la chaine de compilation pour qu'il la contienne.
+ELF="${HEX%.hex}.elf"
+if [ -z "$SUFFIX" ] && [ -f "$ELF" ] && grep -aqF "MODE SIMULATION" "$ELF"; then
+  echo "$HEX a ete compile avec SIM_INPUTS=1 : c'est un firmware de BANC."
+  echo "Le recompiler sans VHELIO_SIM avant de le televerser."
+  exit 1
+fi
+
 # --- Port -------------------------------------------------------------------
 # Le Nano officiel sort en /dev/ttyACM0 ; les clones a CH340 en /dev/ttyUSB0.
 PORT="${1:-}"

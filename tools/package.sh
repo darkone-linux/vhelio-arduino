@@ -41,6 +41,11 @@ for f in "$route_hex" "$banc_hex"; do
   [ -f "$f" ] || { echo "Binaire manquant : $f"; exit 1; }
 done
 
+# Le binaire de route ne doit pas etre un firmware de banc (voir upload.sh).
+if [ -f "$route_elf" ] && grep -aqF "MODE SIMULATION" "$route_elf"; then
+  echo "$route_hex porte SIM_INPUTS=1 : paquet refuse."; exit 1
+fi
+
 rm -rf "$DIST"
 mkdir -p "$DIST"
 cp "$route_hex" "$DIST/vhelio-route-$VERSION.hex"
