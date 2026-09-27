@@ -17,8 +17,16 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
+# nixpkgs EPINGLE. Sans revision, `nixpkgs#` suit le systeme ou le canal :
+# l'avr-gcc changerait a chaque mise a jour, et avec lui le binaire,
+# l'empreinte et le temps de cycle mesures. Cette revision fournit avr-gcc
+# 15.3.0, binutils 2.46 et ctags 816 : ceux de l'empreinte de specs/06 §7.
+# Monter de revision, c'est remesurer (AGENTS.md, « Avant de committer »).
+# VHELIO_NIXPKGS=nixpkgs revient au nixpkgs du systeme, pour essayer.
+NIXPKGS="${VHELIO_NIXPKGS:-github:NixOS/nixpkgs/e158d9ed9b51c98974c5e66e1ba1c9e0255fecaa}"
+
 exec nix shell \
-  nixpkgs#pkgsCross.avr.buildPackages.gcc \
-  nixpkgs#pkgsCross.avr.buildPackages.binutils \
-  nixpkgs#ctags \
+  "$NIXPKGS#pkgsCross.avr.buildPackages.gcc" \
+  "$NIXPKGS#pkgsCross.avr.buildPackages.binutils" \
+  "$NIXPKGS#ctags" \
   --command bash "$ROOT/tools/nix-inner.sh" "${1:-}"

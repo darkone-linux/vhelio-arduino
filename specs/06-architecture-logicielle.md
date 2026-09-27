@@ -182,7 +182,8 @@ relais, pour 50 ms exigés.
 
 ## 7. Budget mémoire
 
-Mesuré avec `tools/check-variants.sh` (avr-gcc 15.3, `-Os -flto`, ATmega328P —
+Mesuré avec `tools/check-variants.sh` (avr-gcc 15.3 de la révision de nixpkgs
+épinglée dans `tools/build-nix.sh`, `-Os -flto`, ATmega328P —
 30 720 o de flash utilisables après bootloader, 2 048 o de RAM) :
 
 | Configuration | Flash | |
