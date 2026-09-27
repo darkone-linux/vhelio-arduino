@@ -92,7 +92,9 @@ fi
 # Celui qu'embarque arduino-cli est lie dynamiquement contre un /lib inexistant
 # sur NixOS : "Could not start dynamically linked executable". On prend donc,
 # dans l'ordre, celui du systeme, celui de nixpkgs, puis le prebuilt.
-BUNDLED="$ARDUINO_DIR/data/packages/arduino/tools/avrdude/8.0.0-arduino1/bin/avrdude"
+# Version resolue comme dans nix-inner.sh : une montee du coeur AVR livre un
+# autre avrdude, et un chemin code en dur le rendrait introuvable.
+BUNDLED="$(printf '%s\n' "$ARDUINO_DIR"/data/packages/arduino/tools/avrdude/*/bin/avrdude | sort -V | tail -n 1)"
 if command -v avrdude >/dev/null 2>&1; then
   AVRDUDE=(avrdude)
 elif command -v nix >/dev/null 2>&1; then
