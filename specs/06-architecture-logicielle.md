@@ -248,6 +248,7 @@ elles sont incompatibles ou dangereuses.
 | `BAFANG_ENABLE` | 1 | Compile ou non l'écoute UART |
 | `BAFANG_LEARN_MODE` | 0 | Dump hexadécimal des trames |
 | `BAFANG_SPEED_FORMULA` | 1 | 0 = km/h ×10 direct ; 1 = période de roue |
+| `BAFANG_PERIOD_STOPPED_MS` / `_MIN_MS` | 5000 / 50 | Période de roue : immobile au-delà de la première, trame aberrante en deçà de la seconde |
 | `SPEED_SOURCE_WHEEL` | 0 | Vitesse depuis le capteur de roue sur A6 |
 | `WHEEL_CIRCUMFERENCE_MM` | 2200 | **À corriger quand la roue sera montée** (Q10) |
 | `DEBUG_SERIAL` | 1 | Journal série 115 200 bd |

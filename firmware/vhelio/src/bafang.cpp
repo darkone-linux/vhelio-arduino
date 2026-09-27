@@ -53,12 +53,12 @@ void decodeSpeed(uint16_t raw) {
    * v[km/h] x10 = 36 x circonference[mm] / periode[ms]
    * Contrôle : 2200 mm, 317 ms  ->  36*2200/317 = 250  ->  25,0 km/h. */
   if (raw == 0) { g_speedValid = false; return; }
-  if (raw >= 5000) {           /* roue quasi immobile */
+  if (raw >= BAFANG_PERIOD_STOPPED_MS) {   /* roue quasi immobile */
     g_speedKmh10 = 0;
     g_speedValid = true;
     return;
   }
-  if (raw < 50) { g_speedValid = false; return; }  /* > 158 km/h : aberrant */
+  if (raw < BAFANG_PERIOD_MIN_MS) { g_speedValid = false; return; }  /* aberrant */
   const uint32_t v = (36UL * (uint32_t)WHEEL_CIRCUMFERENCE_MM) / raw;
   if (v > 999) { g_speedValid = false; return; }
   g_speedKmh10 = (uint16_t)v;

@@ -188,6 +188,12 @@
  *   1 = période de rotation de roue en millisecondes  */
 #define BAFANG_SPEED_FORMULA      1
 
+/* Bornes de la période de roue (BAFANG_SPEED_FORMULA 1), en ms. Au-delà de
+ * la première, la roue est tenue pour immobile ; en deçà de la seconde, la
+ * trame est aberrante — 50 ms font 158 km/h avec une roue de 2 200 mm. */
+#define BAFANG_PERIOD_STOPPED_MS  5000
+#define BAFANG_PERIOD_MIN_MS      50
+
 /* Source de vitesse alternative : capteur de roue sur PIN_WHEEL.
  * PIN_WHEEL est A6, analogique seule : pas de tirage interne possible, il
  * faut une résistance de 10 kΩ vers +5 V à l'extérieur. */
@@ -256,6 +262,10 @@
 
 #if BRAKE_WIRING_VARIANT != 1 && BRAKE_WIRING_VARIANT != 2
 #error "BRAKE_WIRING_VARIANT doit valoir 1 ou 2"
+#endif
+
+#if BAFANG_PERIOD_MIN_MS >= BAFANG_PERIOD_STOPPED_MS
+#error "BAFANG_PERIOD_MIN_MS doit etre inferieur a BAFANG_PERIOD_STOPPED_MS"
 #endif
 
 #if BAFANG_LEARN_MODE && !BAFANG_ENABLE
