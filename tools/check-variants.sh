@@ -2,6 +2,7 @@
 # Compile le firmware dans plusieurs combinaisons d'options de config.h.
 # Les #if ne sont pas verifies par le compilateur tant qu'une branche n'est
 # pas prise : sans ce balayage, une variante peut rester cassee des mois.
+# Un avertissement sur le code du projet fait echouer la variante (NF-5).
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
@@ -21,12 +22,34 @@ trap 'mv -f "$CFG.bak" "$CFG"; rm -rf "$ROOT/.build/vhelio"' EXIT
 
 set_opt() { sed -i -E "s/^(#define[[:space:]]+$1[[:space:]]+)[^ ]+.*$/\\1$2/" "$CFG"; }
 
+# Avertissements emis sur le code du projet. Le coeur Arduino en produit
+# lui-meme avec --warnings all : on ne regarde que firmware/. "attention" est
+# la forme francaise de gcc (build-nix.sh), "warning" celle de la CI.
+proj_warnings() {
+  grep -E "(warning|attention)[[:space:]]*:" | grep -F "$ROOT/firmware/" | sort -u
+}
+
 run_case() {
   local name="$1"; shift
+  # Sans option, c'est config.h tel que versionne, donc le binaire de route :
+  # il ne doit emettre AUCUN message, pas meme un #warning. Les autres
+  # variantes ont droit aux #warning voulus de config.h (flash du stop, banc
+  # d'essai), jamais a un avertissement du compilateur.
+  local strict=0
+  [ $# -eq 0 ] && strict=1
   cp "$CFG.bak" "$CFG"
   while [ $# -gt 0 ]; do set_opt "$1" "$2"; shift 2; done
   rm -rf "$ROOT/.build/vhelio"
   if out="$("$BUILD" 2>&1)"; then
+    local warn
+    warn="$(printf '%s\n' "$out" | proj_warnings)"
+    [ "$strict" = 1 ] || warn="$(printf '%s\n' "$warn" | grep -vF -- '[-Wcpp]')"
+    if [ -n "$warn" ]; then
+      printf '  AVERT %-42s\n' "$name"
+      echo "$warn" | head -8 | sed 's/^/          /'
+      FAILED=1
+      return
+    fi
     printf '  OK    %-42s %s\n' "$name" \
       "$(echo "$out" | grep -oE '[0-9]+ octets \([0-9]+%\)' | head -1)"
   else
@@ -62,5 +85,5 @@ run_case "klaxon raccorde a la carte (voie IN3/R7)" \
 run_case "sans voyant de defaut" FAULT_LAMP_ENABLE 0
 run_case "banc d'essai : entrees simulees a la console" SIM_INPUTS 1
 
-[ "$FAILED" = 0 ] && echo "== Toutes les variantes compilent ==" || echo "== ECHECS =="
+[ "$FAILED" = 0 ] && echo "== Toutes les variantes compilent, sans avertissement ==" || echo "== ECHECS =="
 exit "$FAILED"

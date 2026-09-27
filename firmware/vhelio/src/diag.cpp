@@ -34,7 +34,9 @@ static_assert((FAULT_LAMP_MASK & diag::FLT_BAFANG_LINK) == 0,
               "FLT_BAFANG_LINK ne doit pas allumer le voyant (principe P2)");
 #endif
 
-#if DEBUG_SERIAL
+/* Même garde que la ligne de journal de update() : en mode apprentissage, la
+ * console est réservée aux trames Bafang. */
+#if DEBUG_SERIAL && !BAFANG_LEARN_MODE
 uint32_t g_lastLog = 0;
 
 void printFixed1(uint16_t x10) {
