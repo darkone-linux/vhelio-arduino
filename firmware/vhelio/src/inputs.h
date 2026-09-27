@@ -13,7 +13,6 @@ struct InputState {
   bool level[IN_COUNT];      /* état stable                                  */
   bool rose[IN_COUNT];       /* front montant sur ce cycle                   */
   bool fell[IN_COUNT];       /* front descendant sur ce cycle                */
-  uint32_t changedAt[IN_COUNT]; /* date du dernier changement stable         */
 };
 
 namespace inputs {

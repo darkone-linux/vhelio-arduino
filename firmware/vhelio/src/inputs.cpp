@@ -52,7 +52,6 @@ void inputs::begin() {
     g_state.level[i] = initial;
     g_state.rose[i] = false;
     g_state.fell[i] = false;
-    g_state.changedAt[i] = 0;
   }
 }
 
@@ -73,7 +72,6 @@ void inputs::update(uint32_t now) {
     g_state.level[i] = g_db[i].level();
     g_state.rose[i] = g_db[i].rose();
     g_state.fell[i] = g_db[i].fell();
-    g_state.changedAt[i] = g_db[i].changedAt();
   }
 }
 

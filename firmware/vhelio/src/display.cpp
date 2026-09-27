@@ -142,8 +142,9 @@ void showEvents(uint32_t now) {
    * FAULT_LAMP_MASK et non pas tous les défauts : sans lui, un véhicule dont
    * la télémétrie Bafang n'est pas branchée afficherait « Err » en
    * permanence, et le mot cesserait de vouloir dire quoi que ce soit. C'est
-   * le principe P2, déjà appliqué au voyant rouge — afficheur et voyant
-   * disent ainsi toujours la même chose. */
+   * le principe P2, déjà appliqué au voyant rouge : afficheur et voyant
+   * filtrent par le même masque. L'acquittement, lui, éteint le voyant sans
+   * effacer « Err », qui dure autant que le défaut (diag.h). */
   if (diag::faults() & FAULT_LAMP_MASK) fire(g_pFault, now);
 
 #if FAULT_LAMP_ENABLE

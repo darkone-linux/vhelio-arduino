@@ -5,7 +5,6 @@ void Debouncer::begin(uint16_t stableMs, bool initial) {
   stable_ = initial;
   candidate_ = initial;
   candidateSince_ = 0;
-  changedAt_ = 0;
   rose_ = false;
   fell_ = false;
 }
@@ -27,7 +26,6 @@ void Debouncer::update(bool raw, uint32_t now) {
     return;
   }
   stable_ = candidate_;
-  changedAt_ = now;
   if (stable_) {
     rose_ = true;
   } else {

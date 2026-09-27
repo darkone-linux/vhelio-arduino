@@ -9,7 +9,6 @@ turnsignals::Mode g_mode = turnsignals::OFF;
 bool g_conflict = false;
 
 uint32_t g_phaseStart = 0;   /* origine du cycle de clignotement           */
-bool g_phaseOn = false;      /* phase allumée en cours                     */
 
 uint32_t g_modeSince = 0;    /* entrée dans LEFT/RIGHT                     */
 uint32_t g_modeOdoMm = 0;    /* odomètre à l'entrée dans LEFT/RIGHT        */
@@ -20,7 +19,6 @@ bool g_reminder = false;
 void turnsignals::begin() {
   g_mode = OFF;
   g_conflict = false;
-  g_phaseOn = false;
   g_reminder = false;
   board::setOutput(OUT_TURN_LEFT, false);
   board::setOutput(OUT_TURN_RIGHT, false);
@@ -49,14 +47,12 @@ void turnsignals::update(uint32_t now, const InputState& in) {
     /* Remise à zéro de la phase : garantit un démarrage sur allumé (F-3.3)
      * et évite un premier flash tronqué à la bascule gauche/droite. */
     g_phaseStart = now;
-    g_phaseOn = (g_mode != OFF);
     g_modeSince = now;
     g_modeOdoMm = telemetry::odoMm();
     g_reminder = false;
   }
 
   if (g_mode == OFF) {
-    g_phaseOn = false;
     board::setOutput(OUT_TURN_LEFT, false);
     board::setOutput(OUT_TURN_RIGHT, false);
     return;
@@ -96,8 +92,6 @@ void turnsignals::update(uint32_t now, const InputState& in) {
   if (g_reminder) onMs = BLINK_REMINDER_ON_MS;
 #endif
   const bool on = (elapsed < onMs);
-
-  g_phaseOn = on;
 
   board::setOutput(OUT_TURN_LEFT, on && (g_mode == LEFT || g_mode == HAZARD));
   board::setOutput(OUT_TURN_RIGHT, on && (g_mode == RIGHT || g_mode == HAZARD));

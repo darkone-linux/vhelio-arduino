@@ -1,6 +1,5 @@
 #include "diag.h"
 #include "bafang.h"
-#include "debounce.h"
 #include "board_io.h"
 #include "brakes.h"
 #include "config.h"
@@ -23,8 +22,6 @@ uint32_t g_beatToggled = 0;
 bool g_beatOn = false;
 
 #if FAULT_LAMP_ENABLE
-Debouncer g_ackBtn;
-
 /* P2 — la télémétrie est un confort, pas une fonction de sécurité. Un bus
  * Bafang muet ne doit pas allumer un voyant rouge devant le conducteur :
  * il resterait allumé en permanence et le voyant ne voudrait plus rien dire.
@@ -134,7 +131,6 @@ void diag::begin(uint8_t mcusr, bool wdtReset) {
   g_faults = 0;
   g_acked = 0;
 #if FAULT_LAMP_ENABLE
-  g_ackBtn.begin(DEBOUNCE_ACK_MS, false);
   board::setOutput(OUT_FAULT, false);
 #endif
   /* Un reset par chien de garde en roulage est une anomalie, elle doit rester
@@ -245,8 +241,10 @@ void diag::update(uint32_t now) {
    * raison pour laquelle R3 et R4 sont les pièces d'usure du montage. La
    * distinction entre défauts se lit sur l'afficheur, coque ouverte. */
 #if FAULT_LAMP_ENABLE
-  g_ackBtn.update(inputs::state().level[IN_ACK], now);
-  if (g_ackBtn.rose()) acknowledge();
+  /* Le front vient d'inputs, déjà filtré par DEBOUNCE_ACK_MS : c'est le même
+   * que celui qui affiche « AC ». Un second anti-rebond ici retardait
+   * l'acquittement de 20 ms sur l'accusé de réception. */
+  if (inputs::state().rose[IN_ACK]) acknowledge();
 
   /* Un défaut qui disparaît perd son acquittement : s'il revient, il rallume
    * le voyant. L'acquittement porte sur un événement, pas sur une catégorie. */
