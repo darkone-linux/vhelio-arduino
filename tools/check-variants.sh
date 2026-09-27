@@ -51,7 +51,7 @@ run_case() {
       return
     fi
     printf '  OK    %-42s %s\n' "$name" \
-      "$(echo "$out" | grep -oE '[0-9]+ octets \([0-9]+%\)' | head -1)"
+      "$(echo "$out" | grep -oE '[0-9]+ (octets|bytes) \([0-9]+%\)' | head -1)"
   else
     printf '  ECHEC %-42s\n' "$name"
     echo "$out" | grep -Ei "erreur|error" | head -8 | sed 's/^/          /'
