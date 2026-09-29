@@ -1,4 +1,4 @@
-# 07 — Sécurité et modes dégradés
+# 07 : Sécurité et modes dégradés
 
 ## 1. Analyse des défaillances
 
@@ -8,18 +8,18 @@ Pour chaque panne plausible : ce qui se passe, et pourquoi c'est acceptable.
 |---|---|---|---|
 | **Arduino planté (boucle infinie)** | Sorties figées dans leur dernier état | Non | WDT 1 s → reset → état sûr en < 1,5 s. La coupure moteur reste assurée par le câblage direct |
 | **Arduino non alimenté** | Toutes sorties inactives : plus de feux, plus de clignotants | Éclairage oui ; **coupure moteur non** | Les deux freins coupent nativement (contacteur d'origine à l'arrière, diode D1 à l'avant). Panne très visible : plus aucun feu. Fusible F11 dédié |
-| **Reset intempestif en roulant** | Autotest 2 s pendant lequel les feux clignotent | Éclairage 2 s | Pas d'autotest après un reset par chien de garde (§4). Les autres causes — baisse de tension, parasite sur la ligne de reset — ne se distinguent pas d'une mise sous tension, `MCUSR` étant effacé par le bootloader : elles rejouent l'autotest. Celui-ci peut être désactivé (`SELFTEST_ENABLE 0`) une fois le véhicule validé |
+| **Reset intempestif en roulant** | Autotest 2 s pendant lequel les feux clignotent | Éclairage 2 s | Pas d'autotest après un reset par chien de garde (§4). Les autres causes (baisse de tension, parasite sur la ligne de reset) ne se distinguent pas d'une mise sous tension, `MCUSR` étant effacé par le bootloader : elles rejouent l'autotest. Celui-ci peut être désactivé (`SELFTEST_ENABLE 0`) une fois le véhicule validé |
 | **Fil de contacteur de frein coupé (contact sec direct)** | L'entrée reste inactive → pas de feu stop, et au frein avant, plus de coupure moteur du tout | **Oui, le feu stop** | Détectable par `FLT_BRAKE_NEVER` (une entrée frein jamais vue active en 2 km, chaque frein étant suivi séparément). Contrôle avant départ T3.1 |
 | **Fil de frein coupé (interface transistor optionnelle)** | L'entrée retombe → le firmware conclut « freinage » | Non | État sûr : stop allumé, coupure moteur active. Le défaut est visible immédiatement |
-| **Ligne frein Bafang raccordée à une borne d'entrée SANS diode** | +12 V injecté dans une entrée 5 V du contrôleur | — | **Destruction probable du contrôleur.** C'est exactement ce que D1 empêche à l'avant ; à l'arrière, le connecteur jaune reste intact et S2 est un contact sec séparé (`03` §5) |
-| **D1 en court-circuit** | ~1,4 mA de +12 V remontent vers la ligne frein au repos | — | Assistance possiblement inhibée en permanence. Gênant, pas dangereux ; le vélo reste utilisable sans assistance |
+| **Ligne frein Bafang raccordée à une borne d'entrée SANS diode** | +12 V injecté dans une entrée 5 V du contrôleur | Sans objet | **Destruction probable du contrôleur.** C'est exactement ce que D1 empêche à l'avant ; à l'arrière, le connecteur jaune reste intact et S2 est un contact sec séparé (`03` §5) |
+| **D1 en court-circuit** | ~1,4 mA de +12 V remontent vers la ligne frein au repos | Non (côté sûr) | Assistance possiblement inhibée en permanence. Gênant, pas dangereux ; le vélo reste utilisable sans assistance |
 | **Contacteur de frein collé** | Stop allumé en permanence, assistance coupée | Non (côté sûr) | `FLT_BRAKE_STUCK` après 120 s, journal série |
 | **Bouton d'acquittement collé** | Les défauts mémorisés sont effacés en boucle, les défauts actifs restent acquittés : **le voyant ne s'allume plus** | Le voyant, oui | Non détectable par le firmware. Reste visible sur la page « défauts » et au journal. Contrôle avant départ T3.1 : le voyant doit s'allumer pendant l'autotest |
 | **LED du voyant grillée** | Plus aucune alerte en roulant | Le voyant, oui | Détecté à chaque mise sous tension : le voyant s'allume 200 ms pendant l'autotest. C'est la raison d'être de ce balayage |
 | **Comodo : gauche et droite simultanés** | Deux directions contradictoires | Signalisation | Retombée sur `OFF` + `FLT_TURN_CONFLICT` |
 | **Bus Bafang muet** | Vitesse invalide | Non (P2) | Rappel clignotant bascule sur le critère temps seul |
 | **Bus Bafang bruité (trames fausses)** | Trames rejetées par la somme de contrôle | Non | Compteur `framesRejected` dans le journal |
-| **Convertisseur 48/12 en panne** | Perte totale du 12 V | Éclairage seul — le klaxon est autonome | Les deux freins coupent toujours l'assistance : les chemins passifs ne dépendent pas du 12 V. Le moteur reste alimenté en 48 V → circulation possible jusqu'à l'arrêt, mais **de nuit, c'est un arrêt immédiat** |
+| **Convertisseur 48/12 en panne** | Perte totale du 12 V | Éclairage seul, le klaxon est autonome | Les deux freins coupent toujours l'assistance : les chemins passifs ne dépendent pas du 12 V. Le moteur reste alimenté en 48 V → circulation possible jusqu'à l'arrêt, mais **de nuit, c'est un arrêt immédiat** |
 | **Convertisseur 48/12 claqué en court-circuit** | Le 48 V arrive sur le réseau 12 V : feux, comodo, carte | Toutes | Convertisseur non isolé donné pour 60 V, pack à 58,4 V : **marge de 2,7 %**. Abaisser la charge à 3,50 V/cellule (`04` §2.1). Fusible F5 |
 | **Contact de relais collé (soudé)** | Charge allumée en permanence, ou assistance coupée en permanence pour R8 | Non (côté sûr pour les feux) | Non détectable par le firmware : le registre ne relit rien. Détecté au contrôle avant départ (T3.1) |
 | **Bobine de relais coupée** | Charge morte, sans aucun symptôme | **Oui pour le feu stop (R6)** | Contrôle avant départ obligatoire, observateur derrière |
@@ -29,13 +29,13 @@ Pour chaque panne plausible : ce qui se passe, et pourquoi c'est acceptable.
 ## 2. Les barrières de coupure d'assistance
 
 > **Cette section a changé de conclusion deux fois.** Le contacteur de frein
-> avant s'est révélé **unipolaire** — un seul jeu de contacts, incapable a
-> priori d'informer la carte *et* de fermer la ligne frein — ce qui faisait
+> avant s'est révélé **unipolaire** : un seul jeu de contacts, incapable a
+> priori d'informer la carte *et* de fermer la ligne frein, ce qui faisait
 > dépendre la coupure au frein avant du firmware. **Une diode de découplage
 > lève cette limite** en laissant un seul contact servir les deux circuits.
 > P1 est de nouveau respecté aux deux freins.
 
-### Frein arrière — deux chemins, dont un indépendant
+### Frein arrière : deux chemins, dont un indépendant
 
 1. **Contacteur Bafang d'origine → connecteur frein du contrôleur.** Le chemin
    nominal du kit, laissé strictement intact. Ne dépend d'aucun composant du
@@ -43,15 +43,15 @@ Pour chaque panne plausible : ce qui se passe, et pourquoi c'est acceptable.
 2. **`OUT_MOTOR_CUT` (R8) → même connecteur, en contact sec.** Le chemin
    logiciel, redondant, informé par le micro-rupteur S2.
 
-### Frein avant — deux chemins, dont un indépendant
+### Frein avant : deux chemins, dont un indépendant
 
 1. **Contacteur avant → diode D1 → ligne frein du contrôleur.** Chemin
    purement passif : un contact et une diode. Aucun composant actif, aucune
    alimentation, aucun firmware.
 2. **`OUT_MOTOR_CUT` (R8)**, informé par la même entrée `IN4`.
 
-Le mécanisme tient à ce que les deux circuits demandent la même chose — une
-mise à la **masse** — et à ce que la diode empêche le +12 V de la carte
+Le mécanisme tient à ce que les deux circuits demandent la même chose, une
+mise à la **masse**, et à ce que la diode empêche le +12 V de la carte
 d'atteindre la ligne 5 V du contrôleur quand le contact est ouvert. Le montage
 complet est en `hardware/cablage.md` §4.
 
@@ -71,7 +71,7 @@ avait déjà été jugée acceptable. La diode ne peut donc qu'améliorer les ch
 
 ### Ce qui reste conditionné à une mesure
 
-Tout ceci suppose la ligne frein Bafang **active à l'état bas** — le cas
+Tout ceci suppose la ligne frein Bafang **active à l'état bas**, le cas
 courant. Si la mesure au multimètre montre l'inverse (`hardware/cablage.md` §4),
 D1 est inopérante et doit être retirée : le frein avant redevient alors
 dépendant du firmware, et c'est l'analyse de la version précédente qui
@@ -93,7 +93,7 @@ Défini comme l'état des sorties à la mise sous tension et après reset :
 | `OUT_PARK_FRONT` / `OUT_MAIN` | inactif | Rétabli en < 10 ms dès le premier balayage des entrées |
 | `OUT_TAIL_PARK` / `OUT_TAIL_STOP` | inactif | idem |
 | `OUT_TURN_*` | inactif | idem |
-| `OUT_FAULT` (R7) | inactif | Voyant éteint au reset, puis allumé 200 ms par l'autotest — ce qui prouve que la LED fonctionne |
+| `OUT_FAULT` (R7) | inactif | Voyant éteint au reset, puis allumé 200 ms par l'autotest, ce qui prouve que la LED fonctionne |
 | `OUT_MOTOR_CUT` | **relâché** | Voir §2 |
 
 L'état sûr est obtenu **matériellement** avant même que le firmware ne
@@ -108,7 +108,7 @@ matériel disponible pour un futur mode sécurité.
 
 Le premier balayage complet des entrées a lieu au premier tour de `loop()`,
 soit **moins de 10 ms** après la fin de `setup()`. L'éclairage est donc rétabli
-imperceptiblement — sauf si l'autotest est actif, auquel cas il faut compter
+imperceptiblement, sauf si l'autotest est actif, auquel cas il faut compter
 2 s de plus. L'autotest n'est pas rejoué après un reset par chien de garde
 (§4).
 
@@ -120,7 +120,7 @@ imperceptiblement — sauf si l'autotest est actif, auquel cas il faut compter
   (`optiboot.c`, `appStart()`) ; la précaution vaut pour les autres
   bootloaders et pour une carte programmée sans bootloader, où le WDT resterait
   armé après un reset par chien de garde avec un délai trop court pour finir
-  le démarrage — la carte repartirait en boucle de reset.
+  le démarrage : la carte repartirait en boucle de reset.
 - **`MCUSR` ne dit pas la cause du reset.** Optiboot 4.4 l'efface avant de
   sauter au croquis (`optiboot.c`, « Adaboot no-wait mod ») : `setup()` y lit
   toujours 0, et un `FLT_WDT_RESET` fondé sur `WDRF` ne se lèverait jamais. Il
@@ -139,7 +139,7 @@ imperceptiblement — sauf si l'autotest est actif, auquel cas il faut compter
   soit un reset 1 s après le blocage.
 - **Pas d'autotest après un reset par chien de garde.** Le véhicule roule
   peut-être : 2 s sans feux ni stop, et R3 puis R4 qui claquent chacun
-  200 ms — un faux signal de direction. L'éclairage est rendu dès le premier
+  200 ms, soit un faux signal de direction. L'éclairage est rendu dès le premier
   tour de `loop()` ; le contrôle des lampes attend la mise sous tension
   suivante. Ce comportement est lu dans le code ; T1.7 ne l'a pas encore
   vérifié sur la carte.
@@ -173,7 +173,7 @@ imperceptiblement — sauf si l'autotest est actif, auquel cas il faut compter
   l'afficheur ou la console série. Et il ne couvre délibérément **pas** la
   perte du bus Bafang (P2, `02-machines-a-etats.md` §2.4).
 - **Le voyant ne surveille pas les relais eux-mêmes.** Il rapporte ce que le
-  firmware *croit*, pas ce que le matériel *fait* — le registre à décalage
+  firmware *croit*, pas ce que le matériel *fait* : le registre à décalage
   n'est pas relisible. Voyant éteint ne veut pas dire feux fonctionnels.
   Le contrôle avant départ T3.1 reste la seule vérification réelle.
 
@@ -185,12 +185,12 @@ Points à vérifier au regard du code de la route français pour un cycle :
 |---|---|
 | Feu de position arrière rouge non clignotant | Respecté : relais en tout-ou-rien, aucune modulation |
 | Feu stop non clignotant | Respecté : `BRAKE_FLASH_ENABLE` à **0** par défaut |
-| Cadence des clignotants 60–120 c/min | Respecté : 80 c/min (1,33 Hz), **y compris pendant le rappel d'oubli** — celui-ci modifie le rapport cyclique (375 → 200 ms allumé), jamais la période. C'est précisément pourquoi il a été conçu ainsi plutôt qu'en accélérant la cadence |
+| Cadence des clignotants de 60 à 120 c/min | Respecté : 80 c/min (1,33 Hz), **y compris pendant le rappel d'oubli** : celui-ci modifie le rapport cyclique (375 → 200 ms allumé), jamais la période. C'est précisément pourquoi il a été conçu ainsi plutôt qu'en accélérant la cadence |
 | Feux de détresse en phase | Respecté |
-| Klaxon | Autonome, hors du périmètre de ce calculateur. Rappel tout de même : un avertisseur de type automobile sur un cycle relève d'une vérification locale — le Vhélio peut être homologué en cycle ou en cyclomoteur selon la version |
+| Klaxon | Autonome, hors du périmètre de ce calculateur. Rappel tout de même : un avertisseur de type automobile sur un cycle relève d'une vérification locale ; le Vhélio peut être homologué en cycle ou en cyclomoteur selon la version |
 
 > Les feux de position et le feu stop sont sur des relais, donc en tout-ou-rien
 > franc : aucune modulation, aucun scintillement, aucune question de
 > conformité de ce côté. La différenciation entre position et stop est
-> entièrement **matérielle** — le feu stop doit être nettement plus lumineux.
+> entièrement **matérielle** : le feu stop doit être nettement plus lumineux.
 > C'est le point à valider au test T3.3, et il ne dépend plus du firmware.

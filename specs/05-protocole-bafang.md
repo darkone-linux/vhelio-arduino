@@ -1,4 +1,4 @@
-# 05 — Écoute passive de la liaison UART Bafang
+# 05 : Écoute passive de la liaison UART Bafang
 
 Fonction de **confort** (principe P2) : sa perte totale n'a aucun effet sur les
 feux, les clignotants ni le stop, et `BAFANG_ENABLE 0` la supprime sans rien
@@ -20,7 +20,7 @@ partie est fausse sur votre matériel.**
 - Une réponse commence par le numéro de registre et se termine par une **somme
   de contrôle** = somme des octets précédents, modulo 256.
 
-### Non établi — à calibrer sur votre matériel
+### Non établi : à calibrer sur votre matériel
 
 - La correspondance registre → grandeur varie selon la série de moteur (BBS02,
   BBSHD, série G) et la version de firmware du contrôleur.
@@ -72,7 +72,7 @@ Un silence de **30 ms** (`BAFANG_FRAME_GAP_MS`) est donc un séparateur fiable.
 
 Chaque trame isolée est validée par sa somme de contrôle. Une trame fausse est
 **silencieusement rejetée** et comptée (`rej=` au journal). Un taux de rejet
-élevé signale un mauvais piquage, une masse absente ou un mauvais débit — pas
+élevé signale un mauvais piquage, une masse absente ou un mauvais débit, pas
 un bug de décodage.
 
 ## 4. Table de registres par défaut
@@ -91,17 +91,17 @@ Tout autre premier octet est ignoré sans que ce soit une erreur.
 
 Sélection par `BAFANG_SPEED_FORMULA`.
 
-**Formule 0 — valeur directe** : `vitesse_kmh_x10 = raw`.
+**Formule 0, valeur directe** : `vitesse_kmh_x10 = raw`.
 
-**Formule 1 — période de roue** *(défaut)* :
+**Formule 1, période de roue** *(défaut)* :
 `vitesse_kmh_x10 = 36 × circonférence_mm / raw_ms`.
 
 Contrôle de cohérence, circonférence 2200 mm : à 25 km/h un tour dure
 2,2 / 6,94 = 317 ms, et 36 × 2200 / 317 = 250, soit 25,0 km/h.
 
-Le firmware rejette les valeurs aberrantes : `raw_ms` hors de [50, 5000] ms —
-au-delà de 5000, la roue est déclarée à l'arrêt, ce qui est **valide** et non
-inconnu — ou vitesse résultante > 99,9 km/h.
+Le firmware rejette les valeurs aberrantes : `raw_ms` hors de [50, 5000] ms
+(au-delà de 5000, la roue est déclarée à l'arrêt, ce qui est **valide** et non
+inconnu), ou vitesse résultante > 99,9 km/h.
 
 ## 6. Mode apprentissage
 
@@ -136,20 +136,20 @@ dérive**.
 
 | Fonction | Impact | Acceptable ? |
 |---|---|---|
-| Cadence clignotants | 1,33 → 1,27–1,33 Hz | Oui, la plage réglementaire est 1–2 Hz |
+| Cadence clignotants | 1,33 → 1,27 à 1,33 Hz | Oui, la plage réglementaire va de 1 à 2 Hz |
 | Anti-rebond freins | 15 → 15,5 ms | Oui |
 | Réaction au freinage | retard max +8,3 ms | Oui, imperceptible |
 | Maintien coupure moteur | 300 → 315 ms | Oui |
 | Odomètre / rappel clignotant | ±5 % | Oui, fonction de confort |
 
 Aucune de ces dérives ne touche significativement une fonction de sécurité. Si
-elle devient gênante, `BAFANG_ENABLE 0` la supprime intégralement — et c'est
+elle devient gênante, `BAFANG_ENABLE 0` la supprime intégralement, et c'est
 précisément l'intérêt du principe P2.
 
 ## 8. Ce qui a été explicitement écarté
 
-**L'interposition (MITM)** — placer l'Arduino entre afficheur et contrôleur —
-permettrait de forcer l'assistance à 0 au freinage, de brider la vitesse ou
+**L'interposition (MITM)**, qui consiste à placer l'Arduino entre afficheur et
+contrôleur, permettrait de forcer l'assistance à 0 au freinage, de brider la vitesse ou
 d'ajouter des modes. Écartée parce que :
 
 - deux ports logiciels à 1200 bauds avec relayage temps réel saturent les

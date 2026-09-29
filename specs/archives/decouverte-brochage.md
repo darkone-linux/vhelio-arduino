@@ -1,4 +1,4 @@
-# Archive — la découverte du brochage de la DN22D08
+# Archive : la découverte du brochage de la DN22D08
 
 > Extrait de `specs/03-affectation-es.md`, sorti de la spécification active le
 > 25/08/2026. **Le résultat de ces quatre campagnes est en production** dans
@@ -9,7 +9,7 @@
 > remplacée par un exemplaire au brochage différent, et le post-mortem du §7
 > explique pourquoi la correction n'a coûté que deux fichiers.
 
-## 6 bis. Quand le pinscan ne montre rien — découvrir le brochage
+## 6 bis. Quand le pinscan ne montre rien : découvrir le brochage
 
 Symptôme : Nano bien enfiché, carte alimentée, 5 V présent au support, et
 pourtant **ni bouton, ni afficheur, ni relais**. Les poussoirs et l'afficheur
@@ -19,14 +19,14 @@ brochage supposé est faux**.
 
 C'est le §7 qui se répète un cran plus bas. Le brochage de `pins.h` vient de
 `af3556/IO22_IO_Board`, bibliothèque qui déclare ne couvrir que l'**IO22D08**
-et l'IO22C04. La **DN22D08** est un produit voisin mais distinct — rail DIN,
-RS485, 12/24 V — et rien ne garantit qu'elle partage le brochage de l'IO22D08.
+et l'IO22C04. La **DN22D08** est un produit voisin mais distinct (rail DIN,
+RS485, 12/24 V), et rien ne garantit qu'elle partage le brochage de l'IO22D08.
 
 `tools/pinscan` ne sait que **vérifier** un brochage supposé ; il ne peut donc
 rien dire quand c'est l'hypothèse elle-même qui est fausse.
 `tools/pinfind` le **découvre**.
 
-### Phase A — les entrées et les boutons
+### Phase A : les entrées et les boutons
 
 ```bash
 VHELIO_SKETCH=$PWD/tools/pinfind ./tools/build-nix.sh
@@ -53,19 +53,19 @@ l'espace de recherche de la phase B à quatre ou cinq broches.
 
 ### Résultats mesurés sur l'exemplaire
 
-**Boutons** — mesuré, la supposition était fausse :
+**Boutons**, mesurés : la supposition était fausse.
 
 | | Supposé d'après l'IO22D08 | **Mesuré sur la DN22D08** |
 |---|---|---|
 | Poussoirs | D7, D8, D9, D10 | **D8, D10, D12, A0** |
 
 `A0` valant 14 sur un Nano, c'est **8, 10, 12, 14** : une progression de deux
-en deux. Les broches impaires intercalées — `D9, D11, D13, A1` — sont donc les
+en deux. Les broches impaires intercalées (`D9, D11, D13, A1`) sont donc les
 candidates naturelles des quatre lignes de la chaîne (données, horloge,
 verrou, OE). Hypothèse, pas conclusion : elle sert seulement à **ordonner** la
 recherche de la phase B, pas à la remplacer.
 
-**Entrées** — mesuré, carte alimentée. Elles réagissent **à la masse** :
+**Entrées**, mesurées carte alimentée. Elles réagissent **à la masse** :
 la polarité NPN annoncée par le constructeur est confirmée, tous les communs
 du faisceau vont donc à GND.
 
@@ -83,7 +83,7 @@ du §1 s'en trouve confirmé par la mesure.
 L'hypothèse des « broches impaires » formée à partir des boutons est morte :
 D9 et D11 sont des entrées. C'est précisément pourquoi on mesure.
 
-### Phase B — la chaîne de registres
+### Phase B : la chaîne de registres
 
 Aucun brochage de la DN22D08 n'est publié : la fiche du constructeur donne les
 caractéristiques mais pas le câblage, et précise ne fournir « ni code
@@ -97,8 +97,8 @@ VHELIO_SKETCH=$PWD/tools/pinchain ./tools/upload.sh /dev/ttyACM0 old
 
 Le balayage est **manuel**, et c'est tout l'intérêt. Une première version
 enchaînait les 240 essais toute seule, à la seconde : inutilisable. Plusieurs
-triplets produisent un effet partiel — décaler des bits avec l'horloge et les
-données interverties fait quand même bouger quelque chose — si bien que la
+triplets produisent un effet partiel (décaler des bits avec l'horloge et les
+données interverties fait quand même bouger quelque chose), si bien que la
 console défile trop vite pour qu'on note quoi que ce soit.
 
 Les boutons de la carte, que la phase A vient d'identifier, règlent le
@@ -108,13 +108,13 @@ problème. Le montage reste dans l'état choisi indéfiniment.
 |---|---|
 | K1 (D12) | Triplet suivant |
 | K2 (D10) | Triplet précédent |
-| K3 (D8) | Niveau des trois autres broches, `BAS` ↔ `HAUT` — couvre une validation OE parmi elles |
+| K3 (D8) | Niveau des trois autres broches, `BAS` ↔ `HAUT` ; couvre une validation OE parmi elles |
 | K4 (A0) | Motif, `TOUS` ↔ `BIT A BIT` |
 
 **Deux motifs, et le second est le juge.**
 
 `TOUS` alterne `0xFF` et `0x00` : fort, repérable de loin, bon pour dégrossir.
-Mais il ne prouve rien — un triplet faux fait souvent claquer quelque chose.
+Mais il ne prouve rien : un triplet faux fait souvent claquer quelque chose.
 
 `BIT A BIT` promène **un seul 1** à travers les 24 bits. Sur le bon triplet,
 et sur lui seul, on entend **exactement un relais à la fois**, proprement,
@@ -134,7 +134,7 @@ trois autres broches à l'état **bas**.
 
 La signature ne laisse pas de place au doute. En motif `BIT A BIT` : un relais
 à la fois sur les huit premières positions, puis les segments de l'afficheur.
-Les triplets faux, eux, faisaient bien claquer les relais — mais tous ensemble,
+Les triplets faux, eux, faisaient bien claquer les relais, mais tous ensemble,
 au rythme de l'horloge. Du bruit, pas de l'ordre. C'est exactement la
 distinction que le motif `BIT A BIT` avait été ajouté pour trancher.
 
@@ -150,7 +150,7 @@ L'octet des relais est donc le **dernier** émis des trois.
 Le brochage de la DN22D08 est donc **entièrement mesuré**, à l'exception de
 l'afficheur.
 
-Le brochage de l'**afficheur** — sélection des digits, ordre des segments —
+Le brochage de l'**afficheur** (sélection des digits, ordre des segments)
 fait l'objet du §6 ter.
 
 > **Le faisceau ne doit pas être câblé.** En motif `TOUS`, huit circuits sont
@@ -159,10 +159,10 @@ fait l'objet du §6 ter.
 > difficulté.
 
 Piloter ces six broches en sortie n'est sans risque que parce que la phase A a
-prouvé qu'aucune ne porte d'entrée optocouplée ni de poussoir — donc qu'aucun
+prouvé qu'aucune ne porte d'entrée optocouplée ni de poussoir, donc qu'aucun
 organe de la carte ne cherche à leur imposer un niveau.
 
-## 6 ter. L'afficheur — phase D
+## 6 ter. L'afficheur : phase D
 
 Dernier organe non mesuré. Il n'est nécessaire à aucune fonction de conduite :
 c'est un organe de maintenance, sous la coque (Q12). Mais il porte le battement
@@ -186,13 +186,13 @@ Une synthèse trouvée en ligne donne la structure suivante :
 documentation donne pour la chaîne `D13/A3/A2/A1`, c'est-à-dire le brochage de
 l'IO22D08, que le balayage des 120 triplets a réfuté : chaque rôle y est
 décalé d'un cran par rapport au nôtre. Elle se contredit d'ailleurs
-elle-même — sa prose annonce les relais « décalés en premier » quand son code
+elle-même : sa prose annonce les relais « décalés en premier » quand son code
 les envoie en dernier.
 
 Ce qu'elle apporte de solide, c'est que **son code place les relais en
 dernier**, ce que nous avions mesuré indépendamment. Et sa structure explique
-l'observation faite en phase B — un segment s'allumant sur les quatre digits à
-la fois — qui est le comportement attendu si la sélection valait alors zéro et
+l'observation faite en phase B (un segment s'allumant sur les quatre digits à
+la fois), qui est le comportement attendu si la sélection valait alors zéro et
 les activait tous.
 
 ### La mesure
@@ -220,7 +220,7 @@ claquent n'ajouteraient que du bruit. Avance à la main, aux boutons.
 - un **digit entier** s'allume → c'est l'octet de sélection, et le rang du bit
   donne la position du digit.
 
-### Résultat — les segments, mesurés
+### Résultat : les segments, mesurés
 
 L'hypothèse « un octet segments, un octet sélection » est **fausse**. Les huit
 segments sont répartis sur les **deux** octets, six d'un côté et deux de
@@ -231,20 +231,20 @@ Le mot d'afficheur fait seize bits : bits 0 à 7 = deuxième octet émis (trame
 
 | Segment | Bit du mot | Octet émis |
 |---|---|---|
-| A — haut | 4 | 2ᵉ, b4 |
-| B — haut droite | **12** | 1ᵉʳ, b4 |
-| C — bas droite | 7 | 2ᵉ, b7 |
-| D — bas | 3 | 2ᵉ, b3 |
-| E — bas gauche | 1 | 2ᵉ, b1 |
-| F — haut gauche | 6 | 2ᵉ, b6 |
-| G — milieu | **11** | 1ᵉʳ, b3 |
-| DP — point | 5 | 2ᵉ, b5 |
+| A, haut | 4 | 2ᵉ, b4 |
+| B, haut droite | **12** | 1ᵉʳ, b4 |
+| C, bas droite | 7 | 2ᵉ, b7 |
+| D, bas | 3 | 2ᵉ, b3 |
+| E, bas gauche | 1 | 2ᵉ, b1 |
+| F, haut gauche | 6 | 2ᵉ, b6 |
+| G, milieu | **11** | 1ᵉʳ, b3 |
+| DP, point | 5 | 2ᵉ, b5 |
 
 **Ce relevé se valide lui-même.** Deux essais ont produit des caractères
 entiers plutôt que des segments isolés : `6.` (A C D E F G + point) et `0.`
 (A B C D E F + point). Une seule affectation est compatible avec les deux, et
 c'est celle-ci. Deux lectures isolées annonçaient « haut gauche » là où le
-modèle prédit « haut droite » — les caractères composés tranchent, et la
+modèle prédit « haut droite » ; les caractères composés tranchent, et la
 confusion gauche/droite à l'œil est sans conséquence.
 
 ### La sélection des digits est active à l'état bas
@@ -252,7 +252,7 @@ confusion gauche/droite à l'œil est sans conséquence.
 C'est le point le plus déroutant du relevé, et son explication. Un segment
 seul s'allume sur **tous** les digits : sélection à zéro, les quatre digits
 sont validés. Corollaire, **un bit de sélection ne montre rien** en parcours
-positif — non qu'il soit inerte, mais parce qu'aucun segment n'est allumé pour
+positif, non qu'il soit inerte, mais parce qu'aucun segment n'est allumé pour
 le révéler.
 
 Un bit est déjà identifié par déduction : **2ᵉ octet b2 = digit 1**. C'est le
@@ -264,25 +264,25 @@ octet à `0xFF`), donc le seul où le digit 1 était éteint en plus des autres.
 D'où l'ajout d'un second sens à `pindisp`, sur K3 : **un seul 0, tout le reste
 à 1**. Tous les segments allumés, toutes les sélections inhibées, écran noir.
 Effacer un bit de sélection valide son digit, qui s'allume seul, tous segments
-dehors — un `8.` franc. Effacer un bit de segment ne change rien.
+dehors : un `8.` franc. Effacer un bit de segment ne change rien.
 
 Le négatif est au bit de sélection ce que le motif `BIT A BIT` de la phase B
 était au triplet correct : le seul essai qui produise de l'ordre plutôt que du
 bruit.
 
-### Résultat — la sélection des digits
+### Résultat : la sélection des digits
 
 | Digit | Bit du mot | Octet émis |
 |---|---|---|
-| 1 — milliers, à gauche | 2 | 2ᵉ, b2 |
+| 1, milliers, à gauche | 2 | 2ᵉ, b2 |
 | 2 | 9 | 1ᵉʳ, b1 |
 | 3 | 10 | 1ᵉʳ, b2 |
-| 4 — unités | 13 | 1ᵉʳ, b5 |
+| 4, unités | 13 | 1ᵉʳ, b5 |
 
 Quatre bits du mot ne servent à rien : 0, 8, 14 et 15.
 
 **Il n'y a pas de deux-points**, contrairement à ce que la conception initiale
-supposait — rien que des points décimaux, un par digit. Le battement de cœur
+supposait : rien que des points décimaux, un par digit. Le battement de cœur
 déménage donc sur le point du digit de gauche (§2 bis).
 
 ### Validation
@@ -295,8 +295,8 @@ phase D, ce qui vaut mieux qu'un relevé bit à bit non recoupé :
 | 2ᵉ octet `0xFF`, 1ᵉʳ octet bit 3 | A C D E F G + point, digit 1 inhibé | `6.6.6.` sur les digits 2, 3, 4 |
 | 2ᵉ octet `0xFF`, 1ᵉʳ octet bit 4 | A B C D E F + point, digit 1 inhibé | `0.0.0.` sur les digits 2, 3, 4 |
 
-Dans les deux cas, `0xFF` sur le deuxième octet arme le bit 2 — la sélection du
-digit 1 — et l'inhibe donc, ce qui explique que seuls trois digits s'allument.
+Dans les deux cas, `0xFF` sur le deuxième octet arme le bit 2 (la sélection du
+digit 1) et l'inhibe donc, ce qui explique que seuls trois digits s'allument.
 Aucun ajustement n'a été nécessaire pour faire coïncider modèle et mesure.
 
 **Le brochage de la DN22D08 est entièrement mesuré.** Plus rien n'y est
@@ -317,25 +317,25 @@ VHELIO_SKETCH=$PWD/tools/dispcheck ./tools/upload.sh /dev/ttyACM0 old
 ```
 
 `tools/dispcheck` reprend les tables de `board_io.cpp` **à l'identique**, mais
-sans dépendre du firmware — il doit rester utilisable pendant une refonte.
+sans dépendre du firmware : il doit rester utilisable pendant une refonte.
 Toute divergence entre les deux fichiers est un bug de l'un ou de l'autre.
 
 | Bouton | Effet |
 |---|---|
-| K1 (D12) | Mode — compteur, défilé, tout allumé |
-| K2 (D10) | Vitesse du compteur — 10 ms, 100 ms, 1 ms |
+| K1 (D12) | Mode : compteur, défilé, tout allumé |
+| K2 (D10) | Vitesse du compteur : 10 ms, 100 ms, 1 ms |
 | K3 (D8) | Zéros de tête, affichés ou masqués |
 | K4 (A0) | Battement de cœur, marche/arrêt |
 
 **Trois modes, qui ne prouvent pas la même chose.**
 
 - **Compteur** 0 → 9999 : les dix chiffres passent dans les quatre positions.
-  C'est le test des glyphes *et* du multiplexage — un digit mal sélectionné se
+  C'est le test des glyphes *et* du multiplexage : un digit mal sélectionné se
   voit immédiatement, le chiffre apparaît sur la mauvaise position.
 - **Défilé** : les dix chiffres, puis tous les glyphes de service. Ceux-là
   n'apparaîtraient jamais dans un compteur, or ce sont eux qui écrivent les
   codes de défaut (`F0xx` en hexadécimal, donc `A b C d E F`) et les messages
-  de la page d'événements — et un code de défaut illisible est pire
+  de la page d'événements, et un code de défaut illisible est pire
   qu'inutile.
 - **Tout allumé** : huit segments sur quatre digits, points compris. Un segment
   mort ou un digit mort ne se voit que là.
@@ -347,7 +347,7 @@ Les relais restent à zéro, ce croquis est muet.
 
 Elle venait d'un mapping très répandu sur les cartes rail DIN pour Nano
 (`OUT → D2..D9`, `IN → A0..A7`), plausible mais pas vérifié pour ce modèle. La
-spécification l'assumait explicitement et prévoyait sa vérification — c'est ce
+spécification l'assumait explicitement et prévoyait sa vérification ; c'est ce
 qui a permis de la corriger sans rien casser d'autre.
 
 Trois choses ont limité les dégâts :

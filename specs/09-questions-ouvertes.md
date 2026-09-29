@@ -1,4 +1,4 @@
-# 09 — Questions ouvertes
+# 09 : Questions ouvertes
 
 Quatorze questions ont été posées, **treize sont tranchées**. Leurs conclusions
 sont intégrées dans les documents concernés et dans le code ; le raisonnement
@@ -8,7 +8,7 @@ Q13, dans [`archives/alternatives-materiel.md`](archives/alternatives-materiel.m
 
 ---
 
-## Q10 — Circonférence de roue *(seule question encore ouverte)*
+## Q10 : Circonférence de roue *(seule question encore ouverte)*
 
 `WHEEL_CIRCUMFERENCE_MM` vaut **2200 mm** en attendant la roue réelle. Ne sert
 qu'à la formule de vitesse « période de roue » (`BAFANG_SPEED_FORMULA 1`) et à
@@ -17,7 +17,7 @@ montée, puis rejouer T2.5.
 
 ## Ce qui reste à mesurer avant de rouler
 
-Ce ne sont pas des questions de conception — les décisions sont prises — mais
+Ce ne sont pas des questions de conception (les décisions sont prises), mais
 des mesures dont dépend un câblage déjà spécifié.
 
 | À mesurer | Où | Conséquence si le résultat surprend |
@@ -36,4 +36,4 @@ des mesures dont dépend un câblage déjà spécifié.
 | Détection de rupture de lampe | Élevé | Nécessite une mesure de courant par voie |
 | Arrêt d'urgence par la broche OE | Faible | Déjà câblé et implémenté (`board::outputsEnabled`) ; il ne reste qu'à définir sa condition de déclenchement |
 | Forçage du niveau d'assistance | Élevé | Impose l'interposition UART, écartée (`05` §8) |
-| Feu stop proportionnel à la décélération | — | Impossible : un relais ne module pas |
+| Feu stop proportionnel à la décélération | Sans objet | Impossible : un relais ne module pas |

@@ -31,9 +31,9 @@ flowchart TB
   CTRL -.->|TX sniffé + GND| DN
 ```
 
-## 2. Faisceau « commandes » — vers les entrées
+## 2. Faisceau « commandes » : vers les entrées
 
-Les entrées de la carte sont **NPN** — confirmé par la fiche du constructeur :
+Les entrées de la carte sont **NPN**, ce que confirme la fiche du constructeur :
 « 8x opto-isolated inputs (low level trigger, NPN type) ». Une borne s'active
 en la fermant sur la **masse**. Tous les organes de commande sont donc de
 simples **contacts secs vers GND**, et le fil de commun du comodo va à la
@@ -56,13 +56,13 @@ unipolaire.
 
 > **Colonne « broche Nano » corrigée après mesure.** IN6 était donnée sur A0 et
 > IN7 sur D12, d'après la bibliothèque de l'IO22D08 ; la DN22D08 les porte sur
-> **D7** et **D9** (`specs/03` §2). Cela ne change rien au sertissage — on
-> câble sur les **borniers** IN1..IN8 — mais tout au dépannage au multimètre.
+> **D7** et **D9** (`specs/03` §2). Cela ne change rien au sertissage (on
+> câble sur les **borniers** IN1..IN8), mais tout au dépannage au multimètre.
 >
 > La polarité NPN est **mesurée**, pas seulement annoncée : chaque borne reliée
 > à la masse fait bien passer son chiffre à `0`. Les communs vont à GND.
 
-## 3. Faisceau « puissance » — depuis les relais
+## 3. Faisceau « puissance » : depuis les relais
 
 Les huit sorties sont des contacts secs 10 A : les charges se branchent en
 direct, sans aucun étage intermédiaire.
@@ -76,7 +76,7 @@ direct, sans aucun étage intermédiaire.
 | R5 | Feux de position arrière (les deux en parallèle) | 0,5 A |
 | R6 | Feux stop arrière (les deux en parallèle) | 0,5 A |
 | R7 | Voyant rouge de défaut (LED + résistance) | < 0,05 A |
-| R8 | Ligne frein du contrôleur — **contact sec** | < 50 mA |
+| R8 | Ligne frein du contrôleur, **contact sec** | < 50 mA |
 
 > Mesure à la pince : **12 W par phare**, et non les 60 W annoncés. R2 voit
 > 2,5 A pour un calibre de 10 A. Aucun relais externe n'est nécessaire.
@@ -86,7 +86,7 @@ pas : la distinction entre feu de position et feu stop est entièrement
 matérielle, il faut donc soit des feux à deux filaments, soit deux blocs LED
 d'intensités différentes.
 
-## 4. Coupure moteur — le point critique
+## 4. Coupure moteur : le point critique
 
 ### Le problème posé par le contacteur avant
 
@@ -96,7 +96,7 @@ ligne frein du contrôleur. Poser un second micro-rupteur sur le levier n'est
 pas praticable proprement.
 
 **Une diode résout entièrement le problème**, et elle se monte **dans le
-boîtier du calculateur** — rien à modifier au levier, aucun fil supplémentaire
+boîtier du calculateur** : rien à modifier au levier, aucun fil supplémentaire
 à faire courir jusqu'au guidon.
 
 ### Pourquoi ça marche
@@ -222,8 +222,9 @@ Ligne frein Bafang
 ```
 
 Logique obtenue : **entrée active = frein relâché**, à compenser par
-`IN_INVERT_BRAKE_REAR 1` dans `config.h` (la sortie va sur `IN5`, pas `IN4`). Une rupture de fil fait retomber
-l'entrée, donc le firmware conclut « freinage » — état sûr.
+`IN_INVERT_BRAKE_REAR 1` dans `config.h` (la sortie va sur `IN5`, pas `IN4`).
+Une rupture de fil fait retomber l'entrée, donc le firmware conclut
+« freinage » : état sûr.
 
 ## 6. Piquage UART Bafang
 
@@ -240,13 +241,13 @@ Contrôleur ── GND ────────────────> GND de 
 > **A1, et surtout pas A4 ni A5.** Ces deux-là portent l'horloge et les données
 > de la chaîne à décalage (`specs/03` §2) : y injecter le TX du contrôleur
 > ferait n'importe quoi des relais et de l'afficheur. A1 est la dernière broche
-> libre à interruption sur changement d'état — A6 et A7 sont analogiques
+> libre à interruption sur changement d'état ; A6 et A7 sont analogiques
 > seules, sans PCINT.
 
 - **Ne toucher qu'aux fils données et masse.** Le fil d'alimentation du
   connecteur afficheur porte la tension batterie sur certains modèles.
 - La broche **D13** est réservée par `SoftwareSerial` comme TX : **la laisser
-  en l'air**. C'est ce qui rend l'émission physiquement impossible — et ce qui
+  en l'air**. C'est ce qui rend l'émission physiquement impossible, et ce qui
   laisse la LED intégrée du Nano allumée en fixe, donc inutilisable comme
   témoin.
 - Utiliser une dérivation en Y sur un connecteur au format d'origine plutôt
@@ -259,14 +260,14 @@ Contrôleur ── GND ────────────────> GND de 
 2. Boîtier calculateur, carte DN22D08, alimentation 12 V seule. Test T2.2.
 3. **Croquis `pinscan` d'abord** : chaîne de registres, ordre des relais,
    entrées **et leur polarité**, boutons. Rien d'autre ne se câble avant
-   d'avoir validé cette étape — c'est elle qui dit si les communs du faisceau
+   d'avoir validé cette étape : c'est elle qui dit si les communs du faisceau
    vont à la masse ou au +12 V.
 4. Faisceau commandes (entrées), commun à la masse.
 5. Éclairage, un circuit à la fois, directement sur les relais. Mesurer le
    courant des phares : il décide de la présence ou non d'un relais externe.
 6. *(Le klaxon est autonome : rien à câbler. Ni fusible F8, ni condensateur
-   tampon — c'était la seule charge qui justifiait ce dernier.)*
-7. Contacteurs de frein — **d'abord** vérifier que le connecteur Bafang
+   tampon : c'était la seule charge qui justifiait ce dernier.)*
+7. Contacteurs de frein : **d'abord** vérifier que le connecteur Bafang
    d'origine coupe bien, Arduino débranché (T2.4), **ensuite** seulement S2 et
    les entrées de lecture, **enfin** la dérivation en Y de R8.
 8. Piquage UART en dernier : c'est la seule fonction dont on peut se passer.

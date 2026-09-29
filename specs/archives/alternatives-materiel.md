@@ -1,4 +1,4 @@
-# 10 — Faut-il changer de matériel ?
+# 10 : Faut-il changer de matériel ?
 
 Réponse à la question posée en marge de Q2 : le couple Arduino Nano + DN22D08
 impose des fonctionnalités dégradées (aucune modulation, R3/R4 en usure
@@ -25,7 +25,7 @@ la même gravité.
 | **Tout est saturé** | **Réelle** | 8 entrées sur 8, 8 relais sur 8, un seul UART. La voie libérée par le klaxon autonome a été réaffectée au voyant de défaut. Aucune fonction nouvelle sans seconde carte |
 
 Le premier grief est cosmétique. Le deuxième est un problème de maintenance
-dans dix ans. **Seul le troisième est structurel** — et il ne devient gênant
+dans dix ans. **Seul le troisième est structurel**, et il ne devient gênant
 que le jour où l'on veut ajouter quelque chose.
 
 S'y ajoute une limite découverte en cours de route, qui n'a rien à voir avec
@@ -43,7 +43,7 @@ Prix indicatifs, ordres de grandeur, hors port.
 | | Actuel | ESP32 rail DIN | Mega + modules | Automate industriel |
 |---|---|---|---|---|
 | **Exemple** | Nano + DN22D08 | Kincony KC868-A8 ou A16 | Mega 2560 + carte 8 relais + carte 8 optos | Arduino Opta, Controllino |
-| **Prix** | ~25 € *(payé)* | 50–70 € | 30–40 € | 150–300 € |
+| **Prix** | ~25 € *(payé)* | 50 à 70 € | 30 à 40 € | 150 à 300 € |
 | **Rail DIN, borniers à vis** | oui | oui | non | oui |
 | **Sorties** | 8 relais 10 A | 8 ou 16 relais | 8 relais, câblage à faire | 4 à 10 relais |
 | **Entrées optocouplées** | 8 | 8 ou 16 | 8, câblage à faire | 8 à 16 |
@@ -60,14 +60,14 @@ Prix indicatifs, ordres de grandeur, hors port.
 problème découvert en Q12 : avec le WiFi ou le Bluetooth, **le téléphone
 devient le tableau de bord**, et l'afficheur enfermé sous la coque cesse
 d'être un problème. L'OTA supprime en prime l'ouverture de la coque à chaque
-correction de firmware — ce qui, sur un véhicule caréné, n'est pas un détail.
+correction de firmware, ce qui, sur un véhicule caréné, n'est pas un détail.
 Trois UART matériels permettraient d'écouter le Bafang **et** le MPPT
 VE.Direct simultanément, ce qui est aujourd'hui impossible.
 
 À porter au passif, honnêtement :
 
 - Les sorties restent des **relais**. Le PWM de l'ESP32 ne rétablit la
-  modulation que si l'on ajoute un étage MOSFET — donc le grief n°1 n'est
+  modulation que si l'on ajoute un étage MOSFET ; le grief n°1 n'est
   qu'à moitié réglé.
 - Logique **3,3 V**, moins tolérante que le 5 V de l'AVR.
 - Un ESP32 est plus fragile qu'un ATmega328P : brownout au démarrage,
@@ -84,10 +84,10 @@ modules reliés par des fils Dupont. Sur un véhicule qui vibre, c'est une
 régression de fiabilité qui annule tout le reste. **Écarté.**
 
 **Automate industriel (Opta, Controllino).** Qualité de construction sans
-comparaison, alimentation 12–24 V native, borniers sérieux, souvent certifiés.
+comparaison, alimentation 12 à 24 V native, borniers sérieux, souvent certifiés.
 C'est ce qu'on choisirait pour une petite série. Deux obstacles ici : le prix,
 et surtout le fait qu'aucun modèle d'entrée de gamme n'offre **huit** sorties
-relais — il faut un module d'extension, et la facture double. **Écarté pour un
+relais : il faut un module d'extension, et la facture double. **Écarté pour un
 exemplaire unique**, à reconsidérer en cas de série.
 
 ---
@@ -124,13 +124,13 @@ au matériel AVR :
 **Tout le reste est du C++ ordinaire et se porte tel quel** : `brakes`,
 `lights`, `turnsignals`, `horn`, `inputs`, `debounce`, `telemetry`, `display`,
 `bafang`, `wheelspeed`. La logique métier, les machines à états, les temps de
-maintien, les anti-rebonds, le décodage Bafang — rien de tout cela ne serait à
+maintien, les anti-rebonds, le décodage Bafang : rien de tout cela ne serait à
 refaire.
 
 C'est exactement ce qui s'est déjà produit lors de la refonte de la v0.1 vers
 la v0.2, quand la carte s'est révélée être à relais : la couche `board_io` a
 absorbé le changement complet d'architecture sans qu'aucun module métier ne
-bouge. **La migration n'est donc pas un argument contre le changement** — elle
+bouge. **La migration n'est donc pas un argument contre le changement** : elle
 représente deux soirées, pas une réécriture.
 
 ---
@@ -156,7 +156,7 @@ En attendant, deux composants à moins de 5 € valent mieux qu'un changement de
 carte :
 
 - **la diode D1 (1N4148)** sur le contacteur de frein avant
-  (`hardware/cablage.md` §4) — elle rétablit une coupure d'assistance
+  (`hardware/cablage.md` §4) : elle rétablit une coupure d'assistance
   indépendante du firmware, et c'est la seule modification du projet qui touche
   à la sécurité ;
 - **le micro-rupteur S2** sur le levier de frein arrière, sans lequel le feu

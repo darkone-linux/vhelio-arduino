@@ -1,4 +1,4 @@
-# 02 — Machines à états
+# 02 : Machines à états
 
 Quatre automates indépendants, réévalués à chaque tour de boucle. Aucun ne
 bloque, aucun n'attend.
@@ -54,13 +54,13 @@ tronqué à la bascule gauche / droite.
 ### Retour sonore
 
 Aucun buzzer. Les clignotants sont portés par R3 et R4, dont le claquement
-mécanique à 1,33 Hz **est** le retour sonore — c'est le bruit d'un relais de
+mécanique à 1,33 Hz **est** le retour sonore : c'est le bruit d'un relais de
 clignotant classique. Une sortie et un composant économisés, et le retour ne
 peut pas tomber en panne indépendamment du clignotant qu'il annonce.
 
 ### Rappel d'oubli (F-3.7)
 
-Un compteur démarre à l'entrée dans `LEFT` ou `RIGHT` — pas en `HAZARD`, qui
+Un compteur démarre à l'entrée dans `LEFT` ou `RIGHT`, pas en `HAZARD`, qui
 est intentionnellement durable. Au-delà de **45 s** ou **300 m** parcourus (si
 la vitesse est valide), le rappel est levé. Les clignotants continuent
 normalement ; seul leur **rythme** change.
@@ -75,8 +75,8 @@ l'emprunte, en jouant sur le **rapport cyclique**.
 | **Rappel** | **750 ms** *(inchangée)* | **200 ms** | 27 % | **80 c/min** |
 
 **La période ne bouge pas.** Le claquement passe d'un rythme régulier à un
-rythme syncopé — nettement reconnaissable à l'oreille — alors que la cadence
-reste dans la plage réglementaire 60–120 c/min. **C'est précisément pourquoi le
+rythme syncopé, nettement reconnaissable à l'oreille, alors que la cadence
+reste dans la plage réglementaire de 60 à 120 c/min. **C'est précisément pourquoi le
 rappel n'accélère pas la cadence**, ce qui aurait été la solution automobile
 habituelle : à 2,7 Hz on sortirait de la plage.
 
@@ -102,8 +102,8 @@ unipolaire du levier avant sur `IN4`, le micro-rupteur S2 du levier arrière sur
 forcée inactive par le firmware.
 
 > Rappel de `07` §2 : cet automate pilote R8, qui est un chemin **redondant**.
-> Aux deux freins, une coupure d'assistance existe sans passer par le firmware
-> — contacteur Bafang d'origine à l'arrière, diode D1 à l'avant.
+> Aux deux freins, une coupure d'assistance existe sans passer par le
+> firmware : contacteur Bafang d'origine à l'arrière, diode D1 à l'avant.
 
 ### Automate de coupure moteur
 
@@ -138,7 +138,7 @@ vraisemblablement collé.
 
 ---
 
-## 2.3 Feux rouges arrière — deux circuits
+## 2.3 Feux rouges arrière : deux circuits
 
 Les sorties sont des relais : aucune modulation n'est possible. Les deux
 fonctions occupent donc **deux relais et deux circuits distincts**, comme un
@@ -155,7 +155,7 @@ feu automobile à deux filaments.
 
 Il n'y a plus d'arbitrage : les deux sont indépendants et peuvent être allumés
 simultanément. La différenciation visuelle repose donc entièrement sur le
-**matériel** — le feu stop doit être nettement plus lumineux que le feu de
+**matériel** : le feu stop doit être nettement plus lumineux que le feu de
 position. À valider au test T3.3.
 
 ---
@@ -174,13 +174,13 @@ attend l'ouverture de la coque.
 |---|---|---|---|
 | 0 | Conflit clignotants | **oui** | La signalisation de direction est perdue |
 | 1 | Voie auxiliaire bloquée | oui | Sans objet tant qu'il n'y a pas de klaxon |
-| 2 | Lien Bafang perdu | **non** | Confort, pas sécurité — voir ci-dessous |
+| 2 | Lien Bafang perdu | **non** | Confort, pas sécurité ; voir ci-dessous |
 | 3 | Frein collé | **oui** | Assistance coupée en continu, stop allumé en permanence |
 | 4 | Cycle lent | non | Information de maintenance |
 | 5 | Reset chien de garde | **oui** | Le firmware s'est bloqué en roulant : sorties figées ~1 s, puis redémarrage |
 | 6 | Un frein jamais vu en 2 km | **oui** | Fil de contacteur probablement coupé : le feu stop ne fonctionne pas à ce frein |
 
-> **L'exclusion du lien Bafang est la décision de conception de ce module** —
+> **L'exclusion du lien Bafang est la décision de conception de ce module** :
 > le principe P2 appliqué. Afficheur débranché, bus muet ou trames non
 > reconnues, le voyant resterait allumé en permanence ; et un voyant toujours
 > allumé est un voyant qu'on cesse de regarder, ce qui vaut moins que pas de
@@ -192,7 +192,7 @@ attend l'ouverture de la coque.
 
 ### Allumage fixe, jamais clignotant
 
-Un relais n'est pas fait pour battre — c'est déjà ce qui fait de R3 et R4 les
+Un relais n'est pas fait pour battre : c'est déjà ce qui fait de R3 et R4 les
 pièces d'usure du montage. La discrimination entre défauts se lit sur
 l'afficheur, coque ouverte.
 
@@ -222,7 +222,7 @@ puis résolu rallumera le voyant s'il se reproduit.
 `IN3` est le **seul organe que le conducteur peut actionner en roulant** en
 dehors des commandes d'éclairage. Il ne touche que `diag` : aucun effet sur les
 feux, les freins ou la coupure moteur. Ce n'est pas un hasard de conception
-mais une exigence (F-4.8), vérifiable par revue de code — `acknowledge()`
+mais une exigence (F-4.8), vérifiable par revue de code : `acknowledge()`
 n'écrit que sur `g_faults` et `g_acked`.
 
 ---
@@ -234,8 +234,8 @@ n'écrit que sur `g_faults` et `g_acked`.
 | `LINK_DOWN` | aucune trame valide depuis > 2 s | `speedValid = false`, télémétrie figée à 0 |
 | `LINK_UP` | trames valides reçues | télémétrie exploitable |
 
-Le passage à `LINK_DOWN` lève `FLT_BAFANG_LINK` — journal série et page
-« défauts » — mais **ne modifie aucune sortie** et **n'allume pas le voyant**
+Le passage à `LINK_DOWN` lève `FLT_BAFANG_LINK` (journal série et page
+« défauts »), mais **ne modifie aucune sortie** et **n'allume pas le voyant**
 (P2).
 
 ---
@@ -243,7 +243,7 @@ Le passage à `LINK_DOWN` lève `FLT_BAFANG_LINK` — journal série et page
 ## 2.6 Drapeaux de défaut
 
 Un mot de 8 bits, publié au journal série (`flt=0x..`), lisible sur la page
-« défauts » de l'afficheur, et signalé — pour les bits du masque — par le
+« défauts » de l'afficheur, et signalé, pour les bits du masque, par le
 voyant R7. Le **point décimal du digit de gauche** bat à ~4 Hz au lieu de 1 Hz
 dès qu'un défaut quelconque est actif ; la LED D13 du Nano n'est pas
 utilisable comme témoin (`03` §2).
@@ -251,12 +251,12 @@ utilisable comme témoin (`03` §2).
 | Bit | Nom | Cause |
 |---|---|---|
 | 0 | `FLT_TURN_CONFLICT` | clignotants gauche et droite simultanés |
-| 1 | `FLT_HORN_STUCK` | voie auxiliaire bloquée > 10 s — jamais levé tant que `HORN_ENABLE` vaut 0 |
+| 1 | `FLT_HORN_STUCK` | voie auxiliaire bloquée > 10 s ; jamais levé tant que `HORN_ENABLE` vaut 0 |
 | 2 | `FLT_BAFANG_LINK` | pas de trame valide depuis 2 s |
 | 3 | `FLT_BRAKE_STUCK` | freinage maintenu > 120 s (contacteur collé) |
-| 4 | `FLT_LOOP_SLOW` | temps de cycle > 10 ms observé — **mémorisé** |
-| 5 | `FLT_WDT_RESET` | le dernier reset provient du chien de garde — **mémorisé** |
-| 6 | `FLT_BRAKE_NEVER` | plus de 2 km parcourus sans avoir vu active **chaque** entrée frein câblée — avant et arrière en variante 2. Un trajet de 2 km sans toucher l'un des freins le lève aussi |
+| 4 | `FLT_LOOP_SLOW` | temps de cycle > 10 ms observé ; **mémorisé** |
+| 5 | `FLT_WDT_RESET` | le dernier reset provient du chien de garde ; **mémorisé** |
+| 6 | `FLT_BRAKE_NEVER` | plus de 2 km parcourus sans avoir vu active **chaque** entrée frein câblée : avant et arrière en variante 2. Un trajet de 2 km sans toucher l'un des freins le lève aussi |
 
 Les deux défauts **mémorisés** sont des événements, pas des états : ils
 survivent jusqu'à l'acquittement ou la coupure de l'alimentation. Les cinq

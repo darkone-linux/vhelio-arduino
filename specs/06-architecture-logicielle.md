@@ -1,11 +1,11 @@
-# 06 — Architecture logicielle
+# 06 : Architecture logicielle
 
 ## 1. Modèle d'exécution
 
 Ordonnanceur coopératif à **balayage complet** : à chaque tour de boucle, tous
 les modules sont réévalués à partir de l'instant courant `now = millis()`.
 Aucune tâche n'est sautée, aucune n'est planifiée. Le budget de calcul est
-ridiculement large — quelques centaines de microsecondes par tour — et ce
+très large (quelques centaines de microsecondes par tour) et ce
 modèle élimine toute une classe de bugs de synchronisation.
 
 Règles, toutes vérifiables par revue :
@@ -17,7 +17,7 @@ Règles, toutes vérifiables par revue :
 - Les comparaisons de temps utilisent la **soustraction non signée**, correcte
   au repliement de `millis()` à 49,7 jours.
 - Aucune allocation dynamique, aucun `String`, aucun `float` dans les chemins
-  fréquents — arithmétique entière en dixièmes d'unité (NF-2).
+  fréquents : arithmétique entière en dixièmes d'unité (NF-2).
 
 ## 2. Ordre d'appel et dépendances
 
@@ -62,22 +62,22 @@ qu'il n'a pas eu lieu, aucun `setOutput()` du tour n'a bougé un relais.
 | Module | Possède | Lit |
 |---|---|---|
 | `board_io` | l'accès matériel : relais, entrées, boutons, afficheur | `pins.h`, `config.h` |
-| `debounce` | la classe `Debouncer` | — |
+| `debounce` | la classe `Debouncer` | rien |
 | `inputs` | les 8 états débouncés + fronts | `board_io`, `simconsole` |
 | `brakes` | `OUT_MOTOR_CUT` | `inputs` |
 | `turnsignals` | `OUT_TURN_LEFT`, `OUT_TURN_RIGHT` | `inputs`, `telemetry` |
 | `lights` | `OUT_PARK_FRONT`, `OUT_MAIN`, `OUT_TAIL_PARK`, `OUT_TAIL_STOP` | `inputs`, `brakes` |
-| `horn` | — **désactivé** (`HORN_ENABLE 0`) ; la voie IN3/R7 appartient à `diag` | `inputs` |
+| `horn` | rien, **désactivé** (`HORN_ENABLE 0`) ; la voie IN3/R7 appartient à `diag` | `inputs` |
 | `display` | les 4 **digits** de l'afficheur | `telemetry`, `bafang`, `diag`, `lights`, `brakes`, `turnsignals`, `inputs` |
-| `bafang` | le port logiciel, le décodeur | — |
+| `bafang` | le port logiciel, le décodeur | rien |
 | `telemetry` | vitesse consolidée, odomètre | `bafang`, `wheelspeed` |
 | `diag` | `OUT_FAULT`, le **point décimal de gauche**, le journal, les drapeaux | tous |
-| `simconsole` | l'injection des entrées au clavier — **banc seul**, ne compile rien si `SIM_INPUTS 0` | la console série |
+| `simconsole` | l'injection des entrées au clavier, **banc seul** ; ne compile rien si `SIM_INPUTS 0` | la console série |
 
 **Une sortie, un propriétaire.** Aucune sortie n'est écrite par deux modules.
 Les deux relais des feux arrière appartiennent à `lights` : `brakes` lui
 *demande* le stop, il ne le pilote pas. L'afficheur est coupé en deux
-propriétaires disjoints — `display` possède les digits, `diag` possède le point
+propriétaires disjoints : `display` possède les digits, `diag` possède le point
 décimal du digit de gauche (l'afficheur n'a pas de deux-points).
 
 **`diag` va chercher les défauts** auprès des modules plutôt que d'être
@@ -88,7 +88,7 @@ dépendances acyclique.
 
 ```
 firmware/vhelio/
-├── vhelio.ino          VIDE de code — point d'entrée de croquis Arduino
+├── vhelio.ino          VIDE de code, point d'entrée de croquis Arduino
 └── src/
     ├── scheduler.cpp   setup() / loop(), ordre d'appel des modules
     ├── config.h        tous les réglages, toutes les options de compilation
@@ -99,13 +99,13 @@ firmware/vhelio/
     ├── brakes.h/.cpp   automate freinage + coupure moteur
     ├── turnsignals.h/.cpp automate clignotants + détresse + rappel d'oubli
     ├── lights.h/.cpp   éclairage avant + deux circuits arrière
-    ├── horn.h/.cpp     automate klaxon — désactivé, la voie IN3/R7 est au voyant
+    ├── horn.h/.cpp     automate klaxon, désactivé : la voie IN3/R7 est au voyant
     ├── display.h/.cpp  pages de l'afficheur 4 digits
     ├── bafang.h/.cpp   écoute passive + décodage
     ├── wheelspeed.h/.cpp capteur de roue par scrutation (option)
     ├── telemetry.h/.cpp vitesse consolidée, odomètre
     ├── diag.h/.cpp     autotest, voyant, journal, défauts
-    └── simconsole.h/.cpp entrées simulées au clavier — banc d'essai seul
+    └── simconsole.h/.cpp entrées simulées au clavier, banc d'essai seul
 ```
 
 `src/` est compilé récursivement par `arduino-cli` : de vrais modules sans
@@ -119,7 +119,7 @@ Cette étape est fragile dès qu'on sort de la chaîne d'outils officielle :
 
 | ctags utilisé | Résultat |
 |---|---|
-| Celui d'Arduino | Correct — mais lié dynamiquement, inutilisable sur NixOS |
+| Celui d'Arduino | Correct, mais lié dynamiquement, inutilisable sur NixOS |
 | Exuberant Ctags (nixpkgs) | Prototypes sans type de retour → **erreur de compilation** |
 | Universal Ctags | Lignes décalées de 1 → prototypes insérés **à l'intérieur** de `setup()`, qui s'appelle alors lui-même. **Ça compile, et le firmware part en récursion au démarrage** |
 
@@ -154,14 +154,14 @@ deux sont émis ensemble.
 
 ### Coût du rafraîchissement
 
-`shiftOut()` coûte ~5 µs par bit, soit ~120 µs pour les 24 bits d'une trame —
+`shiftOut()` coûte ~5 µs par bit, soit ~120 µs pour les 24 bits d'une trame ;
 appelé à chaque tour, ce serait le poste de calcul dominant. `board_io` utilise
 un **accès direct aux ports** (les trois lignes sont sur PORTC), qui ramène le
 coût à ~8 µs.
 
 > **Effet de bord à connaître** : `SoftwareSerial` bloque les interruptions
 > ~8,3 ms pendant la réception d'un octet Bafang. La boucle ne tourne pas, donc
-> un digit reste allumé plus longtemps que les autres — léger scintillement de
+> un digit reste allumé plus longtemps que les autres : léger scintillement de
 > l'afficheur toutes les ~200 ms. Cosmétique, sans effet sur les relais, et
 > supprimé par `BAFANG_ENABLE 0`.
 
@@ -175,7 +175,7 @@ Instances : **huit dans `inputs`** (15 ms pour les freins, 20 ms pour
 l'acquittement, 30 ms pour le comodo), plus une dans `display` et une dans
 `diag` pour des boutons qui ne passent pas par `inputs`.
 
-Ce choix — filtrage par stabilité plutôt que temporisation de sortie —
+Ce choix, filtrage par stabilité plutôt que temporisation de sortie,
 introduit un retard égal à `stableMs`, explicitement pris en compte dans le
 budget de F-2.2 : 15 ms d'anti-rebond + 10 ms de cycle + ~10 ms de collage du
 relais, pour 50 ms exigés.
@@ -183,7 +183,7 @@ relais, pour 50 ms exigés.
 ## 7. Budget mémoire
 
 Mesuré avec `tools/check-variants.sh` (avr-gcc 15.3 de la révision de nixpkgs
-épinglée dans `tools/build-nix.sh`, `-Os -flto`, ATmega328P —
+épinglée dans `tools/build-nix.sh`, `-Os -flto`, ATmega328P,
 30 720 o de flash utilisables après bootloader, 2 048 o de RAM) :
 
 | Configuration | Flash | |
@@ -202,10 +202,10 @@ Mesuré avec `tools/check-variants.sh` (avr-gcc 15.3 de la révision de nixpkgs
 | Sans bus Bafang, vitesse par capteur de roue | 7 948 o | 25 % |
 | Production silencieuse (ni journal, ni autotest, ni WDT) | 6 950 o | 22 % |
 | Minimal (ni afficheur, ni bus, ni journal) | 3 668 o | 11 % |
-| *Banc d'essai — entrées simulées à la console* | *10 846 o* | *35 %* |
+| *Banc d'essai, entrées simulées à la console* | *10 846 o* | *35 %* |
 
 **RAM en configuration par défaut : 708 o, soit 34 %.** À `SIM_INPUTS 0`, le
-firmware de banc coûte **zéro** — l'empreinte est identique à l'octet près.
+firmware de banc coûte **zéro** : l'empreinte est identique à l'octet près.
 
 Cible NF-1 (< 24 ko flash / < 1,4 ko RAM) tenue avec une marge de plus du
 double. Les chaînes du journal sont en flash via `F()` : c'est ce qui maintient
@@ -216,7 +216,7 @@ Le balayage de ces quinze variantes est automatisé par
 le compilateur et resterait cassée sans qu'on le sache.
 
 **Temps de cycle mesuré à vide : 265 µs**, pointe à 6,7 ms sur la seconde où le
-journal série est émis — c'est de loin le plus long traitement du cycle. Seuil
+journal série est émis ; c'est de loin le plus long traitement du cycle. Seuil
 de défaut à 10 ms (`LOOP_SLOW_US`).
 
 Cette pointe venait de la ligne de journal elle-même : ~120 caractères, deux
@@ -239,7 +239,7 @@ elles sont incompatibles ou dangereuses.
 | `MAIN_REQUIRES_PARK` | 0 | Le phare exige la veilleuse (0 = jamais bloqué) |
 | `MAIN_KEEPS_PARK` | 1 | La veilleuse reste allumée avec le phare |
 | `TAIL_ALWAYS_ON` | 0 | Feu de position arrière permanent (feux de jour) |
-| `BRAKE_FLASH_ENABLE` | 0 | Flash d'attaque du feu stop — non conforme, et usant pour le relais |
+| `BRAKE_FLASH_ENABLE` | 0 | Flash d'attaque du feu stop : non conforme, et usant pour le relais |
 | `BLINK_REMINDER_ON_MS` | 200 | Phase allumée pendant le rappel d'oubli ; 0 = rappel muet |
 | `FAULT_LAMP_ENABLE` | 1 | Voyant de défaut sur R7 + acquittement sur IN3 |
 | `FAULT_LAMP_MASK` | `0x6B` | Quels défauts allument le voyant. Exclut le lien Bafang (P2), contrôlé par `static_assert` |
