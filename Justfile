@@ -4,6 +4,7 @@
 #   just build             compile le firmware de route
 #   just check             balaye les quinze variantes de config.h (avant commit)
 #   just package           assemble dist/vhelio-X.Y.Z.zip (même paquet que la CI)
+#   just clean             efface .build/ et dist/ (garde la chaine .arduino/)
 #   just release [niveau]  publie une version : changelog, commit, etiquette, poussee
 #
 # `just release` attend patch, minor, major ou une version explicite X.Y.Z :
@@ -31,6 +32,10 @@ check:
 # Assemble le paquet de la version inscrite a config.h.
 package *args="":
     ./tools/package.sh {{ args }}
+
+# Efface les binaires et paquets ; .arduino/ reste, sinon il faudrait relancer setup.sh.
+clean:
+    rm -rf .build dist
 
 # Publie une version : bump, changelog, commit, etiquette vX.Y.Z, poussee.
 release niveau="patch" *args="":
